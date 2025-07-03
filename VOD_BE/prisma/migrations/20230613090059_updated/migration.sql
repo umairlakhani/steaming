@@ -1,0 +1,18 @@
+-- AlterTable
+ALTER TABLE "AdSpeed" ADD COLUMN     "adSpeedAdId" TEXT NOT NULL DEFAULT '';
+
+-- CreateTable
+CREATE TABLE "Zones" (
+    "id" SERIAL NOT NULL,
+    "userId" INTEGER NOT NULL,
+    "zoneRes" TEXT NOT NULL DEFAULT '',
+    "adSpeedZoneId" TEXT NOT NULL DEFAULT '',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "deleted" BOOLEAN NOT NULL DEFAULT false,
+    "availableAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Zones_pkey" PRIMARY KEY ("id")
+);
+
+-- AddForeignKey
+ALTER TABLE "Zones" ADD CONSTRAINT "Zones_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "AdVideo" ALTER COLUMN "length" SET DEFAULT '00:00:00',
+ALTER COLUMN "length" SET DATA TYPE TEXT;

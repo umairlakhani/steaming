@@ -1,0 +1,29 @@
+<input class="hidden" type="checkbox" id="use_video" checked="1" placeholder="video" #use_video/>
+<input class="hidden" type="checkbox" id="use_audio" checked="1" placeholder="audio" #use_audio/>
+<div class="btn-main">
+  <button type="button" style="cursor: no-drop;" class="start-media-btn hidden" id="start_video_button" (click)="startMedia();" #start_video_button>Start Media</button>
+  <button class="stop-media-btn hidden" id="stop_video_button" (click)="stopMedia();" #stop_video_button>Stop Media</button>
+ 
+  <button class="disconnect-btn hidden" id="disconnect_button" (click)="disconnect();" #disconnect_button>Disconnect</button>
+
+</div>
+<div>
+  <div class="info-text">
+    <h3 class="white">Viewers Connected:{{connectedUsers}}</h3>
+    <h3 class="white">You can record videos upto: {{(activePlan.storageLeft/1024).toFixed(2)}} gb</h3>
+  </div>
+  <h3>{{error}}</h3>
+  <video id="local_video" autoplay style="border: 1px solid black;" #local_video></video>
+  <span id="state_span" #state_span></span>
+</div>
+<div class="white" *ngIf="canRecord" id="sharelink">Shareable link: {{link}}/#/viewer/{{streamId}}</div>
+<div class="btn-stream-main" >
+  <button (click)="enableMedia()" class="enable-btn" id="camera_button" #camera_button>Enable Camera</button>
+  <button class="publish-btn" id="publish_button" (click)="apiCall(); " #publish_button>Publish</button>
+
+  <button class="start-rec-btn" [class.nodrop]="!published || !socket || storageEnd || !canRecord" (click)="start_recording()">Start Recording</button>
+  <!-- <button (click)="stop_recording()">Stop Recording</button> -->
+  <button [class.nodrop]="!published" class="end-btn" (click)="stream_end()">End Live Stream</button>
+</div>
+
+

@@ -1,0 +1,469 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model StreamKey {
+  id            Int             @id @default(autoincrement())
+  userId        Int             @default(0)
+  streamKey     String          @unique
+  isActive      Boolean         @default(false)
+  recorded      Boolean         @default(false)
+  isDeleted     Boolean         @default(false)
+  createdAt     DateTime        @default(now())
+  title         String
+  description   String
+  LiveStreaming LiveStreaming[] @relation("owner")
+  user          User            @relation("owner", fields: [userId], references: [id])
+}
+
+model User {
+  id                                 Int              @id @default(autoincrement())
+  email                              String           @unique
+  emailVerified                      Boolean          @default(false)
+  emailVerificationNumber            Int
+  emailVerificationNumberGeneratedAt DateTime         @default(now())
+  name                               String
+  surname                            String
+  dateOfBirth                        DateTime
+  password                           String           @db.VarChar(100)
+  whitelisted                        Boolean          @default(true)
+  account_active                     Boolean          @default(true)
+  profile_image                      String?          @default("")
+  type                               UserType         @default(AUTHOR)
+  createdAt                          DateTime         @default(now())
+  city                               String           @default("")
+  company_name                       String           @default("")
+  country                            String           @default("")
+  invoice_address                    String           @default("")
+  national_id                        String           @default("")
+  plan_selected                      Int              @default(0)
+  postal_code                        String           @default("")
+  province                           String           @default("")
+  vat_number                         String           @default("")
+  passwordUpdateToken                Int              @default(0)
+  bucketId                           String           @default("")
+  stripeCustomerId                   String           @default("")
+  premiumUser                        Boolean          @default(false)
+  adSpeed                            AdSpeed[]        @relation("owner")
+  adVideos                           AdVideo[]        @relation("owner")
+  ownedChannel                       Channel[]        @relation("owner")
+  editors                            Editors[]
+  liveStreaming                      LiveStreaming[]  @relation("owner")
+  schedules                          Schedule[]
+  schedulesVideo                     ScheduleVideo[]  @relation("owner")
+  streamKey                          StreamKey[]      @relation("owner")
+  subscriptions                      Subscriptions[]  @relation("owner")
+  usageTable                         UsageTable[]     @relation("owner")
+  userBandwidth                      UserBandwidth[]  @relation("owner")
+  videos                             Video[]          @relation("owner")
+  videoAnalytics                     VideoAnalytics[] @relation("owner")
+  zones                              Zones[]          @relation("owner")
+}
+
+model UsageTable {
+  id             Int            @id @default(autoincrement())
+  userId         Int
+  bucketId       String         @default("")
+  total          BigInt?        @default(0)
+  used           Float          @default(0.0)
+  left           Float          @default(0.0)
+  createdAt      DateTime       @default(now())
+  from           BigInt?
+  to             BigInt?
+  subscriptionId Int?
+  subscription   Subscriptions? @relation("owner", fields: [subscriptionId], references: [id])
+  user           User           @relation("owner", fields: [userId], references: [id])
+}
+
+model UserBandwidth {
+  id             Int            @id @default(autoincrement())
+  userId         Int
+  from           BigInt?
+  to             BigInt?
+  subscriptionId Int?
+  total          BigInt?        @default(0)
+  used           Float          @default(0.0)
+  left           Float          @default(0.0)
+  createdAt      DateTime       @default(now())
+  subscription   Subscriptions? @relation("owner", fields: [subscriptionId], references: [id])
+  user           User           @relation("owner", fields: [userId], references: [id])
+}
+
+model VideoAnalytics {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  videoId   String
+  bandwidth Float?   @default(0)
+  /// Stores the video's currentTime() value in seconds (including fractional seconds)
+  /// Uses PostgreSQL's default Decimal precision to store exact values
+  playTime  Decimal? @default(0)
+  platform  String   @default("")
+  createdAt DateTime @default(now())
+  latitude  Float?
+  longitude Float?
+  user      User     @relation("owner", fields: [userId], references: [id])
+  video     Video    @relation("owner", fields: [videoId], references: [videoId])
+}
+
+model SubscriptionPlans {
+  id              Int               @id @default(autoincrement())
+  price           Int               @default(0)
+  createdAt       DateTime          @default(now())
+  features        String            @default("")
+  stripePriceId   String
+  stripeProductId String
+  bandwidth       Int               @default(0)
+  storage         Int               @default(0)
+  name            SubscriptionNames @default(Basic)
+  discount        Int?
+  type            SubscriptionType  @default(monthly)
+  subscriptions   Subscriptions[]   @relation("owner")
+}
+
+model Subscriptions {
+  id                   Int                @id @default(autoincrement())
+  userId               Int
+  subscriptionPlanId   Int
+  stripeCustomerId     String
+  bucketId             String
+  status               SubscriptionStatus @default(active)
+  createdAt            DateTime           @default(now())
+  recur                Boolean            @default(true)
+  stripeSubscriptionId String             @default("")
+  updatedAt            DateTime           @default(now())
+  willEndAt            BigInt?
+  paymentTable         PaymentTable[]     @relation("owner")
+  subscriptionPlan     SubscriptionPlans  @relation("owner", fields: [subscriptionPlanId], references: [id])
+  user                 User               @relation("owner", fields: [userId], references: [id])
+  usageTable           UsageTable[]       @relation("owner")
+  userBandwidth        UserBandwidth[]    @relation("owner")
+}
+
+model PaymentTable {
+  id                    Int           @id @default(autoincrement())
+  invoiceId             String
+  stripePaymentStatus   String
+  paymentIntentId       String
+  stripeRecordCreatedAt String?
+  amount                Int
+  subscriptionId        Int
+  status                PaymentStatus @default(paid)
+  createdAt             DateTime      @default(now())
+  subscription          Subscriptions @relation("owner", fields: [subscriptionId], references: [id])
+}
+
+model VideoDetail {
+  id         Int    @id @default(autoincrement())
+  videoId    String
+  resolution String
+  size       Int
+  video      Video  @relation("owner", fields: [videoId], references: [videoId])
+}
+
+model Video {
+  id             Int                 @id @default(autoincrement())
+  userId         Int
+  Title          String
+  profile_image  String              @default("")
+  description    String
+  length         String              @default("00:00:00")
+  createdAt      DateTime            @default(now())
+  availableAt    DateTime            @default(now())
+  archived       Boolean             @default(true)
+  deleted        Boolean             @default(false)
+  size           Int
+  videoId        String              @unique
+  processing     Boolean             @default(true)
+  failed         Boolean             @default(true)
+  published      Boolean             @default(false)
+  videoUrl       String              @default("")
+  type           VideoType           @default(PUBLIC)
+  thumbnail      String              @default("")
+  url360P        String              @default("")
+  url480P        String              @default("")
+  url720P        String              @default("")
+  url1080P       String              @default("")
+  midRoll        Boolean             @default(false)
+  midRollConfig  Json?
+  postRoll       Boolean             @default(false)
+  preRoll        Boolean             @default(false)
+  recorded       Boolean             @default(false)
+  schedules      Schedule[]
+  videoData      ScheduleVideoData[]
+  user           User                @relation("owner", fields: [userId], references: [id])
+  videoAnalytics VideoAnalytics[]    @relation("owner")
+  videoDetail    VideoDetail[]       @relation("owner")
+  channelId   Int?  // Nullable to allow existing videos without a channel
+  channel     Channel? @relation("ChannelVideos", fields: [channelId], references: [id]) // Reference to the Channel model
+  
+}
+
+model Channel {
+  id            Int       @id @default(autoincrement())
+  description   String
+  profile_image String?
+  name          String    @unique
+  ownerId       Int
+  createdAt     DateTime  @default(now())
+  owner         User      @relation("owner", fields: [ownerId], references: [id])
+  editors       Editors[]
+  videos      Video[]  @relation("ChannelVideos") // Reference to the Video model
+}
+
+model Editors {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  channelId Int
+  createdAt DateTime @default(now())
+  channel   Channel  @relation(fields: [channelId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model VideoData {
+  id       Int    @id @default(autoincrement())
+  videoId  String
+  videoUrl String
+}
+
+model AdVideo {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  length      String   @default("")
+  size        Int      @default(0)
+  videoId     String   @default("")
+  processing  Boolean  @default(true)
+  deleted     Boolean  @default(false)
+  videoUrl    String   @default("")
+  createdAt   DateTime @default(now())
+  availableAt DateTime @default(now())
+  skipAd      Boolean  @default(false)
+  adType      String   @default("")
+  clickurl    String   @default("")
+  wrapperUrl  String   @default("")
+  zoneId      Int?
+  adspeedAdId String?  @default("")
+  weight      String?  @default("0")
+  skippable   Int?
+  adName      String   @default("")
+  adSpeed     AdSpeed? @relation("owner")
+  user        User     @relation("owner", fields: [userId], references: [id])
+  zone        Zones?   @relation("owner", fields: [zoneId], references: [id])
+}
+
+model AdsVideoData {
+  id          Int    @id @default(autoincrement())
+  adsVideoId  String
+  adsVideoUrl String
+  length      String @default("")
+  size        Int
+}
+
+model AdSpeed {
+  id          Int      @id @default(autoincrement())
+  adVideoId   Int      @unique
+  adRes       String   @default("")
+  availableAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+  deleted     Boolean  @default(false)
+  adSpeedAdId String   @default("")
+  adName      String   @default("")
+  userId      Int
+  video       AdVideo  @relation("owner", fields: [adVideoId], references: [id])
+  user        User     @relation("owner", fields: [userId], references: [id])
+}
+
+model Zones {
+  id            Int       @id @default(autoincrement())
+  userId        Int
+  zoneRes       String    @default("")
+  adSpeedZoneId String    @default("")
+  createdAt     DateTime  @default(now())
+  deleted       Boolean   @default(false)
+  availableAt   DateTime  @default(now())
+  zoneName      String    @default("")
+  description   String    @default("")
+  secondaryZone String    @default("")
+  type          ZoneType  @default(video)
+  vastUrl       String?   @default("")
+  adVideo       AdVideo[] @relation("owner")
+  user          User      @relation("owner", fields: [userId], references: [id])
+}
+
+model ScheduleVideo {
+  id           Int                 @id @default(autoincrement())
+  name         String
+  description  String?             @default("")
+  createdAt    DateTime            @default(now())
+  userId       Int
+  deleted      Boolean             @default(false)
+  user         User                @relation("owner", fields: [userId], references: [id])
+  scheduleData ScheduleVideoData[]
+}
+
+model ScheduleVideoData {
+  id             Int           @id @default(autoincrement())
+  scheduleId     Int
+  videoId        String
+  startTimestamp DateTime
+  endTimestamp   DateTime
+  createdAt      DateTime      @default(now())
+  schedule       ScheduleVideo @relation(fields: [scheduleId], references: [id])
+  video          Video         @relation(fields: [videoId], references: [videoId])
+}
+
+model LiveStreaming {
+  id          Int       @id @default(autoincrement())
+  userId      Int       @default(0)
+  streamingId String    @unique
+  isCompleted Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now())
+  endTime     DateTime?
+  noOfUsers   Int?      @default(0)
+  startTime   DateTime  @default(now())
+  Title       String
+  description String
+  thumbnail   String    @default("")
+  recorded    Boolean   @default(false)
+  streamKey   String    @default("")
+  streamType  String    @default("")
+  stream      StreamKey @relation("owner", fields: [streamKey], references: [streamKey])
+  user        User      @relation("owner", fields: [userId], references: [id])
+}
+
+model Schedule {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  videoId   Int
+  createdAt DateTime @default(now())
+  streamAt  DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+  video     Video    @relation(fields: [videoId], references: [id])
+}
+
+model ManualEvents {
+  id               Int      @id @default(autoincrement())
+  userId           Int      @default(-1)
+  eventType        String
+  version          Int
+  deviceId         String
+  userIP           String
+  userAgent        String
+  locationCity     String
+  locationTimeZone String
+  reportedTime     DateTime @default(now())
+  dataJson         Json
+  createdAt        DateTime @default(now())
+}
+
+model dbo_forgot_password {
+  id            Int     @id(map: "PK_d3fe5762b6915fdbb6e8f1bb1cc") @default(autoincrement())
+  uuid          String  @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  email         String  @db.VarChar
+  is_email_sent Boolean
+  is_used       Boolean
+  craeted_by    Int
+}
+
+model role_user_permissions {
+  id                Int               @id(map: "PK_5e2dbf078bf3984a2f09875ddd6") @default(autoincrement())
+  uuid              String            @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  user_id           Int
+  title             String            @db.VarChar
+  is_deleted        Boolean
+  createdAt         DateTime          @db.Timestamp(6)
+  tbl_admin_details tbl_admin_details @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "FK_4db663fd2c54bea26b478f6a46d")
+}
+
+model roles_details {
+  id        Int      @id(map: "PK_b1bb1a95fd848dce3f53ad1be37") @default(autoincrement())
+  title     String?  @db.VarChar
+  createdAt DateTime @db.Timestamp(6)
+
+  @@index([title], map: "IDX_1e1095c3e71474f15dc1989071")
+}
+
+model roles_permissions {
+  id        Int      @id(map: "PK_298f2c0e2ea45289aa0c4ac8a02") @default(autoincrement())
+  title     String?  @db.VarChar
+  createdAt DateTime @db.Timestamp(6)
+
+  @@index([title], map: "IDX_fd271b62508932062fb84c7d82")
+}
+
+model tbl_admin_details {
+  id                    Int                     @id(map: "PK_440ad6777f0ac24368f8e634fe3") @default(autoincrement())
+  uuid                  String                  @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  first_name            String                  @db.VarChar
+  last_name             String                  @db.VarChar
+  email                 String                  @db.VarChar
+  password              String                  @db.VarChar
+  token                 String?                 @db.VarChar
+  is_verified           Boolean                 @default(false)
+  user_type_id          Int
+  is_removed            Boolean
+  is_password_changed   Boolean
+  is_active             Boolean
+  createdAt             DateTime                @db.Timestamp(6)
+  role_user_permissions role_user_permissions[]
+}
+
+model tbl_admin_type {
+  id          Int      @id(map: "PK_da96db460317a1a93efec98ea56") @default(autoincrement())
+  uuid        String   @db.VarChar
+  title       String?  @db.VarChar
+  description String   @db.VarChar
+  createdAt   DateTime @db.Timestamp(6)
+
+  @@index([title], map: "IDX_29182609c44b0cc63514554fc8")
+  @@index([description], map: "IDX_afc32cb1392aec5cee586f7b70")
+}
+
+enum SubscriptionType {
+  monthly
+  yearly
+}
+
+enum PaymentStatus {
+  paid
+  unPaid
+}
+
+enum SubscriptionStatus {
+  active
+  inactive
+  expired
+}
+
+enum SubscriptionNames {
+  Basic
+  Professional
+  Business
+  BasicToProfessionalPerMonth
+  BasicToBusinessPerMonth
+  ProfessionalToBusinessPerMonth
+  BasicToProfessionalPerYear
+  BasicToBusinessPerYear
+  ProfessionalToBusinessPerYear
+}
+
+enum UserType {
+  AUTHOR
+  ADMIN
+}
+
+enum VideoType {
+  PUBLIC
+  PRIVATE
+}
+
+enum ZoneType {
+  broadcasting
+  video
+  both
+}

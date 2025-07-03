@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "AdsVideoData" ALTER COLUMN "length" SET DEFAULT '',
+ALTER COLUMN "length" SET DATA TYPE TEXT;

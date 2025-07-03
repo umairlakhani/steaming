@@ -1,0 +1,6 @@
+-- AlterTable
+ALTER TABLE "SubscriptionPlans" ADD COLUMN     "bandwidth" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN     "storage" INTEGER NOT NULL DEFAULT 0,
+ALTER COLUMN "features" SET NOT NULL,
+ALTER COLUMN "features" SET DEFAULT '',
+ALTER COLUMN "features" SET DATA TYPE TEXT;

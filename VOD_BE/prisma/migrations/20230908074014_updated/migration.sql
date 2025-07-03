@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "SubscriptionPlans" ALTER COLUMN "storage" SET DEFAULT 0.00,
+ALTER COLUMN "storage" SET DATA TYPE DOUBLE PRECISION;

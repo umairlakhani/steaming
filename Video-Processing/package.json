@@ -1,0 +1,51 @@
+{
+  "scripts": {
+    "start": "node server.js",
+    "worker": "node videoProcessorServer.js",
+    "dev": "npm-run-all --parallel start worker"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.826.0",
+    "@aws-sdk/lib-storage": "^3.826.0",
+    "@ffmpeg-installer/ffmpeg": "^1.1.0",
+    "@prisma/client": "^6.7.0",
+    "@socket.io/redis-adapter": "^8.2.1",
+    "aws-sdk": "^2.1390.0",
+    "axios": "^1.4.0",
+    "bullmq": "^5.1.5",
+    "cli-progress": "^3.12.0",
+    "cors": "^2.8.5",
+    "cron": "^3.1.6",
+    "dotenv": "^16.1.4",
+    "express": "^4.18.2",
+    "ffmpeg": "^0.0.4",
+    "ffmpeg-static": "^4.4.1",
+    "fluent-ffmpeg": "^2.1.2",
+    "fs-extra": "^11.1.1",
+    "get-video-duration": "^4.1.0",
+    "http-errors": "^2.0.0",
+    "ioredis": "^5.3.2",
+    "jsonwebtoken": "^9.0.1",
+    "mediasoup": "^3.16.4",
+    "morgan": "~1.9.1",
+    "node-cron": "^3.0.3",
+    "node-media-server": "^2.6.2",
+    "openssl": "^2.0.0",
+    "paperspace-node": "^0.2.4",
+    "prisma": "^6.7.0",
+    "redis": "^4.6.12",
+    "request": "^2.88.2",
+    "socket.io": "^4.7.4",
+    "url": "^0.11.0"
+  },
+  "devDependencies": {
+    "npm-run-all": "^4.1.5"
+  },
+  "name": "video-processing",
+  "version": "1.0.0",
+  "main": "server.js",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": ""
+}
