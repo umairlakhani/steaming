@@ -1,0 +1,169 @@
+@font-face {
+	font-family: "Open" ;
+	src: url("../../assets/OpenSauceSans-Regular.ttf") format("opentype");
+}
+label,button,p,h1,h2,h3,h4,h5,h6,div,a{
+  font-family: "Open!important" ;
+}
+
+#nameLabel {
+  margin-top: 29px;
+}
+.large-form-container::-webkit-scrollbar {
+  display: none;
+}
+
+.signup-btn {
+  background-color: #811630;
+  border-radius: 30px;
+}
+.forgot-password-signup {
+  color: #811630;
+  font-weight: 700;
+  text-decoration: none;
+}
+.new-member-prompt {
+  color: #716f96;
+  font-weight: 700;
+}
+.signin-link {
+  text-decoration: none;
+  font-weight: 700;
+  color: #811630;
+}
+.terms-conditions {
+  text-decoration: none;
+  color: #811630;
+}
+.input-main{
+  display: flex;
+  position: relative;
+}
+.custom-input{
+  position: relative;
+  &::after{
+    content: url('../../assets/icons/eye.png');
+    display: inline-block;
+    position: absolute;
+    right: 15px;
+    top: 22px;
+  }
+  
+}
+
+@media only screen and (max-width: 768px) {
+  .new-member {
+    position: absolute;
+    // top: 32px;
+    top: 90px;
+  }
+
+  form {
+    padding: 0px 0px 0 43px;
+    margin-right: 43px;
+  }
+  .whole-member-prompt {
+    position: relative;
+    top: 1px;
+  }
+}
+
+@media only screen and (min-width: 768px) and (max-height: 721.60px) {
+  form {
+    padding: 120px;
+    scale: 0.9;
+  }
+  .whole-member-prompt {
+    position: relative;
+    top: 29px;
+  }
+  input[type="text"] {
+    width: 100%;
+  }
+  input[type="date"] {
+    width: 100%;
+  }
+  input[type="password"] {
+    width: 100%;
+  }
+}
+
+@media  only screen and (min-width: 1024px) and (max-width: 1198px){
+  .whole-member-prompt {
+    position: relative;
+    top: 29px;
+  }
+  h1 {
+    position: relative;
+    top: 12px;
+  }
+
+}
+
+@media only screen and (min-width: 768px) and (max-width: 1024px) and (max-height: 721.60px) {
+  .whole-member-prompt {
+    z-index: 1;
+  }
+  form{
+    padding: 1px;
+  }
+}
+
+@media only screen and (min-width: 1286px) and (max-width: 1798px) and (min-height: 722px) and (max-height: 1009.60px){
+  .whole-member-prompt {
+    position: relative;
+    top: 62px;
+  }
+}
+@media only screen and (min-width: 768px) and (max-width: 1023.20px) and (min-height: 722px) and (max-height: 1009.60px){
+  .bigger-container {
+    margin-top: 106px;
+  }
+}
+
+@media only screen and (min-width: 1197.40px) and (max-width: 1285.60px) and (min-height: 722px) and (max-height: 1009.60px){
+  .whole-member-prompt {
+    position: relative;
+    top: 46px;
+  }
+}
+
+@media only screen and (min-width: 1197.40px) {
+  .whole-member-prompt {
+    position: relative;
+    top: 50px;
+  }
+}
+
+@media only screen and (min-width: 1283.20px) and (max-height: 1009.60px) {
+  form {
+    padding-left: 83px;
+  }
+  input[type="text"] {
+    width: 80%;
+  }
+  input[type="date"] {
+    width: 80%;
+  }
+  input[type="password"] {
+    width: 80%;
+  }
+}
+
+@media only screen and (max-height: 721.60px) and (min-width: 1024px) {
+  form {
+    padding-top: 400px;
+  }
+}
+
+form {
+  padding-top: 72px;
+}
+
+@media only screen and (min-width: 1024px)  and (max-height: 721.60px) {
+  .signup-text {
+    position: relative;
+    top: 252px;
+    padding-bottom: 280px;
+  }
+}

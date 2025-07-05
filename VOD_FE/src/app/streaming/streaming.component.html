@@ -1,0 +1,115 @@
+<div class="flex publish flex-col w-full px-4 md:px-0">
+    <div class="flex justify-between">
+      <h1 class="hidden md:block text-[white]">{{sectionTitle}}</h1>
+    </div>
+  
+    <div *ngIf="type == 'video'" class="flex " id="streaming-videoss">
+      <!-- <div > -->
+      <div *ngFor="let video of videos" class="crd-main">
+        <div class="crd-top">
+          <!-- <img src="/assets/icons/game3.jpg"> -->
+          <img [src]="video.video.thumbnail">
+        </div>
+        <div class="crd-bot">
+          <div class="crd-bot-up">
+            <div class="crd-bot-up-lft">
+              <!-- <img src="/assets/icons/userprof.png"> -->
+              <img [src]="video.video.profile_image">
+              <div class="text-info">
+                <h4>{{video.video.Title}}</h4>
+                <h5>{{video.video.description}}</h5>
+              </div>
+            </div>
+            <div class="crd-bot-up-rt dropdown">
+              <button id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                <svg class="bi bi-three-dots-vertical dropdown-toggle" 
+                xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M9.5 13a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0zm0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"/>
+              </svg>
+            </button>
+              <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
+                <a (click)="playVid(video.video.videoId)" class="dropdown-item" >Watch</a>
+              </div>
+            </div>
+          </div>
+          <div class="crd-bot-down">
+            <h5>streaming</h5>
+             <div class="days">
+              <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" fill="currentColor" class="bi bi-dot" viewBox="0 0 16 16">
+                <path d="M8 9.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z"/>
+              </svg>
+               <h5>{{getTimePassedForVideo(video.startTimestamp)}}</h5>
+             </div>
+          </div>
+        </div>
+      </div>
+    <!-- </div> -->
+   
+  </div>
+  <div *ngIf="type == 'user'" class="" id="streaming-videoss">
+    <!-- <div > -->
+      <div id="user-streaming-videos" class="videos grid-cols-1 md:grid-cols-2 lg:grid-cols-2 min-[1220px]:grid-cols-2 xl:grid-cols-3 min-[1700px]:grid-cols-3 min-[2100px]:grid-cols-3 auto-rows-min grid justify-between h-full overflow-auto sm:my-4">
+        <div *ngFor="let video of videos">
+          <div class="video flex flex-col w-full h-[45vh] bg-white rounded-2xl overflow-hidden max-[768px]:m-auto lg:h-[40vh] xl:h-[45vh]">
+            <div class="h-[64%] overflow-hidden relative">
+              <img class="h-[100%] w-100" [src]="video.thumbnail || 'https://hls-video-storage.nyc3.digitaloceanspaces.com/hls-video-storage/thumbnail/3169261648.jpg'" >
+            </div>
+            <div class="h-[40%] mx-2 overflow-hidden relative py-3 px-3 flex flex-col justify-between video-bot">
+              <p class="!mb-0 text-[#716F96] up-p">{{ getTimePassedForVideo(video.startTime) }}</p>
+              <div style="align-items: center;" class="flex justify-between">
+                <h3 class="!mb-0">{{ video.Title }}</h3>
+                <h6>{{ video.noOfUsers }} viewing</h6>
+              </div>
+              <div class="flex flex-row justify-between">
+                <div class="actions flex flex-row">
+                  <img [src]="video.user.profile_image">
+                </div>
+                <button (click)="playVideo(video)" class="btn-arch text-white !bg-primary flex flex-row justify-center rounded">
+                  <mat-icon class="text-[24px] !w-[30px] !h-[24px] mt-[1px] mr-1">stream</mat-icon>
+                  <p  class="!mb-0">watch</p>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    <!-- </div> -->
+  </div>
+  <div *ngIf="totItems.length > 1" class="flex flex-row justify-center">
+    <nav aria-label="Page navigation example">
+        <ul class="pagination">
+            <li (click)="goToFirstPage()" class="page-item">
+                <a class="page-link" aria-label="First">
+                    <span aria-hidden="true">&laquo;&laquo;</span>
+                    <span class="sr-only">First</span>
+                </a>
+            </li>
+            <li (click)="paginateBack()" class="page-item">
+                <a class="page-link" aria-label="Previous">
+                    <span aria-hidden="true">&laquo;</span>
+                    <span class="sr-only">Previous</span>
+                </a>
+            </li>
+            <ng-container *ngFor="let item of getPageNumbers(); let i = index">
+                <li [class.active]="currentPage === item" (click)="handleNumClick(item)" class="page-item">
+                    <a class="page-link">{{ item }}</a>
+                </li>
+            </ng-container>
+            <li (click)="paginateForward()" class="page-item">
+                <a class="page-link" aria-label="Next">
+                    <span aria-hidden="true">&raquo;</span>
+                    <span class="sr-only">Next</span>
+                </a>
+            </li>
+            <li (click)="goToLastPage()" class="page-item">
+                <a class="page-link" aria-label="Last">
+                    <span aria-hidden="true">&raquo;&raquo;</span>
+                    <span class="sr-only">Last</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</div>
+
+
+    </div>

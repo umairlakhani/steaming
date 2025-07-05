@@ -1,0 +1,17 @@
+
+<div class="m-auto d-flex gap-2 justify-center mb-2">
+    <button class="btn-live" (click)="startStreaming()" [disabled]="streamingDis">Start streaming</button>
+    <button class="btn-live" (click)="stopRecording()" [disabled]="stopDis">Stop recording</button>
+    <button class="btn-live" (click)="startRecording()" [disabled]="startDis">Start recording</button>
+    <button class="btn-live" (click)="terminateRecording()" [disabled]="stopDis">End streaming</button>
+</div>
+<video autoplay #live_stream></video>
+
+
+
+<div>
+    
+    <h4 style="color:#fff">Shareable link</h4>
+    <p style="color:#fff" #shareable_link></p>
+</div>
+

@@ -436,32 +436,52 @@ async function deleteLiveStreamById(req, res, next) {
   });
   console.log(deleted, "deleted");
 }
-
+// In VOD_BE/controller/liveStreamingController.js
 async function generateStreamKeyForUser(req, res, next) {
   try {
     const { title, description, recorded } = req.body;
     const userId = req.tokenData.userId;
     const streamKey = generateStreamKey();
-    const existKey = await prisma.streamKey.findFirst({
-      where: { userId: Number(userId) },
+    
+    console.log("=== STREAM KEY GENERATION ===");
+    console.log("User ID:", userId);
+    console.log("Generated Stream Key:", streamKey);
+    console.log("Title:", title);
+    console.log("Description:", description);
+    console.log("Recorded:", recorded);
+    
+    // Delete existing stream key for user
+    await prisma.streamKey.deleteMany({
+      where: { userId: Number(userId) }
     });
-    if (!existKey) {
-      const newStreamKey = await prisma.streamKey.create({
-        data: {
-          userId,
-          streamKey: streamKey,
-          title: title,
-          description,
-          recorded,
-        },
-      });
-      res.json({ streamKey });
-    } else {
-      res.json({ streamKey: existKey.streamKey });
-    }
+    
+    // Create new stream key
+    const newStreamKey = await prisma.streamKey.create({
+      data: {
+        userId: Number(userId),
+        streamKey: streamKey,
+        title: title || 'Live Stream',
+        description: description || 'Live Stream Description',
+        recorded: recorded || false,
+      },
+    });
+    
+    console.log("Stream key saved to database:", newStreamKey);
+    console.log("RTMP URL for OBS:", `rtmp://localhost:1935/live/${streamKey}`);
+    
+    res.json({ 
+      streamKey,
+      rtmpUrl: `rtmp://localhost:1935/live/${streamKey}`,
+      instructions: {
+        obs: {
+          server: "rtmp://localhost:1935/live",
+          streamKey: streamKey
+        }
+      }
+    });
   } catch (error) {
     console.error("Error generating stream key:", error);
-    return null;
+    res.status(500).json({ error: "Failed to generate stream key" });
   }
 }
 

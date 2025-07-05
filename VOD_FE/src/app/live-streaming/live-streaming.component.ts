@@ -154,11 +154,55 @@ export class LiveStreamingComponent implements OnInit, OnDestroy {
     }
   }
 
+  startWebcamStream() {
+    console.log("Starting webcam stream");
+    this.router.navigate(['/broadcast']);
+  }
+
+  showStreamKey() {
+    console.log("Showing stream key for OBS");
+    this.apiCall(); // Your existing stream key generation
+  }
+
+  // async apiCall() {
+  //   let dialogRef = this.dialog.open(liveStreamKeyModalComponent, {
+  //     width: "550px",
+  //     // height: '590px'
+  //     height: "40vh",
+  //     data: { streamKey: this.streamKey },
+  //   });
+
+  //   dialogRef.beforeClosed().subscribe((result) => {
+  //     console.log(result, "result");
+
+  //     if (result !== undefined) {
+  //       let time = `${Date.now()}`;
+  //       result = { ...result, time: time };
+  //       this.videoService.generateStreamKey(result).subscribe(
+  //         (res: any) => {
+  //           this.streamKey = res.body.streamKey;
+  //           let toast = this.toasterService.success(
+  //             `Stream Key: ${this.streamKey}`
+  //           );
+  //           setTimeout(() => {
+  //             this.toasterService.remove(toast.toastId);
+  //           }, 2000);
+  //         },
+  //         (error: any) => {
+  //           let toast = this.toasterService.error(error);
+  //           setTimeout(() => {
+  //             this.toasterService.remove(toast.toastId);
+  //           }, 2000);
+  //         }
+  //       );
+  //     }
+  //   });
+  // }
+
   async apiCall() {
     let dialogRef = this.dialog.open(liveStreamKeyModalComponent, {
       width: "550px",
-      // height: '590px'
-      height: "40vh",
+      height: "50vh", // Increased height
       data: { streamKey: this.streamKey },
     });
 
@@ -171,14 +215,14 @@ export class LiveStreamingComponent implements OnInit, OnDestroy {
         this.videoService.generateStreamKey(result).subscribe(
           (res: any) => {
             this.streamKey = res.body.streamKey;
+            
+            // Show the stream key with better instructions
             let toast = this.toasterService.success(
-              `Stream Key: ${this.streamKey}`
+              `Stream Key Generated: ${this.streamKey}. Use this in OBS with server: rtmp://localhost:1935/live`,
+              'OBS Stream Key',
+              { timeOut: 10000 }
             );
-            setTimeout(() => {
-              this.toasterService.remove(toast.toastId);
-            }, 2000);
-          },
-          (error: any) => {
+          },(error: any) => {
             let toast = this.toasterService.error(error);
             setTimeout(() => {
               this.toasterService.remove(toast.toastId);
@@ -188,6 +232,7 @@ export class LiveStreamingComponent implements OnInit, OnDestroy {
       }
     });
   }
+
   getData() {
     // this.videoService.ownedListPublished(this.currentPage, this.itemsPerPage,this.searchQuery)
     this.videoService
@@ -379,6 +424,47 @@ export class StreamingVideoModalComponent implements OnInit {
   templateUrl: "./live-streamkey-modal.html",
   styleUrls: ["./live-streaming.component.scss"],
 })
+// export class liveStreamKeyModalComponent {
+//   videoInfo = new FormGroup({
+//     title: new FormControl("", [Validators.required]),
+//     description: new FormControl("", [Validators.required]),
+//     recorded: new FormControl(false),
+//   });
+//   showAlert: boolean = false;
+
+//   constructor(
+//     private videoService: VideoService,
+//     public dialogRef: MatDialogRef<liveStreamKeyModalComponent>,
+//     private toasterService: ToastrService,
+//     @Inject(MAT_DIALOG_DATA) public data: any
+//   ) {}
+//   copyToClipboard() {
+//     const el = document.createElement("textarea");
+//     el.value = this.data.streamKey;
+//     document.body.appendChild(el);
+//     el.select();
+//     document.execCommand("copy");
+//     document.body.removeChild(el);
+//     this.showAlert = true;
+//     setTimeout(() => {
+//       this.showAlert = false;
+//     }, 2000);
+//   }
+
+//   createLiveStreamInfo() {
+//     Object.values(this.videoInfo.controls).forEach((control: any) => {
+//       control.markAsDirty();
+//     });
+//     if (!this.videoInfo.valid) {
+//       console.log("videoInfo is invalid");
+//       return;
+//     } else {
+//       console.log(this.videoInfo.value, "this.videoInfo.controls.Title");
+//       this.dialogRef.close(this.videoInfo.value);
+//     }
+//   }
+// }
+
 export class liveStreamKeyModalComponent {
   videoInfo = new FormGroup({
     title: new FormControl("", [Validators.required]),
@@ -393,6 +479,7 @@ export class liveStreamKeyModalComponent {
     private toasterService: ToastrService,
     @Inject(MAT_DIALOG_DATA) public data: any
   ) {}
+
   copyToClipboard() {
     const el = document.createElement("textarea");
     el.value = this.data.streamKey;
@@ -404,6 +491,21 @@ export class liveStreamKeyModalComponent {
     setTimeout(() => {
       this.showAlert = false;
     }, 2000);
+  }
+
+  copyViewerUrl() {
+    const viewerUrl = this.getViewerUrl();
+    const el = document.createElement("textarea");
+    el.value = viewerUrl;
+    document.body.appendChild(el);
+    el.select();
+    document.execCommand("copy");
+    document.body.removeChild(el);
+    this.toasterService.success("Viewer link copied!");
+  }
+
+  getViewerUrl(): string {
+    return `${window.location.origin}/#/viewer/${this.data.streamKey}`;
   }
 
   createLiveStreamInfo() {

@@ -1,0 +1,214 @@
+<div class="drag-main" cdkDropListGroup>
+    <div class="container-lft">
+        <div class="container-lft-head">
+            <div class="h1">Mediapilot Videos</div>
+            <!-- <div class="w-[75%]"> -->
+                <span class="custom-input">
+                <input class="w-[100%]" (keyup)="searchData($event)" placeholder="Search" type="text">
+            </span>
+                <!-- </div> -->
+        </div>
+    <div>
+        <div cdkDropList [cdkDropListData]="videos" class="example-list" cdkDropListSortingDisabled
+            (cdkDropListDropped)="drop($event)">
+            <div cdkDrag *ngFor="let item of videos; let i = index "
+             (mouseout)="hoverOut(i)" (mouseover)="hoverVid(i)"
+                class="vid-main">
+                <div class="box">
+                    <img [src]="item.thumbnail">
+                    <div>{{item.Title}}</div>
+                </div>
+                <div [attr.id]="'item' + i"  class="hover-vid hidden">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                        class="bi bi-arrows-move" viewBox="0 0 16 16">
+                        <path fill-rule="evenodd"
+                            d="M7.646.146a.5.5 0 0 1 .708 0l2 2a.5.5 0 0 1-.708.708L8.5 1.707V5.5a.5.5 0 0 1-1 0V1.707L6.354 2.854a.5.5 0 1 1-.708-.708l2-2zM8 10a.5.5 0 0 1 .5.5v3.793l1.146-1.147a.5.5 0 0 1 .708.708l-2 2a.5.5 0 0 1-.708 0l-2-2a.5.5 0 0 1 .708-.708L7.5 14.293V10.5A.5.5 0 0 1 8 10zM.146 8.354a.5.5 0 0 1 0-.708l2-2a.5.5 0 1 1 .708.708L1.707 7.5H5.5a.5.5 0 0 1 0 1H1.707l1.147 1.146a.5.5 0 0 1-.708.708l-2-2zM10 8a.5.5 0 0 1 .5-.5h3.793l-1.147-1.146a.5.5 0 0 1 .708-.708l2 2a.5.5 0 0 1 0 .708l-2 2a.5.5 0 0 1-.708-.708L14.293 8.5H10.5A.5.5 0 0 1 10 8z" />
+                    </svg>
+                    <span>
+                        Drag and drop the video to add it to the scheduling
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div *ngIf="totalItems>10" class="flex flex-row justify-center">
+        <nav aria-label="Page navigation example">
+            <ul class="pagination">
+              <li (click)="paginateBack()"  class="page-item">
+                <a class="page-link" aria-label="Previous">
+                  <!-- <span aria-hidden="true">&laquo;</span> -->
+                  <span aria-hidden="true">&laquo;</span>
+                  <span class="sr-only">Previous</span>
+                </a>
+              </li>
+              <div *ngFor="let item of totItems; let i = index">
+                  <li [class.active]="currentPage == i+1" (click)="handleNumClick(i+1)" [value]="i+1"  class="page-item"><a class="page-link">{{i+1}}</a></li>
+                  <!-- [class.active]="currentPage.toString() == 'i+1'" -->
+              </div>
+              
+              <li (click)="paginateForward()" class="page-item">
+                <a class="page-link" aria-label="Next">
+                  <span aria-hidden="true">&raquo;</span>
+                  <span class="sr-only">Next</span>
+                </a>
+              </li>
+            </ul>
+          </nav>
+    </div>
+    </div>
+
+    <div class="container-rt">
+        <div class="container-rt-head">
+            <div class="h1">Scheduling</div>
+            <div class="h1">{{queryDate}}</div>
+            <ul class="time-slots nav nav-tabs">
+                <li [class.highlight]="activeTimeSlot == 'slot1'"
+                    class="time-slot active">
+                    <a [class.show]="activeTimeSlot == 'slot1'" (click)="setActiveSlot('slot1')" data-toggle="tab" href="#slot1">
+                        00:00-06:00
+                    </a>
+                </li>
+                <li [class.highlight]="activeTimeSlot == 'slot2'" class="time-slot">
+                    <a [class.show]="activeTimeSlot == 'slot2'" (click)="setActiveSlot('slot2')" data-toggle="tab" href="#slot2">06:00-12:00</a>
+                </li>
+                <li [class.highlight]="activeTimeSlot == 'slot3'"  class="time-slot">
+                    <a [class.show]="activeTimeSlot == 'slot3'" (click)="setActiveSlot('slot3')" data-toggle="tab" href="#slot3">12:00-18:00</a>
+                </li>
+                <li [class.highlight]="activeTimeSlot == 'slot4'" class="time-slot">
+                    <a [class.show]="activeTimeSlot == 'slot4'" (click)="setActiveSlot('slot4')" data-toggle="tab" href="#slot4">18:00:23:59</a>
+                </li>
+            </ul>
+
+        </div>
+
+        <div cdkDropList [cdkDropListData]="basket" class="example-list" (cdkDropListDropped)="drop($event)">
+            <div class="tab-content">
+                <div [class.show]="activeTimeSlot == 'slot1'" class="tab-pane fade in active" id="slot1">
+                    <div class="box" *ngFor="let item of slot1; let i =index" cdkDrag>
+                        <div class="sch-desc">
+                            <img [src]="item.thumbnail">
+                            <div>{{item.Title}}</div>
+                        </div>
+                        <div class="time-main">
+                            <input [(ngModel)]="item.timeslot.startTimestamp"
+                                (change)="onStartTimeChange($event,item,i,'slot1')" type="time" step="1">
+                            <input [(ngModel)]="item.timeslot.endTimestamp" disabled 
+                            (change)="onEndTimeChange(item,'slot1')"
+                                type="time" step="1">
+                        </div>
+                        <div class="del-main">
+                            <svg (click)="delete(item,i,'slot1',item.timeslot.startTimestamp)" class="svg-pointer"
+                                fill="none" height="45" viewBox="0 0 48 48" width="45"
+                                xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="24" cy="24" fill="#FFDADA" r="24" />
+                                <g transform="translate(12,12)">
+                                    <svg fill="none" height="23" viewBox="0 0 20 19" width="24"
+                                        xmlns="http://www.w3.org/2000/svg">
+                                        <path
+                                            d="M5.29331 1.95297V0.117676H14.4698V1.95297H19.058V3.78826H17.2227V17.553C17.2227 17.7963 17.126 18.0298 16.954 18.2018C16.7819 18.3739 16.5485 18.4706 16.3051 18.4706H3.45802C3.21464 18.4706 2.98124 18.3739 2.80915 18.2018C2.63705 18.0298 2.54037 17.7963 2.54037 17.553V3.78826H0.705078V1.95297H5.29331ZM4.37567 3.78826V16.6353H15.3874V3.78826H4.37567ZM7.12861 6.54121H8.9639V13.8824H7.12861V6.54121ZM10.7992 6.54121H12.6345V13.8824H10.7992V6.54121Z"
+                                            fill="#F92F2F" />
+                                    </svg>
+                                </g>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+                <div  id="slot2" class="tab-pane fade">
+                    <div class="box" *ngFor="let item of slot2; let i =index" cdkDrag>
+                        <div class="sch-desc">
+                            <img [src]="item.thumbnail">
+                            <div>{{item.Title}}</div>
+                        </div>
+                        <div class="time-main">
+                            <input [(ngModel)]="item.timeslot.startTimestamp"
+                                (change)="onStartTimeChange($event,item,i,'slot2')" type="time" step="1">
+                            <input [(ngModel)]="item.timeslot.endTimestamp" disabled
+                             (change)="onEndTimeChange(item,'slot2')"
+                                type="time" step="1">
+                        </div>
+                        <div class="del-main">
+                            <svg (click)="delete(item,i,'slot2',item.timeslot.startTimestamp)" class="svg-pointer"
+                                fill="none" height="45" viewBox="0 0 48 48" width="45"
+                                xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="24" cy="24" fill="#FFDADA" r="24" />
+                                <g transform="translate(12,12)">
+                                    <svg fill="none" height="23" viewBox="0 0 20 19" width="24"
+                                        xmlns="http://www.w3.org/2000/svg">
+                                        <path
+                                            d="M5.29331 1.95297V0.117676H14.4698V1.95297H19.058V3.78826H17.2227V17.553C17.2227 17.7963 17.126 18.0298 16.954 18.2018C16.7819 18.3739 16.5485 18.4706 16.3051 18.4706H3.45802C3.21464 18.4706 2.98124 18.3739 2.80915 18.2018C2.63705 18.0298 2.54037 17.7963 2.54037 17.553V3.78826H0.705078V1.95297H5.29331ZM4.37567 3.78826V16.6353H15.3874V3.78826H4.37567ZM7.12861 6.54121H8.9639V13.8824H7.12861V6.54121ZM10.7992 6.54121H12.6345V13.8824H10.7992V6.54121Z"
+                                            fill="#F92F2F" />
+                                    </svg>
+                                </g>
+                            </svg>
+                        </div>
+                    </div>
+
+                </div>
+                <div id="slot3" class="tab-pane fade">
+                    <div [attr.id]="'slot3-' + i" class="box" *ngFor="let item of slot3; let i =index" cdkDrag>
+                        <div class="sch-desc">
+                            <img [src]="item.thumbnail">
+                            <div>{{item.Title}}</div>
+                        </div>
+                        <div class="time-main">
+                            <input [(ngModel)]="item.timeslot.startTimestamp"
+                                (change)="onStartTimeChange($event,item,i,'slot3')" type="time" step="1">
+                            <input [(ngModel)]="item.timeslot.endTimestamp" (change)="onEndTimeChange(item,'slot3')" type="time"
+                                step="1">
+                        </div>
+                        <div class="del-main">
+                            <svg (click)="delete(item,i,'slot3',item.timeslot.startTimestamp)" class="svg-pointer"
+                                fill="none" height="45" viewBox="0 0 48 48" width="45"
+                                xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="24" cy="24" fill="#FFDADA" r="24" />
+                                <g transform="translate(12,12)">
+                                    <svg fill="none" height="23" viewBox="0 0 20 19" width="24"
+                                        xmlns="http://www.w3.org/2000/svg">
+                                        <path
+                                            d="M5.29331 1.95297V0.117676H14.4698V1.95297H19.058V3.78826H17.2227V17.553C17.2227 17.7963 17.126 18.0298 16.954 18.2018C16.7819 18.3739 16.5485 18.4706 16.3051 18.4706H3.45802C3.21464 18.4706 2.98124 18.3739 2.80915 18.2018C2.63705 18.0298 2.54037 17.7963 2.54037 17.553V3.78826H0.705078V1.95297H5.29331ZM4.37567 3.78826V16.6353H15.3874V3.78826H4.37567ZM7.12861 6.54121H8.9639V13.8824H7.12861V6.54121ZM10.7992 6.54121H12.6345V13.8824H10.7992V6.54121Z"
+                                            fill="#F92F2F" />
+                                    </svg>
+                                </g>
+                            </svg>
+                        </div>
+                    </div>
+
+                </div>
+                <div id="slot4" class="tab-pane fade">
+                    <div class="box" *ngFor="let item of slot4; let i =index" cdkDrag>
+                        <div class="sch-desc">
+                            <img [src]="item.thumbnail">
+                            <div>{{item.Title}}</div>
+                        </div>
+                        <div class="time-main">
+                            <input [(ngModel)]="item.timeslot.startTimestamp"
+                                (change)="onStartTimeChange($event,item,i,'slot4')" type="time" step="1">
+                            <input [(ngModel)]="item.timeslot.endTimestamp" (change)="onEndTimeChange(item,'slot4')" type="time"
+                                step="1">
+                        </div>
+                        <div class="del-main">
+                            <svg (click)="delete(item,i,'slot4',item.timeslot.startTimestamp)" class="svg-pointer"
+                                fill="none" height="45" viewBox="0 0 48 48" width="45"
+                                xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="24" cy="24" fill="#FFDADA" r="24" />
+                                <g transform="translate(12,12)">
+                                    <svg fill="none" height="23" viewBox="0 0 20 19" width="24"
+                                        xmlns="http://www.w3.org/2000/svg">
+                                        <path
+                                            d="M5.29331 1.95297V0.117676H14.4698V1.95297H19.058V3.78826H17.2227V17.553C17.2227 17.7963 17.126 18.0298 16.954 18.2018C16.7819 18.3739 16.5485 18.4706 16.3051 18.4706H3.45802C3.21464 18.4706 2.98124 18.3739 2.80915 18.2018C2.63705 18.0298 2.54037 17.7963 2.54037 17.553V3.78826H0.705078V1.95297H5.29331ZM4.37567 3.78826V16.6353H15.3874V3.78826H4.37567ZM7.12861 6.54121H8.9639V13.8824H7.12861V6.54121ZM10.7992 6.54121H12.6345V13.8824H10.7992V6.54121Z"
+                                            fill="#F92F2F" />
+                                    </svg>
+                                </g>
+                            </svg>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+            <!-- <div class="box" *ngFor="let item of basket" cdkDrag>
+                <img [src]="item.thumbnail">
+                <div>{{item.Title}}</div>
+            </div> -->
+        </div>
+    </div>
+</div>

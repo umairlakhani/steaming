@@ -1,4 +1,21 @@
-.live-view-player{
-    width: 65%;
-    margin: auto;
+/* live-view.component.scss */
+.live-view-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+}
+
+.live-video-player {
+  width: 80%;
+  max-width: 800px;
+  height: auto;
+  background: #000;
+  border-radius: 8px;
+}
+
+.streaming-status {
+  color: #fff;
+  font-size: 18px;
+  margin-bottom: 20px;
 }

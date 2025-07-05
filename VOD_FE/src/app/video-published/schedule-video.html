@@ -1,0 +1,28 @@
+<div class="flex flex-col px-2">
+    <div class="w-full text-right">
+        <button class="bg-[red] w-[25px] h-[25px] p-[1px] pt-[2px] rounded-full " mat-dialog-close>
+            <mat-icon class="text-white text-[21px]">close</mat-icon>
+        </button>
+    </div>
+    <!-- <div *ngIf="!data?.id" class="w-full h-[180px] bg-[#0000FF11] border border-dashed rounded-xl flex py-8 flex-col justify-center text-center" (click)="triggerClick()">
+        <p *ngIf="!selectedFile" class="!m-0 text-lg text-[grey] font-light">Select the file to upload</p>
+        <p *ngIf="selectedFile" class="!m-0 text-lg text-[grey] font-light">
+            <mat-icon class="text-[21px] !h-[19px] mr-3">upload_file</mat-icon>
+            {{selectedFile.name}}
+        </p>
+        <button *ngIf="!selectedFile" class="text-white bg-primary flex flex-row py-3 px-3 w-[200px] justify-center rounded-lg m-auto">
+            <mat-icon class="text-[21px] !h-[19px] mr-3">upload</mat-icon>
+
+            <p class="!mb-0">Select file to upload</p>
+        </button>
+        <button *ngIf="selectedFile" class="text-white bg-primary flex flex-row py-3 px-3 w-[200px] justify-center rounded-lg m-auto">
+            <mat-icon class="text-[21px] !h-[19px] mr-3">upload</mat-icon>
+
+            <p class="!mb-0">Change file to upload</p>
+        </button>
+        <input #videoUpload type="file" class="hidden" accept="video/mp4,video/x-m4v,video/*" (change)="onFileSelected($event)">
+    </div> -->
+    <div class="header-container calender-container">
+        <app-schedule-calendar [videoId]="data.videoId"></app-schedule-calendar>
+    </div>
+</div>

@@ -1,0 +1,133 @@
+<div class="form-container bg-white md:py-16 md:px-8 w-full border border-white border-t-primary border-t-3">
+    <div *ngIf="activeSubscriptionData" class="main">
+        <div class="head-main">
+            <div *ngIf="!activeSubscriptionData;else activesubscription">
+                <h2 class="h2">No active subscription</h2>
+            </div>
+            <ng-template #activesubscription>
+                <h2 class="h2">You have subscribed:</h2>
+                <div *ngIf="activeSubscriptionData.planId.name != 'Free'" class="btn-main">
+                    <button *ngIf="activeSubscriptionData.recur" (click)="cancelSubscription()" class="btn-cancel">Cancel Subscription</button>
+                    <div *ngIf="activeSubscriptionData['planId']['name'] != 'Business' && activeSubscriptionData['recur']" class="dropdown">
+                        <button class="btn-upgrade dropdown-toggle" type="button" data-toggle="dropdown" aria-expanded="false">Upgrade Plan To</button>
+                        <div *ngIf="plans.length>0 && activeSubscriptionData['planId']['type'] == 'monthly'" class="dropdown-menu">
+                            <a *ngFor="let plan of plans" class="dropdown-item" (click)="upgradeSubscription(plan)">
+                                <span *ngIf="activeSubscriptionData['planId']['name'] =='Basic'&&plan['name']!='ProfessionalToBusinessPerMonth' &&plan['type']=='monthly' ">{{plan['name']}}</span>
+                                <span *ngIf="activeSubscriptionData['planId']['name'] =='Professional'&&plan['name']!='BasicToBusinessPerMonth'&&plan['name']!='BasicToProfessionalPerMonth' &&plan['type']=='monthly'">{{plan['name']}}</span>
+                            </a>
+                        </div>
+                        <div *ngIf="plans.length>0 && activeSubscriptionData['planId']['type'] != 'monthly'" class="dropdown-menu">
+                            <a *ngFor="let plan of plans" class="dropdown-item" (click)="upgradeSubscription(plan)">
+                                <span *ngIf="activeSubscriptionData['planId']['name'] =='Basic'&&plan['name']!='ProfessionalToBusinessPerYear' &&plan['type']=='yearly' ">{{plan['name']}}</span>
+                                <span *ngIf="activeSubscriptionData['planId']['name'] =='Professional'&&plan['name']!='BasicToBusinessPerYear'&&plan['name']!='BasicToProfessionalPerYear' &&plan['type']=='yearly'">{{plan['name']}}</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div *ngIf="activeSubscriptionData.planId.name == 'Free' || activeSubscriptionData.recur ==false " class="btn-main">
+                    <button (click)="buySubscription()" class="btn-buy">Buy Subscription</button>
+                </div>
+            </ng-template>
+        </div>
+        <div class="sec-main">
+            <div class="sec-1">
+                <div class="sec1-lft">
+                    <div class="sec1-left-lft">
+                        <div class="desc-main">
+                            <h3>Plan Name:</h3>
+                            <h4>{{activeSubscriptionData.planId.name}}</h4>
+                        </div>
+                        <div class="desc-main">
+                            <h3>Storage Used:</h3>
+                            <h4>{{(activeSubscriptionData.storageUsed/1024).toFixed(2)}}/{{(activeSubscriptionData.totalStorage/1024)}} gb</h4>
+                        </div>
+                        <div class="desc-main">
+                            <h3>Bandwidth Used:</h3>
+                            <h4>0/50 gb</h4>
+                        </div>
+                    </div>
+                    <div class="sec1-left-rt">
+                        <div class="desc-main">
+                            <h3>Expires at:</h3>
+                            <h4>{{toDate(activeSubscriptionData.willEndOn)}}</h4>
+                        </div>
+                    </div>
+                </div>
+                <div class="card card-circle">
+                    <div class="card-body">
+                        <h2 class="text-lg price-header">{{activeSubscriptionData.planId.name}}</h2>
+                        <small class="card-text">Risus ridiculus faucibus</small>
+                        <br>
+                        <h1 class="price-text">$ {{activeSubscriptionData.planId.price}} <span *ngIf="activeSubscriptionData.planId.name !='Free' && activeSubscriptionData.planId.type == 'yearly' " class="per">/ year</span> <span *ngIf="activeSubscriptionData.planId.name !='Free' && activeSubscriptionData.planId.type == 'monthly' " class="per">/ month</span></h1>
+                        <hr *ngIf="activeSubscriptionData.planId.name !='Free' && activeSubscriptionData.planId.type !='monthly' " class="hr">
+                        <h1 *ngIf="activeSubscriptionData.planId.name !='Free' && activeSubscriptionData.planId.type !='monthly' " class="price-text">{{getDiscountedPrice(activeSubscriptionData.planId)}}<span class="per">/ year</span></h1>
+                        <ul class="price-list">
+                            <li>
+                                <p class="card-text">
+                                    <svg class="price-icon" fill="none" height="18" viewBox="0 0 18 18" width="18" xmlns="http://www.w3.org/2000/svg">
+                                        <path clip-rule="evenodd" d="M9.00004 0.666748C4.40004 0.666748 0.666705 4.40008 0.666705 9.00008C0.666705 13.6001 4.40004 17.3334 9.00004 17.3334C13.6 17.3334 17.3334 13.6001 17.3334 9.00008C17.3334 4.40008 13.6 0.666748 9.00004 0.666748ZM9.00003 15.6667C5.32503 15.6667 2.33337 12.6751 2.33337 9.00007C2.33337 5.32507 5.32503 2.3334 9.00003 2.3334C12.675 2.3334 15.6667 5.32507 15.6667 9.00007C15.6667 12.6751 12.675 15.6667 9.00003 15.6667ZM12.8251 5.31673L7.33341 10.8084L5.17507 8.6584L4.00007 9.8334L7.33341 13.1667L14.0001 6.50007L12.8251 5.31673Z" fill="#811630" fill-rule="evenodd"></path>
+                                    </svg>
+                                    {{activeSubscriptionData.planId.storage}} gb of Storage
+                                </p>
+                            </li>
+                            <li>
+                                <p class="card-text">
+                                    <svg class="price-icon" fill="none" height="18" viewBox="0 0 18 18" width="18" xmlns="http://www.w3.org/2000/svg">
+                                        <path clip-rule="evenodd" d="M9.00004 0.666748C4.40004 0.666748 0.666705 4.40008 0.666705 9.00008C0.666705 13.6001 4.40004 17.3334 9.00004 17.3334C13.6 17.3334 17.3334 13.6001 17.3334 9.00008C17.3334 4.40008 13.6 0.666748 9.00004 0.666748ZM9.00003 15.6667C5.32503 15.6667 2.33337 12.6751 2.33337 9.00007C2.33337 5.32507 5.32503 2.3334 9.00003 2.3334C12.675 2.3334 15.6667 5.32507 15.6667 9.00007C15.6667 12.6751 12.675 15.6667 9.00003 15.6667ZM12.8251 5.31673L7.33341 10.8084L5.17507 8.6584L4.00007 9.8334L7.33341 13.1667L14.0001 6.50007L12.8251 5.31673Z" fill="#811630" fill-rule="evenodd"></path>
+                                    </svg>
+                                    {{activeSubscriptionData.planId.bandwidth}} gb of Bandwidth
+                                </p>
+                            </li>
+                        </ul>
+                        <div class="col-12 my-4">
+                            <button (click)="checkPlans()" class="btn-back w-full" type="button">Check Plans</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="sec-2">
+                <h2 class="h2">Transaction History:</h2>
+                <table *ngIf="payments && payments.length > 0" class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th scope="col">#</th>
+                            <th scope="col">Date</th>
+                            <th scope="col">Amount</th>
+                            <th scope="col">Plan</th>
+                        </tr>
+                    </thead>
+                    <tbody *ngIf="payments.length > 0">
+                        <tr *ngFor="let pay of payments;let i=index">
+                            <th scope="row">{{i+1}}</th>
+                            <td>{{timeStampToDate(pay['createdAt'])}}</td>
+                            <td>$ {{pay['amount']}}</td>
+                            <td>{{pay['subscription']['subscriptionPlan']['name']}}</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div *ngIf="totItems.length > 1" class="pagination-main">
+                    <nav aria-label="Page navigation example">
+                        <ul class="pagination">
+                            <li (click)="paginateBack()" class="page-item">
+                                <a class="page-link" aria-label="Previous">
+                                    <span aria-hidden="true">&laquo;</span>
+                                    <span class="sr-only">Previous</span>
+                                </a>
+                            </li>
+                            <div *ngFor="let item of totItems; let i = index">
+                                <li [class.active]="currentPage == i+1" (click)="handleNumClick(i+1)" [value]="i+1" class="page-item"><a class="page-link">{{i+1}}</a></li>
+                            </div>
+                            <li (click)="paginateForward()" class="page-item">
+                                <a class="page-link" aria-label="Next">
+                                    <span aria-hidden="true">&raquo;</span>
+                                    <span class="sr-only">Next</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+                <h4 *ngIf="payments.length < 1">No payment available</h4>
+            </div>
+        </div>
+    </div>
+</div>

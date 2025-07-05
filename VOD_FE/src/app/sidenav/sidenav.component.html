@@ -1,0 +1,117 @@
+<!-- <div *ngIf="check()" class="pt-2"> -->
+<div class="pt-3 side-main">
+    <img src="/assets/icons/newLogo.svg" alt="" class="logo m-auto mb-5">
+    <button (click)="closeDrawer(drawer)"
+        class="side-nav-button flex flex-row m-auto hover:bg-light_grey h-[44px] w-[85%] rounded-lg justify-left items-center "
+        routerLink="/dashboard" routerLinkActive="!bg-primary !text-white">
+        <div class="button-logo mr-5 w-[20px]">
+            <img *ngIf="!dashboard" src="/assets/icons/vuesax.svg" class="" alt="">
+            <img *ngIf="dashboard" src="/assets/icons/boxes.png" class="" alt="">
+        </div>
+        <div class="button-text text-left w-[110px] font-bold">
+            Dashboard
+        </div>
+    </button>
+    <button (click)="closeDrawer(drawer)"
+        class="side-nav-button flex flex-row m-auto hover:bg-light_grey h-[44px] w-[85%] rounded-lg justify-left items-center "
+        routerLink="/profile" routerLinkActive="!bg-primary !text-white">
+        <div class="button-logo mr-5 w-[20px]">
+            <img src="/assets/icons/user-icon.svg" class="" routerLinkActive="grayscale brightness-0 invert" alt="">
+        </div>
+        <div class="button-text text-left w-[110px] font-bold">
+            Profile
+        </div>
+    </button>
+    <!-- <button (click)="closeDrawer(drawer)"
+        class="side-nav-button flex flex-row m-auto hover:bg-light_grey h-[44px] w-[85%] rounded-lg justify-left items-center "
+        routerLink="/videos" routerLinkActive="!bg-primary !text-white">
+        <div class="button-logo mr-5 w-[20px]">
+            <img src="/assets/icons/user-icon.svg" class="" routerLinkActive="grayscale brightness-0 invert" alt="">
+        </div>
+        <div class="button-text text-left w-[110px] font-bold">
+            Videos
+        </div>
+    </button> -->
+    <button (click)="closeDrawer(drawer)"
+        class="side-nav-button flex flex-row m-auto hover:bg-light_grey h-[44px] w-[85%] rounded-lg justify-left items-center "
+        routerLink="/schedules" routerLinkActive="!bg-primary !text-white">
+        <div class="button-logo mr-5 w-[20px]">
+            <img src="/assets/icons/schedules.svg" routerLinkActive="grayscale brightness-0 invert" alt="">
+        </div>
+        <div class="button-text text-left w-[110px] font-bold">
+            Schedules
+        </div>
+    </button>
+    <button (click)="closeDrawer(drawer)"
+        class="side-nav-button flex flex-row m-auto hover:bg-light_grey h-[44px] w-[85%] rounded-lg justify-left items-center "
+        routerLink="/archive" routerLinkActive="!bg-primary !text-white">
+        <div class="button-logo mr-5 w-[20px]">
+            <img src="/assets/icons/play-button.svg" routerLinkActive="grayscale brightness-0 invert" alt="">
+        </div>
+        <div class="button-text text-left w-[110px] font-bold">
+            Video Archive
+        </div>
+    </button>
+    <button (click)="closeDrawer(drawer)"
+        class="side-nav-button flex flex-row m-auto hover:bg-light_grey h-[44px] w-[85%] rounded-lg justify-left items-center "
+        routerLink="/published" routerLinkActive="!bg-primary !text-white">
+        <div class="button-logo mr-5 w-[20px]">
+            <img src="/assets/icons/arrow.png" routerLinkActive="grayscale brightness-0 invert" alt="">
+        </div>
+        <div class="button-text text-left w-[110px] font-bold">
+            Video Published
+        </div>
+    </button>
+
+
+    <button [class.trial]="!userData.premiumUser" (click)="closeDrawer(drawer)"
+        class="side-nav-button flex flex-row m-auto hover:bg-light_grey h-[44px] w-[85%] rounded-lg justify-left items-center "
+        routerLink="/live-streaming" routerLinkActive="!bg-primary !text-white">
+        <div class="button-logo mr-5 w-[20px]">
+            <img src="/assets/icons/publish.svg" routerLinkActive="grayscale brightness-0 invert" alt="">
+        </div>
+        <div class="button-text text-left w-[110px] font-bold">
+            Live Streaming
+        </div>
+    </button>
+    <button [class.trial]="!userData.premiumUser" (click)="closeDrawer(drawer)"
+        class="side-nav-button flex flex-row m-auto hover:bg-light_grey h-[44px] w-[85%] rounded-lg justify-left items-center "
+        routerLink="/upload-ads" routerLinkActive="!bg-primary !text-white">
+        <div class="button-logo mr-5 w-[20px]">
+            <img src="/assets/icons/schedules.svg" routerLinkActive="grayscale brightness-0 invert" alt="">
+        </div>
+        <div class="button-text text-left w-[110px] font-bold">
+            Upload Ads
+        </div>
+    </button>
+    <button [class.trial]="!userData.premiumUser" (click)="closeDrawer(drawer)"
+        class="side-nav-button flex flex-row m-auto hover:bg-light_grey h-[44px] w-[85%] rounded-lg justify-left items-center "
+        routerLink="/ads-list" routerLinkActive="!bg-primary !text-white">
+        <div class="button-logo mr-5 w-[20px]">
+            <img src="/assets/icons/schedules.svg" routerLinkActive="grayscale brightness-0 invert" alt="">
+        </div>
+        <div class="button-text text-left w-[110px] font-bold">
+            Your Ads
+        </div>
+    </button>
+    <button (click)="closeDrawer(drawer)"
+        class="side-nav-button flex flex-row m-auto hover:bg-light_grey h-[44px] w-[85%] rounded-lg justify-left items-center "
+        routerLink="/statistics" routerLinkActive="!bg-primary !text-white">
+        <div class="button-logo mr-5 w-[20px]">
+            <img src="/assets/icons/stats.svg" routerLinkActive="grayscale brightness-0 invert" alt="">
+        </div>
+        <div class="button-text text-left w-[110px] font-bold">
+            Statistics
+        </div>
+    </button>
+    <!-- <button (click)="closeDrawer(drawer)"
+        class="side-nav-button flex flex-row m-auto hover:bg-light_grey h-[44px] w-[85%] rounded-lg justify-left items-center "
+        routerLink="/zone" routerLinkActive="!bg-primary !text-white">
+        <div class="button-logo mr-5 w-[20px]">
+            <img src="/assets/icons/stats.svg" routerLinkActive="grayscale brightness-0 invert" alt="">
+        </div>
+        <div class="button-text text-left w-[110px] font-bold">
+            Zones
+        </div>
+    </button> -->
+</div>

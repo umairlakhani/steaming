@@ -1,0 +1,138 @@
+<div class="page-main flex flex-col w-full">
+    <div class="nav w-full">
+        <div class="w-90-auto flex justify-between">
+            <div class="w-18">
+                <img class="w-80" src="/assets/icons/newLogo.svg" alt="">
+            </div>
+            <div *ngIf="!mobileView" class="flex justify-between w-75">
+                <ul class="ul">
+                    <li class="active">Home</li>
+                    <li>Benefit</li>
+                    <li>Technology</li>
+                    <li>Partners</li>
+                    <li>Team</li>
+                    <li>Blog</li>
+                </ul>
+                <div class="w-20">
+                    <button class="btn-contact">Contact Us</button>
+                </div>
+            </div>
+            
+            <div *ngIf="mobileView">
+              
+                  <div class="btn-group dropleft">
+              
+                    <button type="button" id="dropdownMenu2" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <svg  xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-list" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M2.5 12a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5z"/>
+                  </svg>
+                    </button>
+                    <div class="dropdown-menu" aria-labelledby="dropdownMenu2">
+                      <button class="dropdown-item active" type="button">Home</button>
+                      <button class="dropdown-item" type="button">Benefit</button>
+                      <button class="dropdown-item" type="button">Technology</button>
+                      <button class="dropdown-item" type="button">Partners</button>
+                      <button class="dropdown-item" type="button">Team</button>
+                      <button class="dropdown-item" type="button">Blog</button>
+                    </div>
+                  </div>
+            </div>
+
+        </div>
+    </div>
+    <div class="sec-main">
+        <div class="sm-left">
+            <div class="w-80 m-auto sm-left-chld ">
+                <div>
+                    <h4 class="text-muted">WELCOME TO OUR SITE</h4>
+                </div>
+                <div>
+                    <h1>We are the <br>
+                        Creators <span>Platform</span>
+                    </h1>
+                </div>
+                <div></div>
+                <div>
+                    <h6 class="text-muted">
+                        Join MediaPiloters across the world by enhancing your brand
+                        and establishing your craft in the future of CTV. myCaster's
+                        drive creativity through thier content to entertain and inspire
+                        their audience
+                    </h6>
+                </div>
+                <div class="main-btn-prnt ">
+                    <button (click)="navigateSignin()" class="btn-started">Get Started</button>
+                    <button class="btn-learn">Learn More</button>
+                </div>
+            </div>
+
+        </div>
+        <div class="w-50 sm-right"></div>
+    </div>
+    <div class="sec-2">
+        <div class="sec2-left">
+            <div class="sec2-left-chld">
+                <h1>
+                    Finds and stores <br>
+                    mandatory data
+                </h1>
+                <h6 class="text-muted">
+                    myCast brings simplicity to distribution through
+                    branded apps to get your content in front of the
+                    right audience
+                </h6>
+                <div class="row mx-0">
+                    <button class="btn-started">Get Started for Free</button>
+                </div>
+            </div>
+        </div>
+        <div class="sec2-right">
+            <div class="crds">
+                <div *ngFor="let card of cards" class="crd">
+                    <img [src]="card">
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+    <div class="sec-3">
+        <div>
+            <h1>
+                How MediaPilot Expands your<br>
+                Brand throughout CTV
+            </h1>
+        </div>
+        <div>
+            <h6>
+                MediaPilot brings simplicity to distribution through
+                branded apps to get your content<br> in front of the right
+                audience
+            </h6>
+        </div>
+        <div>
+
+        </div>
+    </div>
+    <div class="sec-4">
+        <div class="sec4-chld">
+            <div class="sec4-chld-1">
+                <h1>
+                    Our Partners
+                </h1>
+            </div>
+            <div >
+                <h6 class="text-muted">
+                    Scelerisque enim integer dui tritique leo dolor<br>
+                    elementum. Tincidunt ullamcorper interdum dictum
+                </h6>
+            </div>
+            <div class="sec4-crds">
+                <div *ngFor="let card of partnerCards" class="crd">
+                    <img [src]="card">
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>

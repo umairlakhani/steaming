@@ -1,0 +1,87 @@
+<div
+    class="form-container rounded up-ad bg-white py-4 md:py-[60px] px-4 md:px-8 w-[95%] m-auto h-full border border-white border-t-primary border-t-[3px]">
+    <h1 class="mb-6">Uploaded Ads By You </h1>
+    <table class="table mt-6">
+        <thead>
+          <tr>
+            <th class="w-[50px]" scope="col">#</th>
+            <th class="w-[200px]" scope="col">File</th>
+            <th class="w-[153px]" scope="col">Ad name</th>
+            <th class="w-[134px]" scope="col">Ad Type</th>
+            <th class="w-[110px]" scope="col">Length</th>
+            <th class="w-[90px]" scope="col">Size</th>
+            <th class="w-[87px]" scope="col">View</th>
+            <th class="w-[74px]" scope="col">Edit</th>
+            <th class="w-[104px]" scope="col">Delete</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="align-middle" *ngFor="let ad of allAds; let i = index">
+            <th scope="row">{{i+1}}</th>
+            <td style="width: 200px">
+                <video controls>
+                    <source [src]="ad.videoUrl" type="video/mp4" >
+                </video>
+            </td>
+            <td>{{ad.adName}}</td>
+            <td>Video Ad</td>
+            <td>{{ad.length}}</td>
+            <td>{{getFileSize(ad.size)}} MB</td>
+            <td class="cursor-pointer" (click)="openVideo(ad.id)">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eye" viewBox="0 0 16 16">
+                    <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/>
+                    <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/>
+                  </svg>
+            </td>
+            <td (click)="openEditModal(ad.adSpeed.id)"><button>Edit</button></td>
+            <td (click)="deleteAd(ad.id)"><button>Delete</button></td>
+          </tr>
+          <!-- <tr>
+            <th scope="row">2</th>
+            <td>Jacob</td>
+            <td>Thornton</td>
+            <td>@fat</td>
+          </tr>
+          <tr>
+            <th scope="row">3</th>
+            <td colspan="2">Larry the Bird</td>
+            <td>@twitter</td>
+          </tr> -->
+        </tbody>
+      </table>
+      <div *ngIf="totalItems>10" class="flex flex-row justify-center pagination-controls">
+        <!-- <pagination-controls
+                (pageChange)="onPageChange($event)"
+                [autoHide]="true"
+                [maxSize]="10"
+                [nextLabel]="'&#10095;'"
+                [previousLabel]="'&#10094;'"
+                [responsive]="false"
+                class="pagination-controls"
+        ></pagination-controls> -->
+
+        <nav aria-label="Page navigation example">
+          <ul class="pagination">
+            <li (click)="paginateBack()"  class="page-item">
+              <a class="page-link" aria-label="Previous">
+                <!-- <span aria-hidden="true">&laquo;</span> -->
+                <span aria-hidden="true">&laquo;</span>
+                <span class="sr-only">Previous</span>
+              </a>
+            </li>
+            <div *ngFor="let item of totItems; let i = index">
+                <li [class.active]="currentPage == i+1" (click)="handleNumClick(i+1)" [value]="i+1"  class="page-item"><a class="page-link">{{i+1}}</a></li>
+                <!-- [class.active]="currentPage.toString() == 'i+1'" -->
+            </div>
+            
+            <li (click)="paginateForward()" class="page-item">
+              <a class="page-link" aria-label="Next">
+                <span aria-hidden="true">&raquo;</span>
+                <span class="sr-only">Next</span>
+              </a>
+            </li>
+          </ul>
+        </nav>
+        
+    </div>
+</div>

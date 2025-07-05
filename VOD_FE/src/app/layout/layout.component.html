@@ -1,0 +1,23 @@
+<mat-drawer-container *ngIf="!hideNavigation" class="h-screen stat flex flex-col bg-grey">
+    <app-navbar [drawer]="drawer" [title]="pageTitle" class="items-center"></app-navbar>
+
+    <mat-drawer [opened]="!isMobile()" #drawer class="sidenav w-full w-[242px] lg:w-[242px] md:w-[220px] relative" mode="side">
+        <div class="w-full text-right absolute p-3 md:hidden">
+            <button class="bg-[red] w-[25px] h-[25px] p-[1px] pt-[2px] rounded-full" (click)="drawer.toggle()">
+                <mat-icon class="text-white text-[21px]">close</mat-icon>
+            </button>
+        </div>
+        <app-sidenav [drawer]="drawer"></app-sidenav>
+    </mat-drawer>
+
+    <div class="main rounded-2xl h-full overflow-y-auto main-background">
+        <div class="mx-sm-2 main-container">
+            <app-spinner></app-spinner>
+            <router-outlet></router-outlet>
+        </div>
+    </div>
+</mat-drawer-container>
+
+<div *ngIf="hideNavigation">
+    <router-outlet></router-outlet>
+</div>

@@ -16,8 +16,43 @@ const NodeMediaServer = require("node-media-server"),
 
 let nms = new NodeMediaServer(config);
 
-nms.on("prePublish",prePublish);
+// Add comprehensive logging
+nms.on('preConnect', (id, args) => {
+  console.log(`[RTMP] preConnect - ID: ${id}, Args:`, args);
+});
 
-nms.on("donePublish",donePublish);
+nms.on('postConnect', (id, args) => {
+  console.log(`[RTMP] postConnect - ID: ${id}, Args:`, args);
+});
+
+nms.on('doneConnect', (id, args) => {
+  console.log(`[RTMP] doneConnect - ID: ${id}, Args:`, args);
+});
+
+nms.on('prePublish', (id, StreamPath, args) => {
+  console.log(`[RTMP] prePublish - ID: ${id}, StreamPath: ${StreamPath}, Args:`, args);
+  prePublish(id, StreamPath, args);
+});
+
+nms.on('postPublish', (id, StreamPath, args) => {
+  console.log(`[RTMP] postPublish - ID: ${id}, StreamPath: ${StreamPath}, Args:`, args);
+});
+
+nms.on('donePublish', (id, StreamPath, args) => {
+  console.log(`[RTMP] donePublish - ID: ${id}, StreamPath: ${StreamPath}, Args:`, args);
+  donePublish(id, StreamPath, args);
+});
+
+nms.on('prePlay', (id, StreamPath, args) => {
+  console.log(`[RTMP] prePlay - ID: ${id}, StreamPath: ${StreamPath}, Args:`, args);
+});
+
+nms.on('postPlay', (id, StreamPath, args) => {
+  console.log(`[RTMP] postPlay - ID: ${id}, StreamPath: ${StreamPath}, Args:`, args);
+});
+
+nms.on('donePlay', (id, StreamPath, args) => {
+  console.log(`[RTMP] donePlay - ID: ${id}, StreamPath: ${StreamPath}, Args:`, args);
+});
 
 module.exports = nms;

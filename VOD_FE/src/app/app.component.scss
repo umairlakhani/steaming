@@ -1,0 +1,80 @@
+
+// button{
+//   font-family:Open ;
+// }
+@font-face {
+	font-family: "Open" ;
+	src: url("../assets/OpenSauceSans-Regular.ttf") format("opentype");
+}
+p,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+small,
+p,
+label,
+h6,
+button,
+textarea,
+div {
+  font-family: "Open"!important;
+}
+.font{
+  font-family: "Open"!important ;
+  h1{
+  font-family: "Open" ;
+  }
+}
+::ng-deep{
+    .mat-drawer-content{
+        display: flex !important;
+        flex-direction: column;
+        // margin-left: 220px;
+        margin-left: 0px;
+    }
+}
+// Small devices (landscape phones, 576px and up)
+@media (min-width: 576px) {
+  .mat-drawer-content{
+    
+    margin-left: 0px!important;
+}
+ }
+
+// Medium devices (tablets, 768px and up)
+@media (min-width: 768px) {
+
+}
+
+// Large devices (desktops, 992px and up)
+@media (min-width: 992px) {
+
+ }
+
+// X-Large devices (large desktops, 1200px and up)
+@media (min-width: 1200px) {
+
+ }
+
+// XX-Large devices (larger desktops, 1400px and up)
+@media (min-width: 1400px) {
+  .mat-drawer-content{
+    position: static!important;
+  }
+ }
+
+.main-background {
+  background-color: #5C5C5C;
+  border-radius: 0;
+}
+
+.main-container {
+  //display: block;
+  overflow-y: hidden;
+  overflow-x: hidden;
+  //height: 100% !important;
+}
+

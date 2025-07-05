@@ -1,0 +1,105 @@
+.sch-date-main{
+    display: flex;
+    flex-direction: column;
+    width: 95%;
+    margin: auto;
+    .schedule-main{
+        display: flex;
+        flex-direction: column;
+        background-color: white;
+        margin-top: 50px;
+        padding: 20px 40px;
+        border-radius: 5px;
+        .top{
+          display: flex;
+          justify-content: space-between;
+          width: 100%;
+          // margin: auto;
+          align-items: center;
+          img{
+            width: 280px;
+          }
+          .heading-main{
+            h2{
+        font-weight: 600;
+
+            }
+            h4{
+              width: 50%;
+              margin-left: auto;
+              margin-right: auto;
+        font-weight: 600;
+
+            }
+          }
+          .btn-watch{
+            background-color: #F0F0F0;
+          height: 50px;
+          font-size: 1.125rem;
+          padding: 0px 35px;
+          border-radius: 10px;
+          box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+          }
+        }
+        .bot-main{
+          box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+          padding: 11px 0px;
+          margin-top: 20px;
+          width: 100%;
+        }
+        .bottom{
+          margin-left: auto;
+          font-size: 1.125rem;
+          width: 30%;
+          display: flex;
+          justify-content: left;
+          .btn-save{
+            padding: 11px 10px;
+            background: #3dcd42;
+            color: white;
+            border-radius: 10px;
+            margin-right: 20px;
+          }
+          .btn-clear{
+            padding: 11px 20px;
+            background: #cb171e;
+            color: white;
+            border-radius: 10px;
+          }
+        }
+      }
+    .header-container {
+        background: white;
+        padding: 1rem;
+        border-radius: 14px;
+        //margin: 0 6em;
+      }
+      
+      .header-title-content {
+        display: flex;
+      }
+      
+      .header-title {
+        margin-left: 10px;
+        align-self: center;
+        font-size: 1.2rem;
+      }
+      
+      .header-back-btn-content {
+        text-align: end;
+      }
+      
+      .btn-back {
+        display: inline-flex;
+        background: rgba(113, 111, 150, 0.15);
+        border-radius: 7px;
+        padding: 0.4em 0.8em;
+      }
+      
+      .btn-back-icon {
+        display: inline-flex;
+        margin-right: 7px;
+        width: 15px;
+        align-self: center;
+      }
+}

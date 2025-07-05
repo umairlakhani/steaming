@@ -1,0 +1,77 @@
+.row {
+    background: white;
+    border-radius: 10px;
+}
+img {
+    width: 135px;
+    height: 90px;
+    border-radius: 10px;
+}
+.icon-wrap {
+    display: flex;
+    justify-content: end;
+    align-items: center;
+    height: 100px;
+}
+button {
+    padding: 0 15px;
+    font-family: "Open Sauce Sans";
+    font-style: normal;
+    font-weight: 600;
+    // font-size: 14px;
+    // line-height: 17px;
+}
+
+.img-col {
+    align-self: center;
+    padding: 15px 0 15px 15px;
+}
+
+.header-col {
+    // display: flex;
+    align-self: center;
+}
+.header-text {
+    font-family: "Open Sauce Sans";
+    font-style: normal;
+    font-weight: 600;
+    // font-size: 18px;
+    // line-height: 22px;
+}
+.title {
+    font-family: "Open Sauce Sans";
+    font-style: normal;
+    font-weight: 500;
+    font-size: 14px;
+    line-height: 17px;
+    color: #716f96;
+}
+.subtitle {
+    font-family: "Open Sauce Sans";
+    font-style: normal;
+    font-weight: 700;
+    font-size: 18px;
+    line-height: 22px;
+
+    /* #191919 */
+
+    color: #191919;
+}
+@media screen and (max-width: 575px) {
+    img {
+        width: 100%;
+    }
+    h3 {
+        text-align: center;
+    }
+    .header-col {
+        margin-top: 20px;
+    }
+
+    .icon-wrap {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 50px;
+    }
+}

@@ -1,0 +1,26 @@
+.vjs-tech{
+}
+.video-js .vjs-tech{
+  // z-index: -1;
+}
+.vjs-live-indicator {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: flex;
+    align-items: center;
+    color: white;
+    font-weight: bold;
+  }
+  
+  .vjs-live-indicator-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: red;
+    margin-right: 5px;
+  }
+  
+  ::ng-deep .vid_ima-ad-container{
+    top: 0!important;
+  }

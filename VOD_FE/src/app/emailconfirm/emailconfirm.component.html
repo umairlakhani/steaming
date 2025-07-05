@@ -1,0 +1,28 @@
+<div class="flex flex-row h-screen">
+    <div class="flex flex-col w-3/5 bg-grey h-full p-4">
+        <img class="w-[200px] absolute" src="/assets/icons/newLogo.svg" alt="">
+        <div class="h-full flex flex-col justify-center align-middle">
+            <img class="h-[460px] align-middle" src="/assets/icons/auth-icon.svg" alt="">
+        </div>
+    </div>
+    <div class="flex flex-col w-2/5 bg-white h-full p-16 relative">
+        <div class="h-full flex flex-col px-16 align-middle justify-center">
+            <h1 class="!mb-10 !font-extrabold !text-[36px]">Email Verification</h1>
+            <hr class="w-[35px] mb-10 text-[#716F96]">
+            <p class="text-sm text-left !mb-6">
+                We sent a verification code to your email
+            </p>
+            <label for="code">
+                Enter Code
+            </label>
+            <!-- <input [(ngModel)]="code" id="code" class="w-8/12 border border-grey rounded-2xl mt-2 h-[45px] px-[17px] mb-6" type="text" placeholder="123456789"> -->
+            <div class="inputfield mb-4 mt-4">
+                <input (keyup)="inputFunc($event)" type="number" maxlength="1" class="input" disabled />
+                <input (keyup)="inputFunc($event)" type="number" maxlength="1" class="input" disabled />
+                <input (keyup)="inputFunc($event)" type="number" maxlength="1" class="input" disabled />
+                <input (keyup)="inputFunc($event)" type="number" maxlength="1" class="input" disabled />
+              </div>
+            <button class="w-100 bg-theme text-white h-[48px] rounded-2xl text-lg" (click)="submit()">Confirm Code</button>
+        </div>
+    </div>
+</div>

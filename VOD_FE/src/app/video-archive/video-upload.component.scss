@@ -1,0 +1,82 @@
+::ng-deep .mat-dialog-container {
+	// padding: 0px 24px !important;
+
+	&::-webkit-scrollbar {
+		width: 6px !important;
+	}
+
+	&::-webkit-scrollbar-track {
+		background: #f1f1f1 !important;
+	}
+
+	&::-webkit-scrollbar-thumb {
+		background: #888 !important;
+
+		&:hover {
+			background: #555 !important;
+		}
+	}
+}
+
+.box-modal {
+	// margin-top: 24px;
+	margin-bottom: 24px;
+	padding: 0px 24px !important;
+
+	.head-main {
+		position: sticky;
+		top: 0px;
+		background-color: white;
+
+		.btn-x-main {
+			position: sticky;
+			top: 35px;
+		}
+
+		.text-upload {
+			// position: sticky;
+			// top: 14px;
+			// background-color: white;
+
+		}
+
+	}
+	.foot{
+		position: sticky;
+    bottom: 24px;
+    background: white;
+	}
+
+	form {
+		.ad-config {
+			margin-top: 10px;
+			.lbl{
+				margin-bottom: 15px;
+			}
+			.pre-roll-main {
+				margin-bottom: 5px;
+			}
+
+			.mid-roll-section {
+				display: flex;
+				justify-content: space-between;
+				margin-top: 30px;
+
+				.field-main {
+					display: flex;
+					flex-direction: column;
+					width: 45%;
+					select{
+						padding: 15px 10px;
+					}
+					input{
+						padding: 15px 10px;
+					}
+					label{
+						margin-bottom: 10px;
+					}
+				}
+			}
+		}
+	}
+}

@@ -1,0 +1,112 @@
+<div
+    class="form-container bg-white md:py-[60px] md:px-8 w-full border border-white border-t-primary border-t-[3px]">
+    <h2 class="h2">Billing Info</h2>
+    <div class="flex flex-col md:mb-0 md:flex-row">
+        <form class="flex flex-col md:w-7/12 max-w-[800px] mb-16" [formGroup]="billingInfoForm"
+            (ngSubmit)="onSubmitBillInfoForm()">
+            <div class="flex flex-row h-[50px] items-center w-full">
+                <div class="w-5/12">VAT Number</div>
+                <input formControlName="vatNum" class="w-7/12 border border-grey rounded-lg h-[40px] px-[17px]"
+                    [ngClass]="{ 'is-invalid': formErrors.vatNum }" type="text"
+                    placeholder="VAT Number" (blur)="logValidationErrors(billingInfoForm, formErrors, validationMessages)">
+            </div>
+            <div *ngIf="formErrors.vatNum"
+                class="flex flex-row items-center w-full invalid-feedback">
+                <div class=""></div>
+                <div>{{formErrors.vatNum}}</div>
+            </div>
+            <div class="flex flex-row h-[50px] items-center w-full">
+                <div class="w-5/12">National ID</div>
+                <input formControlName="nationalId" class="w-7/12 border border-grey rounded-lg h-[40px] px-[17px]"
+                    [ngClass]="{ 'is-invalid': formErrors.nationalId }" type="text"
+                    placeholder="National ID" (blur)="logValidationErrors(billingInfoForm, formErrors, validationMessages)">
+            </div>
+            <div *ngIf="formErrors.nationalId"
+                class="flex flex-row items-center w-full invalid-feedback">
+                <div class=""></div>
+                <div>{{formErrors.nationalId}}</div>
+            </div>
+            <div class="flex flex-row h-[50px] items-center w-full">
+                <div class="w-5/12">Invoicing Address</div>
+                <input formControlName="invoicingAddress"
+                    class="w-7/12 border border-grey rounded-lg h-[40px] px-[17px]"
+                    [ngClass]="{ 'is-invalid': formErrors.invoicingAddress }" type="text"
+                    placeholder="Invoicing Address" (blur)="logValidationErrors(billingInfoForm, formErrors, validationMessages)">
+            </div>
+            <div *ngIf="formErrors.invoicingAddress"
+                class="flex flex-row items-center w-full invalid-feedback">
+                <div class=""></div>
+                <div>{{formErrors.invoicingAddress}}</div>
+            </div>
+            <div class="flex flex-row h-[50px] items-center w-full">
+                <div class="w-5/12">City</div>
+                <input formControlName="city" class="w-7/12 border border-grey rounded-lg h-[40px] px-[17px]"
+                    [ngClass]="{ 'is-invalid': formErrors.city}" type="text"
+                    placeholder="City" (blur)="logValidationErrors(billingInfoForm, formErrors, validationMessages)">
+            </div>
+            <div *ngIf="formErrors.city"
+                class="flex flex-row items-center w-full invalid-feedback">
+                <div class=""></div>
+                <div>{{formErrors.city}}</div>
+            </div>
+            <div class="flex flex-row h-[50px] items-center w-full">
+                <div class="w-5/12">Postal Code</div>
+                <input formControlName="postalCode" class="w-7/12 border border-grey rounded-lg h-[40px] px-[17px]"
+                    [ngClass]="{ 'is-invalid': formErrors.postalCode}" type="text"
+                    placeholder="Postal Code" (blur)="logValidationErrors(billingInfoForm, formErrors, validationMessages)">
+            </div>
+            <div *ngIf="formErrors.postalCode"
+                class="flex flex-row items-center w-full invalid-feedback">
+                <div class=""></div>
+                <div>{{formErrors.postalCode}}</div>
+            </div>
+            <div class="flex flex-row h-[50px] items-center w-full">
+                <div class="w-5/12">Province</div>
+                <input formControlName="province" class="w-7/12 border border-grey rounded-lg h-[40px] px-[17px]"
+                    [ngClass]="{ 'is-invalid': formErrors.province }" type="text"
+                    placeholder="Province" (blur)="logValidationErrors(billingInfoForm, formErrors, validationMessages)">
+            </div>
+            <div *ngIf="formErrors.province"
+                class="flex flex-row items-center w-full invalid-feedback">
+                <div class=""></div>
+                <div>{{formErrors.province}}</div>
+            </div>
+            <div class="flex flex-row h-[50px] items-center w-full">
+                <div class="w-5/12">Country</div>
+                <input formControlName="country" class="w-7/12 border border-grey rounded-lg h-[40px] px-[17px]"
+                    [ngClass]="{ 'is-invalid': formErrors.country }" type="text"
+                    placeholder="Country" (blur)="logValidationErrors(billingInfoForm, formErrors, validationMessages)">
+            </div>
+            <div *ngIf="formErrors.country" class="flex flex-row items-center w-full invalid-feedback">
+                <div class=""></div>
+                <div>{{formErrors.country}}</div>
+            </div>
+            <h2 class="text-lg">Are you a company?</h2>
+            <div class="flex flex-row h-[50px] items-center w-full">
+                <div class="w-5/12">Company Name</div>
+                <input formControlName="companyName" class="w-7/12 border border-grey rounded-lg h-[40px] px-[17px]"
+                    type="text" placeholder="Company Name">
+                <!-- <input formControlName="companyName" class="w-7/12 border border-grey rounded-lg h-[40px] px-[17px]"
+                  [ngClass]="{ 'is-invalid': fBillInfo['companyName'].errors }" type="text"
+                  placeholder="Company Name"> -->
+            </div>
+            <!-- <div *ngIf="fBillInfo['companyName'].errors" class="flex flex-row items-center w-full invalid-feedback">
+                <div class=""></div>
+                  <div class="" *ngIf="fBillInfo['companyName'].errors['required']">Company name is required</div>
+                </div> -->
+            <div class="flex flex-row h-[50px] items-center w-full">
+                <input formControlName="isOpCompanyName" class="mr-2"  type="checkbox" placeholder="Channel Name">
+                <label class="text-[12px] w-11/12">Do you have the right to operate in the name of your company?</label>
+            </div>
+            <!-- <button type="button" class="btn btn-primary">Primary</button> -->
+        </form>
+        <div class="text-right submit-btn ">
+            <button type="submit" class="text-white w-[120px] h-[40px] text-base rounded-md m-auto"
+                    [disabled]="billingInfoForm.invalid"
+                    [ngStyle]="billingInfoForm.invalid ? {cursor: 'not-allowed'} : {cursor: 'pointer'}"
+                style="background: #811630;">
+                Submit
+            </button>
+        </div>
+    </div>
+</div>

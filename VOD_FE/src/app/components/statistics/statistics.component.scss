@@ -1,0 +1,399 @@
+@font-face {
+	font-family: "Open" ;
+	src: url("../../../assets/OpenSauceSans-Regular.ttf") format("opentype");
+}
+p,h1,h2,h3,h4,h5,small,p,label,h6,button,textarea,div{
+  font-family: "Open"!important;
+}
+/*Header*/
+.container-fluid {
+  display: block;
+  //overflow-y: auto;
+  height: 100%;
+  background-color: #5c5c5c;
+  //padding-top: 27px;
+  //padding-bottom: 36px;
+  border-radius: 0;
+  overflow:auto;
+}
+
+.header-container {
+  background: white;
+  // padding: 1rem;
+  padding: 40px 40px;
+  border-radius: 14px;
+  //margin: 0 auto;
+  width: 100% !important;
+  //max-width: 1200px;
+  height: fit-content;
+}
+.header-container-1{
+  background: white;
+  // padding: 1rem;
+  padding: 24px 40px;
+  border-radius: 14px;
+  //margin: 0 auto;
+  width: 100% !important;
+  height:fit-content;
+  //max-width: 1200px;
+}
+
+.row {
+  height: 100%;
+}
+
+.header-title-content {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: start;
+}
+
+.header-title {
+  margin-left: 1rem;
+  display: flex;
+  align-items: center;
+}
+
+.header-title .bold-header-text {
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.header-title .non-bold-header-text {
+  font-weight: 400;
+  font-size: 15px;
+}
+
+/* Progress Linear Section */
+.package {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.change-package {
+  font-size: 17px;
+  color: #0000ff;
+  font-weight: 700;
+}
+
+/* Horizontal progress bar */
+.progress-bar {
+  height: 8px; /* or any other value you prefer */
+  background-color: #448aca; /* or any other background color you prefer */
+}
+
+.progress {
+  height: 8px;
+}
+
+.progress-bar[role="progressbar"] {
+  background-color: #811630; /* or any other filling color you prefer */
+}
+
+.storage-text {
+  font-weight: 600;
+  font-size: 18px;
+}
+
+.storage-descrip {
+  color: #716f96;
+  font-weight: 400;
+  font-size: 16px;
+}
+
+/* Form */
+.apply-filter {
+  background-color: blue;
+  color: white;
+}
+
+.color-light-blue {
+  background-color: #e9eeff;
+}
+
+.header-container-bottom {
+  border-top: 1px solid #ccc;
+  border-radius: 0 0 5px 5px;
+}
+
+.header-container-box {
+  background: white;
+  padding: 1rem;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  margin: -0.7rem auto;
+  width: 90%;
+  max-width: 1200px;
+}
+
+.filter-row {
+  background-color: #e9eeff;
+}
+
+.filter-btn {
+  font-size: 14px;
+  padding: 11px 14px 11px 14px;
+}
+
+.filter-dropdown {
+  width: 371.34px;
+  border-radius: 7px;
+  height: 35px;
+}
+
+/********/
+.graph-container-1 {
+  background-color: #fcfcfc;
+  width: 100%;
+  height: 400px;
+  max-height: 550px; /* set a maximum height */
+  overflow-y: hidden; /* make it scrollable */
+  padding: 1rem;
+  border-radius: 14px;
+  margin: 0 auto;
+  border: 1px solid #e9eeff;
+}
+
+.graph-container-2 {
+  background-color: #fcfcfc;
+  width: 100%;
+  // max-height: 240px; /* set a maximum height */
+  // overflow-y: hidden; /* make it scrollable */
+  height:fit-content;
+  padding: 1rem;
+  border-radius: 14px;
+  margin: 0 auto;
+  border: 1px solid #e9eeff;
+}
+
+.graph-container::-webkit-scrollbar {
+  display: none;
+}
+
+td {
+  font-weight: 400;
+  font-size: 16px;
+  color: #716f96;
+}
+
+/******************************************/
+@media only screen and (max-width: 600px) {
+  .header-container {
+    height: auto;
+  }
+  .header-container-1{
+    height: auto;
+
+  }
+  .row {
+    height: auto;
+  }
+  .package {
+    font-size: 16px;
+    font-weight: 700;
+  }
+  .change-package {
+    font-size: 14px;
+    color: #0000ff;
+    font-weight: 700;
+  }
+  .storage-text {
+    font-weight: 600;
+    font-size: 16px;
+  }
+  .storage-descrip {
+    color: #716f96;
+    font-weight: 400;
+    font-size: 14px;
+  }
+  .storage-descrip-large {
+    display: none;
+  }
+  /*Form*/
+  .filter-blank {
+    display: none;
+  }
+  .chart-container {
+    height: 206px;
+    width: 340px;
+  }
+  .graph-container-1 {
+    background-color: #fcfcfc;
+    width: 100%;
+    max-height: 199px; /* set a maximum height */
+    overflow-y: hidden; /* make it scrollable */
+    padding: 1rem;
+    border-radius: 14px;
+    margin: 0 auto;
+    border: 1px solid #e9eeff;
+  }
+
+  .graph-container-2 {
+    background-color: #fcfcfc;
+    width: 100%;
+    max-height: 199px; /* set a maximum height */
+    overflow-y: hidden; /* make it scrollable */
+    padding: 1rem;
+    border-radius: 14px;
+    margin: 0 auto;
+    border: 1px solid #e9eeff;
+  }
+
+  .graph-container-1::-webkit-scrollbar {
+    display: none;
+  }
+  .small-margin {
+    margin-bottom: 20px;
+  }
+  td {
+    font-weight: 400;
+    font-size: 12px;
+    color: #191919;
+  }
+  #total-items {
+    width: 100px;
+  }
+}
+
+/* iPad Mini */
+@media only screen and (min-device-width: 768px) and (max-device-width: 1024px) and (-webkit-min-device-pixel-ratio: 1) {
+  .storage-descrip-large {
+    display: none;
+  }
+}
+
+/* iPad Air */
+@media only screen and (min-device-width: 768px) and (max-device-width: 1024px) and (-webkit-min-device-pixel-ratio: 2) {
+  .storage-descrip-large {
+    display: none;
+  }
+}
+
+/* Surface Pro 7 */
+@media only screen and (min-device-width: 768px) and (max-device-width: 1824px) and (-webkit-min-device-pixel-ratio: 1.6) {
+  .storage-descrip-large {
+    display: none;
+  }
+}
+
+@media (min-width: 576px) {
+  .chart-container {
+    height: 400px;
+  }
+}
+
+@media (min-width: 992px) {
+  .chart-container {
+    height: 600px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .chart-container {
+    height: 700px;
+  }
+}
+
+@media screen and (min-width: 602px) and (max-width: 991px) and (max-height: 721.6px) {
+  .storage-descrip-large {
+    display: none;
+  }
+}
+
+@media only screen and (min-width: 576px) and (max-width: 767px) and (max-height: 721.6px) {
+  .filter-btn-select-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  //.filter-btn {
+  //  margin-right: 10px;
+  //  width: hidden !important;
+  //  padding: 10px;
+  //  font-size: 14px;
+  //  overflow: hidden;
+  //}
+}
+
+@media only screen and (min-width: 576.6px) and (max-width: 766px) {
+  .filter-container {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .filter-btn-select-container {
+    margin-top: 1rem;
+  }
+}
+
+@media screen and (min-width: 769px) and (max-width: 1103.2px) {
+  .custom-col {
+    flex: 0 0 auto;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .custom-col-12 {
+    flex-basis: 0;
+    flex-grow: 1;
+    max-width: 100%;
+  }
+
+  .filter-btn-select-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: auto;
+  }
+
+  .filter-btn-select-container > * {
+    flex-basis: calc(50% - 5px);
+  }
+
+  .filter-btn {
+    margin-right: auto;
+    margin-top: 2rem;
+    width: auto !important;
+    padding: 5px;
+    font-size: 14px;
+    overflow: hidden;
+  }
+
+  select {
+    margin-top: -40px;
+  }
+  .graph-container-1 {
+    background-color: #fcfcfc;
+    width: 100%;
+    height: 240px;
+    max-height: 550px; /* set a maximum height */
+    overflow-y: hidden; /* make it scrollable */
+    padding: 1rem;
+    border-radius: 14px;
+    margin: 0 auto;
+    border: 1px solid #e9eeff;
+  }
+  .graph-container-2 {
+    background-color: #fcfcfc;
+    width: 100%;
+    max-height: 170px; /* set a maximum height */
+    overflow-y: hidden; /* make it scrollable */
+    padding: 1rem;
+    border-radius: 14px;
+    margin: 0 auto;
+    border: 1px solid #e9eeff;
+  }
+}
+
+@media only screen and (max-width: 335.2px) {
+  .filter-btn {
+    font-size: 12px !important;
+  }
+}
+
+@media only screen and (min-width: 769.6px) and (max-width: 1103.2px) {
+  ng-select {
+    margin-top: -42px;
+  }
+}

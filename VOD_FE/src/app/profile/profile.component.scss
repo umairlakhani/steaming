@@ -1,0 +1,87 @@
+@font-face {
+	font-family: "Open" ;
+	src: url("../../assets/OpenSauceSans-Regular.ttf") format("opentype");
+}
+h1,h2,h3,h4,h5,small,p,label,h6,button,textarea,div{
+  font-family: "Open"!important;
+}
+.nav-ul-list {
+    flex-direction: row !important;
+    display: flex !important;
+}
+.hr{
+    margin: 0;
+    height: 3px;
+    border-top: 4px solid #811630!important;
+    width: 99%;
+    opacity: 1!important;
+}
+a {
+    --tw-bg-opacity: 1 !important;
+    --tw-text-opacity: 1 !important;
+    color: black !important;
+    background-color: #ffffff !important;
+    font-size: 1rem;
+    line-height: 1.75rem;
+    font-weight: 500;
+    /* align-self: center; */
+    display: flex;
+}
+a.active {
+    --tw-bg-opacity: 1 !important;
+    --tw-text-opacity: 1 !important;
+    background-color: #811630 !important;
+    color: #ffffff !important;
+}
+.nav-tabs .nav-link {
+    border: none;
+    border-radius: 15px, 15px, 0px, 0px;
+    // border-top-left-radius: 10px;
+    // border-top-right-radius: 10px;
+}
+.navigation-component{
+    width: 94%;
+    margin: auto;
+}
+
+@media screen and (max-width: 600px) {
+    .nav-ul-list {
+        flex-direction: column !important;
+        justify-content: center;
+        flex-grow: 2rem !important;
+        flex-wrap: wrap;
+        flex-basis: 10%;
+    }
+    .nav-ul-list,
+    li {
+        color: aqua;
+        width: fit-content;
+    }
+    .nav-ul-list,
+    li,
+    a {
+        width: auto;
+        font-size: 1rem;
+        height: auto;
+        border-radius: 25px !important;
+        margin-bottom: 10px;
+    }
+}
+@media screen and (width: 820px) {
+    .nav-ul-list {
+        li{
+            width: 33%;
+        }
+    }
+}
+@media screen and (width: 768px) {
+    .nav-ul-list {
+        justify-content: space-between;
+        li{
+            width: 30%;
+        }
+    }
+}
+//.navigation-component {
+//    background-color: #5C5C5C !important;
+//}

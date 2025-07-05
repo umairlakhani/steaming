@@ -1,0 +1,21 @@
+<div *ngIf="subscriptionPlan" class="main">
+  <div class="stripe-form" ngxStripeCardGroup [formGroup]="stripeTest">
+    <div class="head">
+      <h2>Pay now</h2>
+    </div>
+    <div class="form-main">
+      <ngx-stripe-card-number class="stripe-input" [options]="cardOptions"></ngx-stripe-card-number>
+      <ngx-stripe-card-expiry class="stripe-input" [options]="cardOptions"></ngx-stripe-card-expiry>
+      <ngx-stripe-card-cvc class="stripe-input" [options]="cardOptions"></ngx-stripe-card-cvc>
+      <button *ngIf="!disabled" type="submit" (click)="pay()" class="stripe-button">
+        PAY $ {{subscriptionPlan.price}}
+      </button>
+      <button *ngIf="disabled" class="stripe-button">
+        Processing ...
+      </button>
+    </div>
+  </div>
+  <div class="stripe-img">
+    <img src="../../assets/icons//stripe.png">
+  </div>
+</div>

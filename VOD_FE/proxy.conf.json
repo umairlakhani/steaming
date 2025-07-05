@@ -1,0 +1,10 @@
+{
+    "/": {
+      "target": "http://3c75-2407-aa80-15-e8cb-b903-aada-5be2-1ae7.ngrok-free.app",
+      "secure": true,
+      "changeOrigin": true,
+      "pathRewrite": {
+        "^/": ""
+      }
+    }
+  }

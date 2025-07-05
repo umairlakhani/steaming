@@ -1,0 +1,78 @@
+<div class="container-fluid">
+    <div class="row justify-content-end">
+        <div class="col-md-6 col-12 d-flex align-items-center header-title">
+            <h4 class="text-center text-md-left">Archive Videos</h4>
+        </div>
+        <div class="col-md-6 col-12 d-flex align-items-center justify-content-end search-container">
+            <form class="form-inline my-2 my-lg-0">
+                <input type="text" class="w-full max-w-[450px] max-w-[768px]:ml-[10px] max-w-[768px]:m-auto md:w-[220px] h-[45px] rounded-3xl px-4" placeholder="Search">
+            </form>
+        </div>
+    </div>
+    <div class="row mt-4">
+        <div class="col-md-4 col-sm-6 big-container" *ngFor="let item of pagedItems">
+            <div class="card mb-4 card-container">
+                <img src="assets/schedules/image%202.png" style="max-width: 100%; height: auto" alt="movie">
+                <div class="card-body d-flex flex-column">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <h5 class="card-update-date">Updated on 28/05/2022</h5>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-start">
+                        <h3 class="card-text card-movie-description">S01E86 BOTP movie</h3>
+                    </div>
+                    <div class="row mt-2">
+                        <div class="col-lg-6 col-md-12 col-sm-6 d-flex justify-content-start align-items-center">
+                            <div class="svg-container mr-3">
+                                <svg width="31" height="30" viewBox="0 0 31 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <ellipse opacity="0.1" cx="15.9624" cy="15" rx="14.9863" ry="15" fill="#FFAA0E"/>
+                                    <path d="M19.2381 12.5882H18.1034V8.76471C18.1034 8.34412 17.7823 8 17.3898 8H14.5353C14.1428 8 13.8216 8.34412 13.8216 8.76471V12.5882H12.687C12.0518 12.5882 11.7307 13.4141 12.1803 13.8959L15.4558 17.4059C15.7342 17.7041 16.1837 17.7041 16.4621 17.4059L19.7376 13.8959C20.1872 13.4141 19.8732 12.5882 19.2381 12.5882ZM10.9671 20.2353C10.9671 20.6559 11.2882 21 11.6807 21H20.2443C20.6368 21 20.9579 20.6559 20.9579 20.2353C20.9579 19.8147 20.6368 19.4706 20.2443 19.4706H11.6807C11.2882 19.4706 10.9671 19.8147 10.9671 20.2353Z" fill="#FFAA0E"/>
+                                </svg>
+                            </div>
+                            <div class="svg-container mr-3">
+                                <svg width="31" height="30" viewBox="0 0 31 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <ellipse opacity="0.1" cx="15.9259" cy="15" rx="14.9863" ry="15" fill="#F92F2F"/>
+                                    <path d="M12.1793 9.3V8H18.6734V9.3H21.9204V10.6H20.6216V20.35C20.6216 20.5224 20.5532 20.6877 20.4314 20.8096C20.3096 20.9315 20.1444 21 19.9722 21H10.8805C10.7083 21 10.5431 20.9315 10.4213 20.8096C10.2995 20.6877 10.2311 20.5224 10.2311 20.35V10.6H8.93231V9.3H12.1793ZM11.5299 10.6V19.7H19.3228V10.6H11.5299ZM13.4781 12.55H14.777V17.75H13.4781V12.55ZM16.0758 12.55H17.3746V17.75H16.0758V12.55Z" fill="#F92F2F"/>
+                                </svg>
+                            </div>
+                            <div class="svg-container">
+                                <svg width="31" height="30" viewBox="0 0 31 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <ellipse opacity="0.1" cx="15.8892" cy="15" rx="14.9863" ry="15" fill="#77BF70"/>
+                                    <path d="M10.1628 21C9.8143 21 9.51589 20.8759 9.26753 20.6276C9.0196 20.3797 8.89563 20.0816 8.89563 19.7333V10.866C8.89563 10.5177 9.0196 10.2193 9.26753 9.97106C9.51589 9.7232 9.8143 9.59927 10.1628 9.59927H15.8173L14.5502 10.866H10.1628V19.7333H19.0327V15.3313L20.2998 14.0646V19.7333C20.2998 20.0816 20.1758 20.3797 19.9279 20.6276C19.6795 20.8759 19.3811 21 19.0327 21H10.1628ZM17.2428 9.96346L18.1457 10.8502L13.9642 15.0305V15.933H14.8511L19.0485 11.7369L19.9513 12.6236L15.754 16.8197C15.6378 16.9359 15.5033 17.0283 15.3504 17.0971C15.1971 17.1656 15.0359 17.1998 14.867 17.1998H13.3306C13.1511 17.1998 13.0007 17.1392 12.8795 17.018C12.7578 16.8964 12.697 16.7458 12.697 16.5664V15.0305C12.697 14.8616 12.7287 14.7005 12.7921 14.5472C12.8554 14.3943 12.9452 14.2598 13.0613 14.1437L17.2428 9.96346ZM19.9513 12.6236L17.2428 9.96346L18.8268 8.38002C19.0802 8.12667 19.3839 8 19.7378 8C20.0914 8 20.3896 8.12667 20.6324 8.38002L21.5194 9.28258C21.7623 9.52538 21.8837 9.82095 21.8837 10.1693C21.8837 10.5177 21.7623 10.8132 21.5194 11.056L19.9513 12.6236Z" fill="#77BF70"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="col-lg-6 col-md-12 col-sm-6 d-flex justify-content-end align-items-center publish-btn mt-sm-1">
+                            <button type="button" class="publish-btn-style"> <!--commented out popup open function-->
+                                <svg class="btn-pub-btn" width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M5.10325 11.3334V5.90008L3.3715 7.63342L2.43902 6.66675L5.7693 3.33342L9.09958 6.66675L8.1671 7.63342L6.43536 5.90008V11.3334H5.10325ZM0.440857 4.00008V0.666748H11.0977V4.00008H9.76564V2.00008H1.77297V4.00008H0.440857Z" fill="white"/>
+                                </svg>
+                                Publish
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Pagination section -->
+    <nav>
+        <ul class="pagination justify-content-center">
+            <li class="page-item" [ngClass]="{ 'disabled': currentPage === 1 }">
+                <a class="page-link" (click)="goToPage(currentPage - 1)" aria-label="Previous">
+                    <span aria-hidden="true">&laquo;</span>
+                    <span class="sr-only">Previous</span>
+                </a>
+            </li>
+            <li class="page-item" [ngClass]="{ 'active': i === currentPage }" *ngFor="let i of pages">
+                <a class="page-link" (click)="goToPage(i)">{{ i }}</a>
+            </li>
+            <li class="page-item" [ngClass]="{ 'disabled': currentPage === totalPages }">
+                <a class="page-link" (click)="goToPage(currentPage + 1)" aria-label="Next">
+                    <span aria-hidden="true">&raquo;</span>
+                    <span class="sr-only">Next</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</div>
+

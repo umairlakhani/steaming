@@ -1,0 +1,37 @@
+button {
+    background-color: #811630 !important;
+    color: white !important;
+}
+
+.form-container {
+    //height: calc(100vh - 205px);
+    height: auto;
+    // border-top : 3px solid #811630!important;
+    border-radius: 0px 15px 15px 15px;
+    padding-top: 2.5rem;
+}
+
+@media only screen and (max-width: 822px) {
+    .form-container {
+        .channel {
+            gap: 5%;
+        }
+
+        .desc {
+            gap: 5%;
+        }
+    }
+}
+
+@media only screen and (max-width: 600px) {
+    .form-container {
+        // height: calc(63vh);
+    }
+}
+
+@media only screen and (max-width: 375px) {
+    .form-container {
+        height: auto;
+
+    }
+}

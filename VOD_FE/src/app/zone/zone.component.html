@@ -1,0 +1,43 @@
+<div class="flex zone flex-col w-full h-full px-4 md:px-0 ">
+    <div class="main">
+        <div class="head">
+            <h1>Create a zone</h1>
+        </div>
+        <form class="zone-form" [formGroup]="zoneForm">
+            <div class="form-floating mb-3  ">
+                <input type="text" class="form-control" formControlName="zoneName" id="name"
+                    placeholder="name@example.com">
+                <label>Zone Name*</label>
+                <small [hidden]="zoneForm.controls.zoneName.valid || zoneForm.controls.zoneName.pristine"
+                    class="text-[red] ml-2">
+                    Zone name is required
+                </small>
+            </div>
+            <div class="form-floating mb-3  ">
+                <input type="text" class="form-control" formControlName="description" id="description">
+                <label>Description</label>
+            </div>
+            <div class="mb-3">
+                <select formControlName="type" class="form-select h-[57px]"
+                    aria-label="Default select example">
+                    <option class="fs-14px" value="" selected>Select type*</option>
+                    <option value="video">Video</option>
+                </select>
+                <small [hidden]="zoneForm.controls.type.valid || zoneForm.controls.type.pristine"
+                    class="text-[red] ml-2">
+                    Zone type is required
+                </small>
+            </div>
+            <div class="mb-3">
+                <select formControlName="secondaryZone" class="form-select h-[57px]"
+                    aria-label="Default select example">
+                    <option class="fs-14px" value="" selected>Secondary Zone</option>
+                    <option value="videoAd">Video Ad</option>
+                    <option value="streamVideoAd">Streaming Video Ad</option>
+                </select>
+            </div>
+            
+            <button (click)="createZone()" class="btn-submit">Create</button>
+        </form>
+    </div>
+</div>

@@ -140,6 +140,30 @@ process.on("unhandledRejection", (reason, promise) => {
   console.error("Unhandled Rejection at:", promise, "reason:", reason);
 });
 
+nms.on('preConnect', (id, args) => {
+  console.log('[NodeEvent on preConnect]', `id=${id} args=${JSON.stringify(args)}`);
+});
+
+nms.on('postConnect', (id, args) => {
+  console.log('[NodeEvent on postConnect]', `id=${id} args=${JSON.stringify(args)}`);
+});
+
+nms.on('doneConnect', (id, args) => {
+  console.log('[NodeEvent on doneConnect]', `id=${id} args=${JSON.stringify(args)}`);
+});
+
+nms.on('prePublish', (id, StreamPath, args) => {
+  console.log('[NodeEvent on prePublish]', `id=${id} StreamPath=${StreamPath} args=${JSON.stringify(args)}`);
+});
+
+nms.on('postPublish', (id, StreamPath, args) => {
+  console.log('[NodeEvent on postPublish]', `id=${id} StreamPath=${StreamPath} args=${JSON.stringify(args)}`);
+});
+
+nms.on('donePublish', (id, StreamPath, args) => {
+  console.log('[NodeEvent on donePublish]', `id=${id} StreamPath=${StreamPath} args=${JSON.stringify(args)}`);
+});
+
 module.exports = app;
 module.exports = { io }
 exports.io = { io };

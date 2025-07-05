@@ -1,0 +1,44 @@
+<div class="sel-vid-main">
+  <div class="header">
+    <div class="container">
+      <h2 class="h2">
+        Select Videos
+      </h2>
+      <svg (click)="closeVideoModal()" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x-lg" viewBox="0 0 16 16">
+        <path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8 2.146 2.854Z"/>
+      </svg>
+    </div>
+  </div>
+  <div class="cont-main">
+    <button (click)="selectAll()" class="btn-select">SELECT ALL</button>
+    <div class="box">
+      <div *ngFor="let video of videos; let i=index" class="box-items">
+        <input [checked]="checkIfChecked(video.id)" #checkbox class="checkBox cursor-pointer" (change)="checkCheckBoxChange(video)" type="checkbox">
+        <img [src]="video.thumbnail">
+        <div>{{video.Title}}</div>
+      </div>
+      <!-- <div class="flex flex-row justify-center">
+            <nav aria-label="Page navigation example">
+                <ul class="pagination">
+                  <li (click)="paginateBack()"  class="page-item">
+                    <a class="page-link" aria-label="Previous">
+                      <span aria-hidden="true">&laquo;</span>
+                      <span class="sr-only">Previous</span>
+                    </a>
+                  </li>
+                  <div *ngFor="let item of totItems; let i = index">
+                      <li [class.active]="currentPage == i+1" (click)="handleNumClick(i+1)" [value]="i+1"  class="page-item"><a class="page-link">{{i+1}}</a></li>
+                  </div>
+                  <li (click)="paginateForward()" class="page-item">
+                    <a class="page-link" aria-label="Next">
+                      <span aria-hidden="true">&raquo;</span>
+                      <span class="sr-only">Next</span>
+                    </a>
+                  </li>
+                </ul>
+              </nav>
+        </div> -->
+
+    </div>
+  </div>
+</div>

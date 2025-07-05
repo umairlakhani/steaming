@@ -1,0 +1,64 @@
+::ng-deep{
+    .mat-drawer-content{
+        display: flex !important;
+        flex-direction: column;
+        // margin-left: 220px;
+        position: static!important;
+        margin-left: 0px;
+    }
+}
+.main-container {
+  //display: block;
+  // overflow-y: hidden;
+  // overflow-x: hidden;
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+  // margin-left: 1rem;
+  // margin-right: 1rem;
+  //height: 100% !important;
+}
+@media (max-width: 414px) {
+.main-container {
+  margin-top: 3rem;
+  margin-bottom: 3rem;
+}
+}
+
+// Small devices (landscape phones, 576px and up)
+@media (min-width: 576px) {
+    .mat-drawer-content{
+       position: static!important;
+        margin-left: 0px!important;
+    }
+ }
+
+// Medium devices (tablets, 768px and up)
+@media (min-width: 768px) {
+
+}
+
+// Large devices (desktops, 992px and up)
+@media (min-width: 992px) {
+  .main-container {
+    margin-left: 2.2rem;
+    margin-right: 2.2rem;
+  }
+ }
+
+// X-Large devices (large desktops, 1200px and up)
+@media (min-width: 1200px) {
+
+ }
+
+// XX-Large devices (larger desktops, 1400px and up)
+@media (min-width: 1400px) {
+
+ }
+
+.main-background {
+  background-color: #5C5C5C;
+  border-radius: 0;
+}
+
+
+

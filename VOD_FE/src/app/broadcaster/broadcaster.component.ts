@@ -107,7 +107,7 @@ async ngAfterViewInit(): Promise<void> {
   this.published = false;
   this.startMedia();
 }
-
+// In broadcaster.component.ts - Fix the socket connection
 async connectSocket() {
   console.log("Connecting to socket...");
   if (this.socket) {
@@ -120,14 +120,14 @@ async connectSocket() {
     this.socket = io(environment.socketUrl, {
       autoConnect: true,
       transports: ["websocket", "polling"],
+      timeout: 20000, // Add timeout
+      forceNew: true  // Force new connection
     });
 
-    console.log(this.socket, "Socket");
-
-    // Remove the problematic reconnection logic from disconnect event
     this.socket.on("connect", () => {
       console.log("socket.io connected()");
       this.canRecord = true;
+      resolve(); // Move resolve here
     });
 
     this.socket.on("disconnect", (evt: any) => {
@@ -141,34 +141,22 @@ async connectSocket() {
       if (message.type === "welcome") {
         this.clientId = message.id;
         console.log("connected to server. clientId=" + this.clientId);
-        resolve();
+        // Don't resolve here, resolve on connect event
       }
     });
 
-    // In your connectSocket method, add these listeners:
-this.socket.on(`recordingStarted${this.streamId}`, (data: any) => {
-  console.log("Recording started event received:", data);
-  this.recordingStarted = true;
-  this.toaster.success("Recording started successfully");
-});
-
-this.socket.on(`recordingError${this.streamId}`, (data: any) => {
-  console.error("Recording error event received:", data);
-  this.toaster.error(`Recording failed: ${data.error}`);
-});
-
-this.socket.on(`recordingStopped${this.streamId}`, (data: any) => {
-  console.log("Recording stopped event received:", data);
-  this.recordingStarted = false;
-  this.toaster.info("Recording stopped");
-});
+    // Add error handling
+    this.socket.on('connect_error', (error: any) => {
+      console.error('Socket connection error:', error);
+      reject(error);
+    });
 
     // Add timeout for connection
     setTimeout(() => {
-      if (!this.clientId) {
+      if (!this.socket || !this.socket.connected) {
         reject(new Error("Connection timeout"));
       }
-    }, 5000);
+    }, 20000);
   });
 }
   connectSocketBe() {
@@ -277,7 +265,10 @@ start_recording() {
   console.log("Storage end:", this.storageEnd);
   console.log("Recording started:", this.recordingStarted);
   console.log("Stream ID:", this.streamId);
+  console.log("Video Producer exists:", !!this.videoProducer);
+  console.log("Audio Producer exists:", !!this.audioProducer);
 
+  // Enhanced validation
   if (!this.canRecord) {
     console.error("Cannot record - canRecord is false");
     this.toaster.error("Please wait for connection to establish");
@@ -293,6 +284,13 @@ start_recording() {
   if (!this.socket || !this.socket.connected) {
     console.error("Cannot record - socket not connected");
     this.toaster.error("Socket connection lost");
+    return;
+  }
+  
+  // **NEW: Check if producers exist**
+  if (!this.videoProducer && !this.audioProducer) {
+    console.error("Cannot record - no media producers available");
+    this.toaster.error("No media stream available. Please restart streaming.");
     return;
   }
   
@@ -627,94 +625,14 @@ async publish() {
     console.log("Creating send transport...");
     this.producerTransport = this.device.createSendTransport(params);
     
-    // Store local reference
-    const transport = this.producerTransport;
-    
     // Set up transport event handlers
-    transport.on("connect", async ({ dtlsParameters }: any, callback: any, errback: any) => {
-      console.log("Transport connecting...");
-      try {
-        await this.sendRequest(`connectProducerTransport${this.streamId}`, {
-          dtlsParameters: dtlsParameters,
-        });
-        console.log("Transport connected successfully");
-        callback();
-      } catch (error) {
-        console.error("Transport connection failed:", error);
-        errback(error);
-      }
-    });
+    this.setupTransportHandlers();
 
-    transport.on("produce", async ({ kind, rtpParameters }: any, callback: any, errback: any) => {
-      console.log(`Producing ${kind}...`);
-      try {
-        const { id }: any = await this.sendRequest(
-          `produce${this.streamId}`,
-          {
-            transportId: transport.id,
-            kind,
-            rtpParameters,
-          }
-        );
-        console.log(`${kind} producer created with ID:`, id);
-        callback({ id });
-      } catch (err) {
-        console.error(`Failed to produce ${kind}:`, err);
-        errback(err);
-      }
-    });
-
-    transport.on("connectionstatechange", (state: any) => {
-      console.log("Transport connection state changed:", state);
-      switch (state) {
-        case "connecting":
-          console.log("Transport connecting...");
-          break;
-        case "connected":
-          console.log("Transport connected - stream is live!");
-          this.canRecord = true;
-          this.connectionState = 'published';
-          this.isPublishing = false;
-          this.published = true;
-          this.startThumbnailInterval();
-          this.updateButtons();
-          break;
-        case "failed":
-          console.error("Transport connection failed");
-          this.error = "Connection failed";
-          this.resetPublishState();
-          break;
-        case "disconnected":
-          console.log("Transport disconnected");
-          this.resetPublishState();
-          break;
-      }
-    });
-
-    // Start producing media
+    // **IMPORTANT: Start producing media BEFORE marking as published**
     console.log("Starting media production...");
-    const useVideo = this.checkUseVideo();
-    const useAudio = this.checkUseAudio();
-    
-    if (useVideo) {
-      const videoTrack = (this.localStream as any).getVideoTracks()[0];
-      if (videoTrack) {
-        console.log("Creating video producer...");
-        this.videoProducer = await transport.produce({ track: videoTrack });
-        console.log("Video producer created:", this.videoProducer.id);
-      }
-    }
-    
-    if (useAudio) {
-      const audioTrack = (this.localStream as any).getAudioTracks()[0];
-      if (audioTrack) {
-        console.log("Creating audio producer...");
-        this.audioProducer = await transport.produce({ track: audioTrack });
-        console.log("Audio producer created:", this.audioProducer.id);
-      }
-    }
+    await this.startMediaProduction();
 
-    console.log("Media production started successfully");
+    console.log("Media production started successfully - Stream is now live!");
     
   } catch (error) {
     console.error("Error in publish:", error);
@@ -722,6 +640,118 @@ async publish() {
     this.toaster.error(`Failed to start live stream: ${error}`);
     this.resetPublishState();
   }
+}
+
+private setupTransportHandlers() {
+  const transport = this.producerTransport;
+  
+  if (!transport) {
+    console.error("Producer transport is null, cannot set up handlers.");
+    return;
+  }
+
+  transport.on("connect", async ({ dtlsParameters }: any, callback: any, errback: any) => {
+    console.log("Transport connecting...");
+    try {
+      await this.sendRequest(`connectProducerTransport${this.streamId}`, {
+        dtlsParameters: dtlsParameters,
+      });
+      console.log("Transport connected successfully");
+      callback();
+    } catch (error) {
+      console.error("Transport connection failed:", error);
+      errback(error);
+    }
+  });
+
+  transport.on("produce", async ({ kind, rtpParameters }: any, callback: any, errback: any) => {
+    console.log(`Producing ${kind}...`);
+    try {
+      const { id }: any = await this.sendRequest(
+        `produce${this.streamId}`,
+        {
+          transportId: transport.id,
+          kind,
+          rtpParameters,
+        }
+      );
+      console.log(`${kind} producer created with ID:`, id);
+      callback({ id });
+    } catch (err) {
+      console.error(`Failed to produce ${kind}:`, err);
+      errback(err);
+    }
+  });
+
+  transport.on("connectionstatechange", (state: any) => {
+    console.log("Transport connection state changed:", state);
+    switch (state) {
+      case "connecting":
+        console.log("Transport connecting...");
+        break;
+      case "connected":
+        console.log("Transport connected - stream is live!");
+        this.canRecord = true;
+        this.connectionState = 'published';
+        this.isPublishing = false;
+        this.published = true;
+        this.startThumbnailInterval();
+        this.updateButtons();
+        break;
+      case "failed":
+        console.error("Transport connection failed");
+        this.error = "Connection failed";
+        this.resetPublishState();
+        break;
+      case "disconnected":
+        console.log("Transport disconnected");
+        this.resetPublishState();
+        break;
+    }
+  });
+}
+
+private async startMediaProduction() {
+  const useVideo = this.checkUseVideo();
+  const useAudio = this.checkUseAudio();
+  
+  const productionPromises = [];
+  
+  if (useVideo) {
+    const videoTrack = (this.localStream as any).getVideoTracks()[0];
+    if (videoTrack && this.producerTransport) {
+      console.log("Creating video producer...");
+      const videoPromise = this.producerTransport.produce({ track: videoTrack })
+        .then((producer) => {
+          this.videoProducer = producer;
+          console.log("Video producer created:", producer.id);
+          return producer;
+        });
+      productionPromises.push(videoPromise);
+    }
+  }
+  
+  if (useAudio) {
+    const audioTrack = (this.localStream as any).getAudioTracks()[0];
+    if (audioTrack && this.producerTransport) {
+      console.log("Creating audio producer...");
+      const audioPromise = this.producerTransport.produce({ track: audioTrack })
+        .then((producer) => {
+          this.audioProducer = producer;
+          console.log("Audio producer created:", producer.id);
+          return producer;
+        });
+      productionPromises.push(audioPromise);
+    }
+  }
+
+  // Wait for all producers to be created
+  if (productionPromises.length === 0) {
+    throw new Error("No media tracks available for production");
+  }
+
+  await Promise.all(productionPromises);
+  console.log("All media producers created successfully");
 }
 
 private resetPublishState() {
@@ -797,6 +827,7 @@ async loadDevice(routerRtpCapabilities: any) {
 }
 
   // ---- UI control ----
+// In broadcaster.component.ts
 updateButtons() {
   // Enable/disable camera button
   if (this.localStream) {
@@ -806,7 +837,7 @@ updateButtons() {
   }
 
   // Enable/disable publish button
-  if (this.localStream && !this.published) {
+  if (this.localStream && !this.published && !this.isPublishing) {
     this.removeNoDropClass(this.publish_button.nativeElement);
     this.buttonDisabled = false;
   } else {
@@ -817,10 +848,17 @@ updateButtons() {
   // Update recording button state
   const recordButton = document.querySelector('.start-rec-btn') as HTMLElement;
   if (recordButton) {
-    if (!this.published || !this.socket || this.storageEnd || !this.canRecord) {
-      recordButton.classList.add('nodrop');
-    } else {
+    const canStartRecording = this.published && 
+                             this.socket?.connected && 
+                             !this.storageEnd && 
+                             this.canRecord &&
+                             (this.videoProducer || this.audioProducer) && // **NEW: Check producers**
+                             !this.recordingStarted;
+                             
+    if (canStartRecording) {
       recordButton.classList.remove('nodrop');
+    } else {
+      recordButton.classList.add('nodrop');
     }
   }
 }

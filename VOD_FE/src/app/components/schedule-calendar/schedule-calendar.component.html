@@ -1,0 +1,92 @@
+<div class="container overflow-auto">
+    <div class="text-center">
+        <h2>Select a day of the calendar and insert videos to your schedule</h2>
+        <!--<p class="text-secondary">You can copy and paste the one-day schedule on one or more days.
+           Select the day to copy in the calendar, click the <b>‘Copy’</b> button, select the days you want to copy it
+           and
+           click <b>‘Paste’</b>.df</p>-->
+    </div>
+    <!-- <form class="w-full mt-8">
+        <label for="name">
+            Title
+        </label>
+        <input id="name" class="w-full border border-grey rounded-lg mt-2 h-[45px] px-[17px]" type="text" placeholder="Title">
+        <div
+            class="text-[red]">
+            Title is required
+        </div>
+    </form> -->
+    <div class="row mt-5 mb-3 ml-5">
+        <div class="col-lg-8 col-md-6 col-sm-12 text-center">
+            <div class="content">
+                <h2 class="text-center">Select Date</h2>
+                <ngb-datepicker #dp [(ngModel)]="model" [dayTemplate]="t" [startDate]="model2" id="calender-container">
+                    <ng-template #t let-date ngbDatepickerDayView style="pointer-events: none;">
+                        <div (click)="onIconSelected(date)">
+                            <div (click)="onDateSelected(date)" [class.outside-day]="date.month !== model.month || isCurrentMonthToday(date)"
+                                 [ngClass]="{'calendar-date':!isSelected(date),'calendar-date-selected':isSelected(date)} "
+                                 class="day">
+                                {{ date.day }}
+                                <!-- <div class="ml-1 day-icon">
+                                    <img class="cal-copy-icon"
+                                            src="../../../assets/icons/calendar-copy-icon.svg" alt="">
+                                </div> -->
+                            </div>
+                        </div>
+                    </ng-template>
+                </ngb-datepicker>
+            </div>
+
+        </div>
+        <div class="col-lg-4 col-md-6 col-sm-12 text-center">
+            <div class="content p-3">
+                <h2 class="">Select Time</h2>
+                <input [(ngModel)]="selectedTimeSlot" class="w-full max-w-[350px] max-[768px]:m-auto md:w-[140px] h-[45px] rounded-3xl px-4"
+                       type="time" step="1">
+            </div>
+            <button (click)="addToList()" class="!border-primary mt-3 border-[3px] h-[45px] px-6 rounded-lg text-white !bg-primary text-lg">
+                Add to list
+            </button>
+
+        </div>
+    </div>
+    <div class="w-full h-[50px]">
+        <div class="bg-gray-50 mb-3" *ngFor="let item of list">
+            <div class="flex justify-between">
+            <div class="flex justify-left">
+                <!-- <img class="w-[85px] mr-2" src="/assets/movie.png" > -->
+                <img class="w-[85px] mr-2" [src]="selectedVideo.thumbnail" >
+                <div class="time relative text-white text-xs h-6 w-7 left-[-97px] top-[-2px] py-1 px-2 m-1 bg-[#000000a8] rounded">
+                    {{selectedVideo.length}}
+                </div>
+                
+                <div>
+                    <div>
+                        {{item.Title}}
+                    </div>
+                    <div>{{item.length}}</div>
+                </div>
+            </div>
+            <div class="flex justify-between w-[340px] color-[white]">
+                <input [ngModel]="modelToString(item.startTimestamp)" readonly class="w-full border border-solid border-slate-200 max-w-[350px] max-[768px]:m-auto md:w-[140px] h-[45px] rounded-3xl px-4" type="text">
+                <input  [(ngModel)]="item.val" readonly class="w-full border border-solid border-slate-200 max-w-[350px] max-[768px]:m-auto md:w-[140px] h-[45px] rounded-3xl px-4"
+                       type="time">
+                 <!-- <button class="bg-red px-2 py-2 text-white rounded-md">Remove</button>       -->
+                 <button
+                 (click)="deleteList(item)"
+                 class="w-[40px] h-[40px] bg-[#f92f2f29] rounded-full pt-[4px] text-center mr-1"
+                 matTooltip="Delete">
+             <mat-icon class="text-[25px] text-[#F92F2F]">delete</mat-icon>
+         </button>
+                </div>
+        </div>
+        </div>
+    </div>
+</div>
+
+<div class="w-full text-right mt-6">
+    <button (click)="submitSchedule()"
+            class="!border-primary border-[3px] h-[45px] px-6 rounded-lg text-white !bg-primary text-lg">
+        Schedule
+    </button>
+</div>

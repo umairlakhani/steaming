@@ -1,0 +1,159 @@
+.upload-btn {
+    background: #811630;
+    color: white;
+    border: 0;
+  }
+  .form-container{
+    overflow: auto;
+  }
+  
+  .edit-main{
+    padding: 24px 24px;
+  }
+
+  /*Pagination Css*/
+.pagination-controls {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.pagination-controls ul {
+  display: flex;
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+}
+
+.pagination-controls li {
+  margin-right: 5px;
+}
+
+.pagination-controls li a {
+  display: inline-block;
+  padding: 5px 10px;
+  border: 1px solid #ddd;
+  border-radius: 20px;
+  color: #fff;
+  text-decoration: none;
+  background-color: #fff;
+}
+
+.pagination-controls li a.active {
+  background-color: #811630;
+  color: #fff;
+  border-color: #811630;
+}
+
+.pagination-controls ::ng-deep .ngx-pagination .current {
+  background: #811630;
+  padding: 0.50rem .94rem;
+  border-radius: 20px;
+}
+
+.pagination-controls ::ng-deep .ngx-pagination a, .ngx-pagination button {
+  color: #fff;
+  display: block;
+  padding: 0.50rem .94rem;
+  border-radius: 20px;
+  //border: 1px solid #000 !important;
+  text-decoration: none;
+  background: #b0b0b036;
+}
+
+.pagination-controls ::ng-deep .ngx-pagination a:hover, .ngx-pagination button:hover {
+  background: #811630;
+  color: #ffffff;
+}
+
+.pagination-controls
+::ng-deep
+.ngx-pagination
+.pagination-previous
+a::before,
+.pagination-controls
+::ng-deep .ngx-pagination
+.pagination-previous.disabled::before {
+  content: unset !important;
+}
+
+.pagination-controls
+::ng-deep
+.ngx-pagination
+.pagination-next
+a::before,
+.pagination-controls
+::ng-deep .ngx-pagination
+.pagination-next.disabled::before {
+  content: unset !important;
+}
+
+.pagination-controls
+::ng-deep
+.ngx-pagination
+.pagination-next
+a::after,
+.pagination-controls
+::ng-deep .ngx-pagination
+.pagination-next.disabled::after {
+  content: unset !important;
+}
+
+.pagination-controls
+::ng-deep
+.ngx-pagination
+.pagination-previous
+a::after,
+.pagination-controls
+::ng-deep .ngx-pagination
+.pagination-previous.disabled::after {
+  content: unset !important;
+}
+
+.pagination-controls
+::ng-deep
+.ngx-pagination
+.pagination-next
+a::after,
+.pagination-controls
+::ng-deep .ngx-pagination
+.pagination-next.disabled::after {
+  content: unset !important;
+}
+
+.pagination-controls
+::ng-deep
+.ngx-pagination
+.pagination-previous
+a::after,
+.pagination-controls
+::ng-deep .ngx-pagination
+.pagination-previous.disabled::after {
+  content: unset !important;
+}
+
+.pagination{
+  margin-top: 10px;
+  .page-item{
+      border-radius: 50px;
+      cursor: pointer;
+      background: rgba(176, 176, 176, 0.2117647059);
+      border-color: rgba(176, 176, 176, 0.2117647059);
+      .page-link{
+          color: white;
+          border-radius: 50px;
+          background: rgba(176, 176, 176, 0.2117647059);
+          border-color: rgba(176, 176, 176, 0.2117647059);
+      }
+  }
+}
+.active{
+  --bs-pagination-bg: #811630!important;
+  background-color: #811630;
+  // color: #811630!important;
+  .page-link{
+      background-color: #811630!important;
+      border-color: #811630;
+  color: white!important;
+  }
+}

@@ -1,0 +1,18 @@
+<div #main [class.load]="process" class="mod-main">
+    <div class="head-main">
+        <h2>Your Videos</h2>
+        <h4>Space needs to be clear: {{extraStorage}} MB</h4>
+    </div>
+    <div *ngIf="videos.length>0" class="items-main">
+        <div *ngFor="let vid of videos" class="item">
+            <img [src]="vid['thumbnail']">
+            <div class="cont-main">
+                <div>{{vid['Title']}}</div>
+                <div>{{(vid['size']/1048576).toFixed(2)}} MB</div>
+                <!-- <button>delete</button> -->
+                <img (click)="deleteVideo(vid['id'],vid['size'])" src="/assets/icons/delete.png">
+            </div>
+            <!-- <div>video</div> -->
+        </div>
+    </div>
+</div>

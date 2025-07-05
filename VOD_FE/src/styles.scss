@@ -1,0 +1,136 @@
+// Custom Theming for Angular Material
+// For more information: https://material.angular.io/guide/theming
+@use "@angular/material" as mat;
+// Plus imports for other components in your app.
+// @import "~swiper";
+// @import "~swiper/css/pagination";
+// @import "~swiper/css/navigation";
+@import 'ngx-toastr/toastr';
+// Include the common styles for Angular Material. We include this here so that you only
+// have to load a single css file for Angular Material in your app.
+// Be sure that you only ever include this mixin once!
+@include mat.core();
+
+// Define the palettes for your theme using the Material Design palettes available in palette.scss
+// (imported above). For each palette, you can optionally specify a default, lighter, and darker
+// hue. Available color palettes: https://material.io/design/color/
+$VODandLiveStreamFE-primary: mat.define-palette(mat.$indigo-palette, 500, 300, 700, 200);
+$VODandLiveStreamFE-accent: mat.define-palette(mat.$pink-palette, A200, A100, A400);
+
+// The warn palette is optional (defaults to red).
+$VODandLiveStreamFE-warn: mat.define-palette(mat.$red-palette);
+
+// Create the theme object. A theme consists of configurations for individual
+// theming systems such as "color" or "typography".
+$VODandLiveStreamFE-theme: mat.define-light-theme((color: (primary: $VODandLiveStreamFE-primary,
+				accent: $VODandLiveStreamFE-accent,
+				warn: $VODandLiveStreamFE-warn,
+			),
+		));
+
+// Include theme styles for core and each component used in your app.
+// Alternatively, you can import and @include the theme mixins for each component
+// that you are using.
+@include mat.all-component-themes($VODandLiveStreamFE-theme);
+
+
+/* You can add global styles to this file, and also import other style files */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+@import "~video.js/dist/video-js.css";
+@import url('https://fonts.googleapis.com/css2?family=Calligraffitti&display=swap');
+
+@font-face {
+	font-family: "Open";
+	src: url("assets/OpenSauceSans-Regular.ttf") format("opentype");
+}
+
+html,
+body {
+	height: 100%;
+}
+
+body {
+	margin: 0;
+	//   font-family: ;
+	font-family: "Open", "Helvetica Neue", sans-serif;
+	background-color: #5C5C5C;
+}
+
+.\!bg-primary {
+	background-color: #811630 !important;
+}
+
+.btn-primary {
+	background: #811630 !important;
+	border: 0 !important;
+}
+
+.card {
+	border: 0 !important;
+}
+
+.mat-dialog-container {
+	padding: 0px 0px !important;
+
+	&::-webkit-scrollbar {
+		width: 6px !important;
+	}
+
+	&::-webkit-scrollbar-track {
+		background: #f1f1f1 !important;
+	}
+
+	&::-webkit-scrollbar-thumb {
+		background: #888 !important;
+
+		&:hover {
+			background: #555 !important;
+		}
+	}
+}
+
+.mat-drawer-inner-container {
+	&::-webkit-scrollbar {
+		width: 6px !important;
+	}
+
+	&::-webkit-scrollbar-track {
+		background: #f1f1f1 !important;
+	}
+
+	&::-webkit-scrollbar-thumb {
+		background: #888 !important;
+
+		&:hover {
+			background: #555 !important;
+		}
+	}
+}
+
+div {
+
+
+	::-webkit-scrollbar {
+		width: 6px !important;
+	}
+
+	::-webkit-scrollbar-track {
+		background: #f1f1f1 !important;
+	}
+
+	::-webkit-scrollbar-thumb {
+		background: #888 !important;
+
+		&:hover {
+			background: #555 !important;
+		}
+	}
+}
+
+.bootstrap-icons-14 {
+	height: 14px !important;
+	width: 14px !important;
+	font-weight: 900 !important;
+}

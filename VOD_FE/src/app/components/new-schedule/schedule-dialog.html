@@ -1,0 +1,14 @@
+<div class="container">
+    <h3>{{data.scheduleData[0].videoId}}</h3>
+    <div *ngFor="let sch of data.scheduleData" class="w-full mb-3">
+        <div class="bg-gray-50 w-full flex justify-between">
+            <!-- <img class="w-[50px]" src="/assets/movie.png"> -->
+            <img class="w-[50px]" [src]="data.scheduleData[0].video.thumbnail">
+            <div class="w-[85%] flex justify-between">
+                <p>Date:{{getDate(sch.startTimestamp)}}</p>
+                <p>Start time:{{getTime(sch.startTimestamp)}}</p>
+                <p>End time:{{getTime(sch.endTimestamp)}}</p>
+            </div>
+        </div>
+    </div>
+</div>

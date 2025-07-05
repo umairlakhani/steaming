@@ -1,0 +1,78 @@
+@font-face {
+    font-family: "Open";
+    src: url("../../../assets/OpenSauceSans-Regular.ttf") format("opentype");
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+small,
+p,
+label,
+h6,
+button,
+textarea,
+div {
+    font-family: "Open" !important;
+}
+
+.form-container {
+    //height: calc(100vh - 205px);
+    height: auto;
+    // border-top : 3px solid #811630!important;
+    border-radius: 0px 15px 15px 15px;
+    padding-top: 2.5rem;
+}
+
+button {
+    background-color: #811630 !important;
+    color: white !important;
+}
+
+.hr-line {
+    border-top: 2px solid blue;
+}
+
+.h2 {
+    font-size: 22px;
+    font-weight: 700;
+}
+
+.logout-btn {
+    border: 0;
+}
+
+.form-container::-webkit-scrollbar {
+    width: 0 !important
+}
+
+.text-base {
+    font-size: 14px !important;
+}
+
+@media only screen and (max-width: 822px) {
+    .form-container {
+        .channel {
+            gap: 5%;
+        }
+
+        .desc {
+            gap: 5%;
+        }
+    }
+}
+
+@media only screen and (max-width: 600px) {
+    .form-container {
+        // height: calc(63vh);
+    }
+}
+
+@media only screen and (max-width: 375px) {
+    .form-container {
+        height: auto;
+
+    }
+}

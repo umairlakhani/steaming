@@ -1,0 +1,127 @@
+<div
+    class="rounded up-ad bg-white py-4 md:py-[60px] px-4 md:px-8 w-[95%] m-auto border border-white border-t-primary border-t-[3px]">
+    <h1 class="text-center">Upload Ads in your published videos</h1>
+    <h2>Basic Information:</h2>
+    <div>
+        <form [formGroup]="adUploadForm" id="upload-ads"
+            class="max-[375px]:w-[100%] max-[414px]:w-[100%] max-[820px]:w-[100%] w-[50%]">
+            <div class="mb-3">
+                <select (change)="onOptionChange($event)" formControlName="type" class="form-select h-[57px]"
+                    aria-label="Default select example">
+                    <option class="fs-14px" value="" selected>Select Ad type*</option>
+                    <!-- <option value="AS.Ads.createVideo">Video Ad</option>
+                    <option value="AS.Ads.createVASTWrapper">Streaming Video Ad</option> -->
+                    <option value="video">Video Ad</option>
+                    <option value="broadcasting">Streaming Video Ad</option>
+                    <option value="both">Both</option>
+                </select>
+                <small [hidden]="adUploadForm.controls.type.valid || adUploadForm.controls.type.pristine"
+                    class="text-[red] ml-2">
+                    Ad type is required
+                </small>
+            </div>
+            <div class="form-floating mb-3  ">
+                <input type="text" class="form-control" formControlName="name" id="name" placeholder="name@example.com">
+                <label>Ad Name*</label>
+                <small [hidden]="adUploadForm.controls.name.valid || adUploadForm.controls.name.pristine"
+                    class="text-[red] ml-2">
+                    Ad name is required
+                </small>
+            </div>
+            <div *ngIf="urlTypeSelected !== 'wrapCheckUrl'" class="form-floating mb-3">
+                <input #videoUpload type="file" accept="video/mp4,video/x-m4v,video/*" (change)="onFileSelected($event)"
+                    class="form-control" id="videoUrl" formControlName="videourl" placeholder="name@example.com">
+                <label for="videourl">Video File*</label>
+                <small [hidden]="adUploadForm.controls.videourl.valid || adUploadForm.controls.videourl.pristine"
+                    class="text-[red] ml-2">
+                    Video ad file is required
+                </small>
+            </div>
+
+            <div *ngIf="urlTypeSelected == 'wrapCheckUrl'" class="form-floating mb-3  ">
+                <input type="text" class="form-control" formControlName="wrapperUrl" id="wrapperUrl"
+                    placeholder="name@example.com">
+                <label>Video Wrapper Url*</label>
+                <small [hidden]="adUploadForm.controls.name.valid || adUploadForm.controls.name.pristine"
+                    class="text-[red] ml-2">
+                    Video File is required
+                </small>
+            </div>
+
+            <div class="form-floating w-[75%] mb-3 flex flex-row justify-between">
+                <div class="form-check">
+                    <input (change)="onUrlTypeChange($event)" class="form-check-input" type="radio" value="vidCheckUrl"
+                        formControlName="urlType" name="urlType" id="flexRadioDefault1" checked>
+                    <small class="form-check-label" for="flexRadioDefault1">
+                        Video File
+                    </small>
+                </div>
+                <div class="form-check">
+                    <input (change)="onUrlTypeChange($event)" class="form-check-input" type="radio" value="wrapCheckUrl"
+                        formControlName="urlType" name="urlType" id="flexRadioDefault2">
+                    <small class="form-check-label" for="flexRadioDefault2">
+                        VAST Wrapper URL
+                    </small>
+                </div>
+            </div>
+            <!-- <div class="form-check">
+                <input class="form-check-input" type="radio" value="one" formControlName="flexRadioDefault" name="flexRadioDefault" id="flexRadioDefault1">
+                <label class="form-check-label" for="flexRadioDefault1">
+                  Default radio
+                </label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" value="two" formControlName="flexRadioDefault" name="flexRadioDefault" id="flexRadioDefault2" checked>
+                <label class="form-check-label" for="flexRadioDefault2">
+                  Default checked radio
+                </label>
+              </div> -->
+
+
+            <!-- </div> -->
+            <!-- <div *ngIf="selectedOption !== 'AS.Ads.createVASTWrapper'" class="form-floating mb-3  "> -->
+            <div class="form-floating mb-3  ">
+                <input type="text" class="form-control" formControlName="clickurl" id="clickurl"
+                    placeholder="name@example.com">
+                <label for="clickurl">Destination Url*</label>
+            </div>
+
+            <div class="form-floating mb-3  ">
+                <select formControlName="weight" id="weight" class="form-control h-[57px] ">
+                    <!-- <option value="" >
+                        Weight
+                    </option> -->
+                    <option [value]="wt.value" *ngFor="let wt of weight">
+                        {{ wt.label }}
+                    </option>
+                </select>
+                <label for="weight">Weight</label>
+            </div>
+
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" formControlName="skipAd" id="flexCheckDefault">
+                <small class="form-check-label" for="flexCheckDefault">
+                    Video ad skippable
+                </small>
+            </div>
+
+            <div *ngIf="adUploadForm.value.skipAd" class="form-floating mb-3  ">
+                <input type="number" class="form-control" formControlName="skipTime" id="skipTime"
+                    placeholder="name@example.com">
+                <label for="skipTime">Skip time*</label>
+                <small [hidden]="adUploadForm.controls.skipTime.valid || adUploadForm.controls.skipTime.pristine"
+                    class="text-[red] ml-2">
+                    Skip time is required
+                </small>
+            </div>
+
+            <button (click)="createAd()"
+                class="border-primary border-[3px] h-[45px] max-[768px]:w-1/3 max-[768px]:m-auto px-6 rounded-lg mr-3 text-white text-lg upload-btn">
+                Upload
+            </button>
+        </form>
+    </div>
+</div>
+<video class="hidden" #videoPlayer>
+
+</video>

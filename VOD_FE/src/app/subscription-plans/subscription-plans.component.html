@@ -1,0 +1,50 @@
+<div class="main">
+    <h1>Add Subscription Plans</h1>
+    <div class="form">
+        <div class="inp-main">
+            <input [(ngModel)]="plan.name" id="name"
+                class="xl:w-[80%] border border-grey rounded-2xl mt-2 h-[45px] px-[17px]" type="text"
+                placeholder="Enter plan name">
+        </div>
+        <div class="inp-main">
+            <select [(ngModel)]="plan.type" class="xl:w-[80%] border border-grey rounded-2xl mt-2 h-[45px] px-[17px]">
+                <option value="monthly">Monthly</option>
+                <option value="yearly">Yearly</option>
+            </select>
+        </div>
+        <div class="inp-main">
+            <input [(ngModel)]="plan.price" id="price"
+                class="xl:w-[80%] border border-grey rounded-2xl mt-2 h-[45px] px-[17px]" type="text"
+                [placeholder]="plan.type=='monthly'? 'Enter per month plan price' : 'Enter per year plan price'">
+                <!-- placeholder='Enter per month plan price'> -->
+        </div>
+        <div *ngIf="plan.type=='yearly'" class="inp-main">
+            <input [(ngModel)]="plan.disc" id="disc"
+                class="xl:w-[80%] border border-grey rounded-2xl mt-2 h-[45px] px-[17px]" type="number"
+                placeholder="Enter discount rate">
+        </div>
+        
+
+        <div class="features-main">
+            <div class="inp-main">
+                <input placeholder="key" value="Storage" disabled>
+                <input [(ngModel)]="plan.storage" placeholder="value" type="number">
+            </div>
+            <div class="inp-main">
+                <input placeholder="key" value="Bandwidth" disabled>
+                <input [(ngModel)]="plan.bandwidth" placeholder="value" type="number">
+            </div>
+
+            <div *ngFor="let field of allFeatures; let i = index" class="inp-main">
+                <div *ngIf="allFeatures.length>0" class="feat">
+                    <input (keyup)="setFeatureKey($event.target,i)" placeholder="key">
+                    <input (keyup)="setFeatureValue($event.target,i)" placeholder="value" type="number">
+                </div>
+            </div>
+        </div>
+        <div class="btn-main">
+            <button class="btn-submit" (click)="addFeature()">Add feature</button>
+            <button class="btn-submit" (click)="createSubscriptionplan()">Create</button>
+        </div>
+    </div>
+</div>

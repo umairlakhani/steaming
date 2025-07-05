@@ -1,0 +1,160 @@
+<div class="flex flex-col px-2 rounded-xl box-modal">
+    <mat-dialog-header class="head-main">
+        <div class="w-full text-right btn-x-main">
+            <button class="bg-[red] w-[25px] h-[25px] p-[1px] pt-[2px] rounded-full " mat-dialog-close>
+                <mat-icon class="text-white text-[21px]">close</mat-icon>
+            </button>
+        </div>
+        <div class="mt-1 text-upload flex flex-row items-center align-middle mb-3">
+            <img class="mr-2 w-[35px]" src="/assets/icons/env.png" alt="">
+            <p class="!m-0 text-lg text-sm tracking-widest font-medium">Upload and publish your videos on WimTV</p>
+        </div>
+    </mat-dialog-header>
+    <!-- <div class="head-main">
+        <div class="w-full text-right btn-x-main">
+            <button class="bg-[red] w-[25px] h-[25px] p-[1px] pt-[2px] rounded-full " mat-dialog-close>
+                <mat-icon class="text-white text-[21px]">close</mat-icon>
+            </button>
+        </div>
+        <div class="mt-1 text-upload flex flex-row items-center align-middle mb-3">
+            <img class="mr-2 w-[35px]" src="/assets/icons/env.png" alt="">
+            <p class="!m-0 text-lg text-sm tracking-widest font-medium">Upload and publish your videos on WimTV</p>
+        </div>
+    </div> -->
+    <div *ngIf="!editModal" class="w-full h-[180px] bg-[#0000FF11] border border-dashed rounded-xl flex py-8 flex-col justify-center text-center"
+        (click)="triggerClick()">
+        <p *ngIf="!selectedFile" class="!m-0 text-lg text-[grey] font-light">Select the file to upload</p>
+        <p *ngIf="selectedFile" class="!m-0 text-lg text-[grey] font-light">
+            <mat-icon class="text-[21px] !h-[19px] mr-3">upload_file</mat-icon>
+            {{selectedFile.name}}
+        </p>
+        <button *ngIf="!selectedFile" style="background-color: #811630;"
+            class="text-white flex flex-row py-3 px-3 w-[200px] justify-center rounded-lg m-auto">
+            <mat-icon class="text-[21px] !h-[19px] mr-3">upload</mat-icon>
+
+            <p class="!mb-0">Select file to upload</p>
+        </button>
+        <button *ngIf="selectedFile" style="background-color: #811630;"
+            class="text-white flex flex-row py-3 px-3 w-[200px] justify-center rounded-lg m-auto">
+            <mat-icon class="text-[21px] !h-[19px] mr-3">upload</mat-icon>
+
+            <p class="!mb-0">Change file to upload</p>
+        </button>
+        <input formControlName="video" #videoUpload type="file" class="hidden" accept="video/mp4,video/x-m4v,video/*"
+            (change)="onFileSelected($event)">
+    </div>
+    <div [hidden]="!videoError" class="text-[red]">
+        Video is required
+    </div>
+    <form class="w-full mt-8" [formGroup]="videoUploadForm">
+        <label for="name">
+            Title
+        </label>
+        <input formControlName="Title" id="name" class="w-full border border-grey rounded-lg mt-2 h-[45px] px-[17px]"
+            type="text" placeholder="Title">
+        <div [hidden]="videoUploadForm.controls.Title.valid || videoUploadForm.controls.Title.pristine"
+            class="text-[red]">
+            Title is required
+        </div>
+        <label class="mt-6" for="type">
+            Type
+        </label>
+        <!-- <input formControlName="Type" id="name" class="w-full border border-grey rounded-lg mt-2 h-[45px] px-[17px]" type="text" placeholder="Type"> -->
+        <select formControlName="type" id="type" name="type"
+            class="form-select w-full border border-grey rounded-lg mt-2 h-[45px] px-[17px]"
+            aria-label="Default select example">
+            <option selected>Select Type</option>
+            <option value="PUBLIC">Public</option>
+            <option value="PRIVATE">Private</option>
+        </select>
+        <div [hidden]="videoUploadForm.controls.type.valid || videoUploadForm.controls.type.pristine"
+            class="text-[red]">
+            Type is required
+        </div>
+
+        <label class="mt-6" for="channel">
+            Channel
+            </label>
+        <select formControlName="channelId" id="channelId" name="channelId"
+            class="form-select w-full border border-grey rounded-lg mt-2 h-[45px] px-[17px]"
+            aria-label="Default select example">
+            <option *ngFor="let channel of channels" [value]="channel.id">{{channel.name}}</option>
+        </select>
+        <div [hidden]="videoUploadForm.controls.channelId.valid || videoUploadForm.controls.channelId.pristine"
+            class="text-[red]">
+            Channel is required
+        </div>
+        <label class="mt-6" for="description">
+            Description
+        </label>
+        <textarea formControlName="description" id="description"
+            class="w-full border border-grey rounded-lg mt-2 h-[90px] p-[17px]" type="text"
+            placeholder="This is a sample description"></textarea>
+        <div [hidden]="videoUploadForm.controls.description.valid || videoUploadForm.controls.description.pristine"
+            class="text-[red]">
+            Description is required
+        </div>
+
+        <div class="ad-config">
+            <label class="lbl">Ad Configurations</label>
+            <div class="pre-roll-main">
+                <input type="checkbox" formControlName="preRoll" id="preRoll">
+                <label class="ml-2">Pre-roll ads</label>
+            </div>
+            <div class="pre-roll-main">
+                <input type="checkbox" formControlName="postRoll" id="postRoll">
+                <label class="ml-2">Post-roll ads</label>
+            </div>
+            <div class="pre-roll-main">
+                <input type="checkbox" formControlName="midRoll" id="midRoll">
+                <label class="ml-2">mid-roll ads</label>
+            </div>
+            <div *ngIf="videoUploadForm.value.midRoll" class="mid-roll-section">
+                <div class="field-main">
+                    <label>Interval in:</label>
+                    <select formControlName="intervalType" class="border rounded-lg">
+                        <option value="sec">Seconds</option>
+                        <option value="min">Minutes</option>
+                    </select>
+                    <div [hidden]="videoUploadForm.controls.intervalType.valid || videoUploadForm.controls.intervalType.pristine"
+                        class="text-[red]">
+                        Interval type is required
+                    </div>
+                </div>
+                <div class="field-main">
+                    <label>Ads Every:</label>
+                    <input formControlName="interval" class="border rounded-lg" type="number" placeholder="Time">
+                    <div [hidden]="videoUploadForm.controls.interval.valid || videoUploadForm.controls.interval.pristine"
+                        class="text-[red]">
+                        Interval value is required
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <label *ngIf="false" class="mt-6">
+            Select Option
+        </label>
+        <div *ngIf="false" class="w-full">
+            <button class="border-primary border-[3px] h-[45px] px-6 rounded-lg mr-3 text-primary">
+                Archived
+            </button>
+            <button class="border-grey border-[1px] h-[45px] px-6 rounded-lg">
+                Published
+            </button>
+        </div>
+    </form>
+    <div class="w-full foot text-right mt-6">
+        <button style="background-color: #811630;" *ngIf="!data?.id" class="h-[45px] px-6 rounded-lg text-white text-lg"
+            (click)="createVideo()">
+            Upload
+        </button>
+        <button *ngIf="data?.id" style="background-color: #811630;"
+            class="border-[3px] h-[45px] px-6 rounded-lg text-white text-lg" (click)="editVideo()">
+            Update
+        </button>
+    </div>
+</div>
+<video class="hidden" #videoPlayer>
+
+</video>

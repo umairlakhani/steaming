@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 const { userUsage } = require("../../utils/recording");
 const spawn = require("child_process").spawn;
 const config = require("../config/default");
-const cmd = config.rtmp_server.trans.ffmpeg;
+// const cmd = config.rtmp_server.trans.ffmpeg;
 
 const generateStreamThumbnail = async (stream_key) => {
   console.log("check thumbs");

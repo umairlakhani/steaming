@@ -1,0 +1,30 @@
+.zone{
+    font-family: "Open"!important;
+    h1,h2,h3,h4,h5,h6{
+    font-family: "Open"!important;
+
+    }
+    .main{
+        display: flex;
+    justify-content: center;
+    flex-direction: column;
+    gap: 30px;
+    background: white;
+    padding: 30px 30px;
+    .head{
+        h1{
+            font-weight: 600;
+        }
+    }
+        .zone-form{
+            width: 30%;
+            .btn-submit{
+                background: #811630;
+            color: white;
+            border: 0;
+            padding: 10px 20px;
+    border-radius: 6px;
+            }
+        }
+    }
+}

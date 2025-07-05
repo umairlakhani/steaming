@@ -1,0 +1,145 @@
+.content {
+    background: #f6f5f9;
+    margin-top: 10px;
+    padding-top: 25px;
+    padding-bottom: 25px;
+    border-radius: 20px;
+}
+.calendar-date {
+    display: inline-flex;
+    gap: 3px;
+    align-items: center;
+    padding: 10px;
+}
+.calendar-date-selected {
+    display: inline-flex;
+    gap: 2px;
+    background: #811630;
+    color: white;
+    border-radius: 50%;
+    padding: 10px;
+    align-items: center;
+}
+.cal-copy-icon {
+    align-self: center;
+}
+.day {
+    text-align: center;
+    width: 35px !important;
+    height: 35px !important;
+    justify-content: center;
+}
+.ngb-dp-day {
+    width: 40px !important;
+    height: 40px !important;
+}
+.ngb-dp-weekday {
+    width: 40px !important;
+    height: 40px !important;
+}
+.ngb-dp-content {
+    background: white;
+}
+.outside-day {
+    pointer-events: none;
+    color: rgb(170, 158, 158);
+}
+.example-additional-selection {
+    opacity: 0.75;
+    font-size: 0.75em;
+}
+.mat-form-field-type-mat-select:not(.mat-form-field-disabled) .mat-form-field-flex {
+    cursor: pointer;
+    background: white;
+    border-radius: 10px;
+}
+.mat-form-field-underline {
+    display: none;
+}
+
+@media (min-width: 1450px) {
+    .ngb-dp-day {
+        width: 60px !important;
+        height: 60px !important;
+    }
+    .ngb-dp-weekday {
+        width: 60px !important;
+        height: 60px !important;
+    }
+}
+
+@media (min-width: 1250px) {
+    .ngb-dp-day {
+        width: 50px !important;
+        height: 50px !important;
+    }
+    .ngb-dp-weekday {
+        width: 50px !important;
+        height: 50px !important;
+    }
+}
+@media (min-width: 992px) and (max-width: 1250px) {
+    .ngb-dp-day {
+        width: 40px !important;
+        height: 40px !important;
+    }
+    .ngb-dp-weekday {
+        width: 40px !important;
+        height: 40px !important;
+    }
+}
+// @media (min-width: 800px) and (max-width: 992px) {
+//     .ngb-dp-day {
+//         width: 30px !important;
+//         height: 30px !important;
+//     }
+//     .ngb-dp-weekday {
+//         width: 30px !important;
+//         height: 30px !important;
+//     }
+// }
+@media (max-width: 412px) {
+    .ngb-dp-day {
+        width: 35px !important;
+        height: 35px !important;
+    }
+    .ngb-dp-weekday {
+        width: 35px !important;
+        height: 35px !important;
+    }
+}
+// @media (max-width: 576px) {
+//     .ngb-dp-day {
+//         width: 35px !important;
+//         height: 35px !important;
+//     }
+//     .ngb-dp-weekday {
+//         width: 35px !important;
+//         height: 35px !important;
+//     }
+// }
+@media (max-width: 330px) {
+    .ngb-dp-day {
+        width: 30px !important;
+        height: 30px !important;
+    }
+    .ngb-dp-weekday {
+        width: 30px !important;
+        height: 30px !important;
+    }
+    .day-icon {
+        margin: 0;
+    }
+}
+
+@media screen and (max-width: 355.20px) {
+    #calender-container {
+        width: 253px;
+        height: 276px;
+    }
+}
+
+
+// .ngb-dp-month {
+//   width: 100%!important;
+// }

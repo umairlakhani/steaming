@@ -1,0 +1,48 @@
+<div class="navigation-component">
+  <ul class="nav-tabs nav-ul-list" style="flex-direction: row !important; display:flex !important; border-bottom: 0" ngbNav #nav="ngbNav"
+    [(activeId)]="active"
+    >
+    <li [ngbNavItem]="1">
+      <a ngbNavLink class="nav-tab h-[60px] w-[180px] items-center flex rounded-t-xl justify-center text-xl mr-[12px]">
+        Settings
+      </a>
+      <ng-template ngbNavContent>
+        <app-profile--settings></app-profile--settings>
+      </ng-template>
+    </li>
+    <li [ngbNavItem]="2">
+      <a ngbNavLink class="nav-tab h-[60px] w-[180px] items-center flex rounded-t-xl justify-center text-xl mr-[12px]">
+        Billing Info
+      </a>
+      <ng-template ngbNavContent>
+        <app-profile-billing-info></app-profile-billing-info>
+      </ng-template>
+    </li>
+    <li [ngbNavItem]="3">
+      <a ngbNavLink class="nav-tab h-[60px] w-[180px] items-center flex rounded-t-xl justify-center text-xl mr-[12px]">
+        Package
+      </a>
+      <ng-template ngbNavContent>
+        <app-profile-package></app-profile-package>
+      </ng-template>
+    </li>
+    <li [ngbNavItem]="4">
+      <a ngbNavLink class="nav-tab h-[60px] w-[180px] items-center flex rounded-t-xl justify-center text-xl mr-[12px]">
+        Subscriptions
+      </a>
+      <ng-template ngbNavContent>
+        <app-subscriptions (tabValue)="changeTab()"></app-subscriptions>
+      </ng-template>
+    </li>
+    <li [ngbNavItem]="5">
+      <a ngbNavLink class="nav-tab h-[60px] w-[180px] items-center flex rounded-t-xl justify-center text-xl mr-[12px]">
+        Channels
+      </a>
+      <ng-template ngbNavContent>
+        <app-channel-list></app-channel-list>
+      </ng-template>
+    </li>
+  </ul>
+<hr class="hr">
+  <div [ngbNavOutlet]="nav"></div>
+</div>

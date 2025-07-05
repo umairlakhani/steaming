@@ -1,0 +1,70 @@
+<div
+        class="bg-white px-4 md:px-8 w-full h-full overflow-hidden border border-white border-t-primary border-t-[3px]">
+    <h2 class="h2">Create Channel</h2>
+    <div class="d-flex flex-wrap flex-column-reverse justify-content-between md:mb-0">
+        <div>
+            <form [formGroup]="channelForm" class="flex flex-col md:w-7/12 max-w-[800px] mb-16">
+                <div class="channel flex flex-row h-[50px] items-center w-full">
+                    <div class="w-3/12">Channel Name</div>
+                    <input (blur)="logValidationErrors(channelForm, formErrors, validationMessages)"
+                           class="w-9/12 border border-grey rounded-lg h-[40px] px-[17px]"
+                           formControlName="name"
+                           placeholder="Channel Name"
+                           type="text">
+                </div>
+                <div *ngIf="formErrors.name" class="text-[red] ml-auto">
+                    {{formErrors.name}}
+                </div>
+                <div class="desc flex flex-row h-[130px] items-start w-full mt-2">
+                    <div class="w-3/12">Description</div>
+                    <textarea (blur)="logValidationErrors(channelForm, formErrors, validationMessages)"
+                              class="w-9/12 border border-grey rounded-lg h-[120px] px-[17px] py-[7px]"
+                              formControlName="description"
+                              placeholder="Channel Description"
+                              type="text"
+                    ></textarea>
+                </div>
+                <div *ngIf="formErrors.description"
+                     class="text-[red] ml-auto">
+                    {{formErrors.description}}
+                </div>
+                <button (click)="createChannel()"
+                        *ngIf="!channelData"
+                        [disabled]="channelForm.invalid"
+                        [ngStyle]="channelForm.invalid ? {cursor: 'not-allowed'} : {cursor: 'pointer'}"
+                        class="bg-primary text-white px-4 h-[40px] w-[175px] text-base rounded-md align-middle ml-auto">
+                    Create Channel
+                </button>
+                <button (click)="updateChannel()"
+                        *ngIf="channelData"
+                        [disabled]="channelForm.invalid"
+                        class="bg-primary text-white px-4 h-[30px] text-base rounded-md align-middle">
+                    Update Channel
+                </button>
+            </form>
+        </div>
+        <div>
+            <div class="md:w-5/12 flex justify-center align-middle flex-col mb-5">
+                <svg *ngIf="!imageUrl" class="mr-auto" fill="none" height="175" viewBox="0 0 175 175" width="175"
+                     xmlns="http://www.w3.org/2000/svg">
+                    <rect fill="#F5F9FF" height="156" rx="5.5" stroke="#E9EEFF" width="174" x="0.5" y="0.5"/>
+                    <path
+                            d="M106.077 65.9318C106.077 67.3604 105.506 68.7304 104.489 69.7406C103.472 70.7507 102.092 71.3182 100.654 71.3182C99.2171 71.3073 97.8404 70.7442 96.8125 69.7472C96.3073 69.2471 95.9073 68.6523 95.6357 67.9973C95.3642 67.3423 95.2265 66.6402 95.2308 65.9318C95.2308 64.5033 95.8021 63.1332 96.8192 62.1231C97.8362 61.1129 99.2156 60.5455 100.654 60.5455C102.092 60.5455 103.472 61.1129 104.489 62.1231C105.506 63.1332 106.077 64.5033 106.077 65.9318ZM135 46.1818V110.818C135 112.723 134.238 114.55 132.882 115.896C131.526 117.243 129.687 118 127.769 118H48.2308C46.313 118 44.4739 117.243 43.1178 115.896C41.7618 114.55 41 112.723 41 110.818V46.1818C41 44.2771 41.7618 42.4504 43.1178 41.1035C44.4739 39.7567 46.313 39 48.2308 39H127.769C129.687 39 131.526 39.7567 132.882 41.1035C134.238 42.4504 135 44.2771 135 46.1818ZM127.769 94.9733V46.1818H48.2308V87.7915L64.8163 71.3182C66.1776 69.9859 68.012 69.2391 69.9231 69.2391C71.8342 69.2391 73.6685 69.9859 75.0298 71.3182L95.2308 91.3824L104.586 82.0909C105.947 80.7587 107.781 80.0119 109.692 80.0119C111.603 80.0119 113.438 80.7587 114.799 82.0909L127.769 94.9733Z"
+                            fill="#ECF2FE"/>
+                </svg>
+
+                <img *ngIf="imageUrl" [src]="imageUrl" alt="Selected Image" class="mr-auto mb-3"
+                     style="width: 175px; height: 155px;">
+
+                <div class="w-full flex gap-2">
+                    <input (change)="onFileSelected($event)" class="hidden" id="channel_image" name="channel_image"
+                           type="file">
+
+                    <label class="text-white h-[40px] w-[175px] text-base rounded-md align-middle bg-[#811630] flex items-center justify-center px-2 cursor-pointer"
+                           for="channel_image">
+                        Select an Image
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>

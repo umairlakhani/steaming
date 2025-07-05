@@ -1,0 +1,21 @@
+<div class="create-sch-main">
+    <div class="sec-1">Create Schedule</div>
+    <form [formGroup]="schedule" class="sec-2">
+        <div class="sec2-lft">
+            <div class="inp-main">
+                <label>Name</label>
+                <input formControlName="name" placeholder="Name" type="text" >
+            </div>
+            <div class="inp-main">
+                <label>Description</label>
+                <input formControlName="description" placeholder="Description" type="text" >
+            </div>
+        </div>
+        <div class="sec2-rt">
+            <!-- <input formControlName="image" placeholder="Upload image" type="image" > -->
+        </div>
+    </form>
+    <div class="sec-3">
+        <button (click)="saveSchedule()">Create</button>
+    </div>
+</div>

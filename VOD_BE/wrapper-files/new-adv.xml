@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<VAST version="3.0">
+  <Ad>
+    <InLine>
+      <Impression><![CDATA[imp_link]]></Impression>
+      <AdSystem><![CDATA[Society]]></AdSystem>
+      <AdTitle><![CDATA[new adv]]></AdTitle>
+      <Creatives>
+        <Creative>
+          <Linear>
+            <TrackingEvents>
+              <Tracking event="start"><![CDATA[content]]></Tracking>
+            </TrackingEvents>
+            <Duration><![CDATA[00:00:20]]></Duration>
+            <MediaFiles>
+              <MediaFile delivery="streaming" type="video/mp4" width="600" height="400"><![CDATA[https://temp-video.nyc3.cdn.digitaloceanspaces.com/temp-video/793fc24e253cdac7bd452c000.mp4]]></MediaFile>
+            </MediaFiles>
+            <Icons>
+              <Icon program="my_program" width="50" height="50" xPosition="bottom" yPosition="left">
+                <StaticResource creativeType="image/jpeg"><![CDATA[ressource_link]]></StaticResource>
+              </Icon>
+            </Icons>
+          </Linear>
+        </Creative>
+      </Creatives>
+    </InLine>
+  </Ad>
+</VAST>

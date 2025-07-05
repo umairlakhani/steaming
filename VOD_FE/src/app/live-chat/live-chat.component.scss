@@ -1,0 +1,23 @@
+video {
+    width: 65%;
+    margin: auto;
+    // width: 40vw;
+    // height: 30vw;
+    // margin: 2rem;
+    // background: rgb(44, 62, 80);
+  }
+  
+  .videos {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .btn-live{
+    background-color: #811630;
+    padding: 10px 15px;
+    border-radius: 10px;
+    color: white;
+    &:disabled{
+      opacity: 0.2;
+    }
+}

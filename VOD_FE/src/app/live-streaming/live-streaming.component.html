@@ -1,5 +1,6 @@
 <div class="flex publish flex-col w-full px-4 md:px-0">
   <div class="sec-1-rt flex gap-0 justify-end">
+     <!--
     <button
       class="flex gap-x-1 items-center justify-center border-primary border-[3px] h-[50px] max-w-[200px] md:w-1/3 max-[768px]:m-auto px-6 rounded-lg mr-3 text-white text-lg json-btn"
       (click)="apiCall()">
@@ -11,8 +12,53 @@
       <p class="mt-2">Go Live</p>
     </button>
   </div>
+  
+  -->
 
-  <div class="sec-1">
+      <!-- WebRTC Streaming (Webcam) -->
+    <button
+      class="flex gap-x-1 items-center justify-center border-primary border-[3px] h-[50px] max-w-[200px] md:w-1/3 max-[768px]:m-auto px-6 rounded-lg mr-3 text-white text-lg json-btn"
+      (click)="startWebcamStream()">
+      <mat-icon class="mr-2">videocam</mat-icon>
+      <p class="mt-2">Webcam Live</p>
+    </button>
+
+    <!-- RTMP Streaming (OBS) -->
+    <button
+      class="flex gap-x-1 items-center justify-center border-[3px] h-[50px] max-w-[200px] md:w-1/3 max-[768px]:m-auto px-6 rounded-lg mr-3 text-white text-lg json-btn"
+      (click)="showStreamKey()">
+      <mat-icon class="mr-2">settings_input_hdmi</mat-icon>
+      <p class="mt-2">OBS Stream</p>
+    </button>
+  </div>
+
+    <div class="sec-1">
+    <h1 style="font-weight: 700;" class="flex-1 md:block text-[#191919]">Live Streaming Options</h1>
+  </div>
+    <!-- Stream Type Explanation -->
+  <div class="streaming-options-info mb-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="option-card p-4 border rounded-lg">
+        <h3 class="text-lg font-semibold mb-2">📹 Webcam Streaming</h3>
+        <p class="text-sm text-gray-600">Stream directly from your browser using your webcam. No additional software needed.</p>
+        <ul class="text-xs text-gray-500 mt-2">
+          <li>• Easy setup - just click and go</li>
+          <li>• Works in any browser</li>
+          <li>• Perfect for quick streams</li>
+        </ul>
+      </div>
+      <div class="option-card p-4 border rounded-lg">
+        <h3 class="text-lg font-semibold mb-2">🎮 OBS Streaming</h3>
+        <p class="text-sm text-gray-600">Professional streaming with OBS Studio. Supports multiple sources, overlays, and effects.</p>
+        <ul class="text-xs text-gray-500 mt-2">
+          <li>• Professional quality</li>
+          <li>• Multiple video sources</li>
+          <li>• Advanced features</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+    <div class="sec-1">
     <h1 style="font-weight: 700;" class="flex-1 md:block text-[#191919]">User Live Streaming</h1>
     <div class="sec-1-rt flex gap-0">
 

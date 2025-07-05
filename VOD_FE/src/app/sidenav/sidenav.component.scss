@@ -1,0 +1,37 @@
+@font-face {
+	font-family: "Open" ;
+	src: url("../../assets/OpenSauceSans-Regular.ttf") format("opentype");
+}
+
+.side-main{
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  button{
+    padding: 0px 15px;
+    img{
+      max-width: 24px;
+      height: auto;
+    }
+  }
+
+}
+.logo {
+  height: 56px;
+}
+
+button{
+  font-family:Open;
+}
+
+::ng-deep .trial{
+  cursor: not-allowed!important;
+  pointer-events: none;
+  opacity: 0.5;
+}
+// .hello{
+//   .w-50{
+//     width: 50%!important;
+//   }
+// }
+

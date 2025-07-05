@@ -7,7 +7,7 @@ export const environment = {
   // apiUrl: 'https://dev.mediapilot.io/api',
   // streamUrl: 'https://live.mediapilot.io',
   UI_URL: 'https://dev.mediapilot.io',
-  RTMP_URL: 'http://127.0.0.1:8888/live',
+  RTMP_URL: 'http://localhost:8000/live', 
   // UI_URL: 'http://localhost:4200',
   // streamUrl: 'https://192.168.18.186:3000',
   backendUrl: 'http://localhost:3005',

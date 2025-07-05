@@ -1,0 +1,9 @@
+<div class="h-[90px] bg-white border-b-grey flex flex-row items-center px-4 md:px-8 justify-between">
+    <img class="" src="/assets/icons/menu.svg" alt="" (click)="drawer.toggle()">
+    <h2 class="md:justify-start !m-0">{{title}}</h2>
+    <div class="justify-end flex flex-row">
+        <!-- <img src="/assets/icons/notificationNew.svg" alt=""> -->
+        <img [src]="userData.profileImage" class="ml-6 h-[40px] w-[40px] md:h-[50px] md:w-[50px] rounded-xl" alt="profile-img" routerLink="/profile">
+        <!-- <img src="https://temp-video.nyc3.digitaloceanspaces.com/profileimages/1.png" class="ml-6 h-[40px] w-[40px] md:h-[50px] md:w-[50px] rounded-xl" alt="profile-img" routerLink="/profile"> -->
+    </div>
+</div>

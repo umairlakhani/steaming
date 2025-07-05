@@ -1,0 +1,261 @@
+<!-- <div class="db-main flex flex-col gap-6 p-4 w-full h-full overflow-y-auto">
+  <div class="grid grid-cols-1 gap-y-6 sm:grid-cols-3 gap-x-4">
+    <div class="crd1 card flex flex-row justify-between sm:p-6 sm:grid sm:grid-cols-3 sm:col-span-2">
+      
+      <div class="crd1-lft col-span-1 w-50 sm:col-span-2">
+        <h1>Welcome Back, John</h1>
+        <h6>The data plan is renewed on: Nov23, 2022</h6>
+        <div class="btn-prnt">
+          <button class="btn-watch">Watch your webtv</button>
+          <button class="btn-plan text-muted">Change Plan</button>
+        </div>
+      </div>
+      
+      <div class=" crd1-rt">
+        <div class="grid gap-y-3 grid-cols-1">
+          <div
+            class="card flex pl-6 pt-4 pb-4 pr-6 justify-between content-center bg-white  border border-[#e9eeff] rounded"
+          >
+            <div class="mb-0 flex-col justify-center content-center">
+              <span class="text-[#716F96]">Package</span>
+              <div class="mb-0 font-bold text-base ">Professional</div>
+            </div>
+            <div class="flex content-center">
+              <img
+                width="30px"
+                height="30px"
+                src="/assets/icons/eos-icon.svg"
+                class=""
+                alt=""
+              />
+            </div>
+          </div>
+
+          <div
+            class="card flex pl-6 pt-4 pb-4 pr-6 justify-between content-center bg-white  border border-[#e9eeff] rounded"
+          >
+            <div class="mb-0 flex-col justify-center content-center">
+              <span class="text-[#716F96]">Renewal in</span>
+              <div class="mb-0 font-bold text-base">3 days</div>
+            </div>
+            <div class="flex content-center">
+              <img
+                width="30px"
+                height="30px"
+                src="/assets/icons/autorenew-icon.svg"
+                class=""
+                alt=""
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    
+    </div>
+
+    <div class="grid gap-6 grid-cols-2">
+      <div class="card flex-col content-center justify-center p-4">
+        <h3 class="text-center"><b>Storage</b></h3>
+        <div
+          class="flex h-[100px] sm:h-[150px] relative bottom-4 sm:bottom-1 justify-center"
+        >
+          <app-doughnut-chart
+            [chartConfig]="storageChartCfg"
+          ></app-doughnut-chart>
+        </div>
+      </div>
+      <div class="card flex-col justify-center content-center p-4">
+        <h3 class="text-center"><b>Bandwidth</b></h3>
+        <div
+          class="flex h-[100px] sm:h-[150px] relative bottom-4 sm:bottom-1 justify-center"
+        >
+          <app-doughnut-chart
+            [chartConfig]="bandwidthChartCfg"
+          ></app-doughnut-chart>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="grid gap-6 grid-cols-1 sm:hidden">
+    <div class="card flex pl-6 pt-4 pb-4 pr-6 justify-between content-center">
+      <div class="mb-0 flex-col justify-center content-center">
+        <span>Package</span>
+        <div class="mb-0 font-medium text-xl">Professional</div>
+      </div>
+      <div class="flex content-center">
+        <img
+          width="40px"
+          height="40px"
+          src="/assets/icons/eos-icon.svg"
+          class=""
+          alt=""
+        />
+      </div>
+    </div>
+
+    <div class="card flex pl-6 pt-4 pb-4 pr-6 justify-between content-center">
+      <div class="mb-0 flex-col justify-center content-center">
+        <span>Renewal in</span>
+        <div class="mb-0 font-medium text-xl">3 days</div>
+      </div>
+      <div class="flex content-center">
+        <img
+          width="40px"
+          height="40px"
+          src="/assets/icons/autorenew-icon.svg"
+          class=""
+          alt=""
+        />
+      </div>
+    </div>
+  </div>
+
+  <div class="justify-center grid gap-6 grid-cols-1 sm:grid-cols-3">
+    <div
+      routerLink="/archive"
+      [queryParams]="{ upload: true }"
+      class="link card flex content-center justify-start p-[20px] sm:p-[30px]"
+    >
+      <div class="flex justify-center space-x-5 content-center">
+        <img src="/assets/icons/cloud-upload.svg" class="" alt="" />
+        <div class="link-title">Upload a new video</div>
+      </div>
+    </div>
+    <div
+      routerLink="/published"
+      routerLinkActive="router-link-active"
+      class="link card flex content-center justify-start p-[20px] sm:p-[30px]"
+    >
+      <div class="flex justify-center space-x-5 content-center">
+        <img src="/assets/icons/play-circle.svg" class="" alt="" />
+        <div class="link-title">Video Published</div>
+      </div>
+    </div>
+
+    <div
+      class="link card flex content-center justify-start p-[20px] sm:p-[30px]"
+    >
+      <div class="flex justify-center space-x-5 content-center">
+        <img src="/assets/icons/credit-card.svg" class="" alt="" />
+        <div class="link-title">Subscriptions</div>
+      </div>
+    </div>
+
+    <div
+      class="link card flex content-center justify-start p-[20px] sm:p-[30px]"
+    >
+      <div class="flex justify-center space-x-5 content-center">
+        <img src="/assets/icons/live-stream.svg" class="" alt="" />
+        <div class="link-title">Live Streaming</div>
+      </div>
+    </div>
+
+    <div
+      class="link card flex content-center justify-start p-[20px] sm:p-[30px]"
+    >
+      <div class="flex justify-center space-x-5 content-center">
+        <img src="/assets/icons/schedule-icon.svg" class="" alt="" />
+        <div class="link-title">Schedules</div>
+      </div>
+    </div>
+
+    <div
+      class="link card flex content-center justify-start p-[20px] sm:p-[30px]"
+    >
+      <div class="flex justify-center space-x-5 content-center">
+        <img src="/assets/icons/stats-chart.svg" class="" alt="" />
+        <div class="link-title">Watch the Statistics</div>
+      </div>
+    </div>
+  </div>
+</div> -->
+
+
+
+<div class="db-main">
+  <div class="db-main-chld-1">
+    <div class="chld-1-a">
+      <div class="chld1a-lft">
+        <div class="chld1a-lft-cnt">
+          <h1>Welcome Back, {{userData?.userName}}</h1>
+          <h5 class="text-muted">
+            The data plan is renewed on: {{analyticsData?.from ? getDate(analyticsData.from) : ''}}
+          </h5>
+        </div>
+        <div class="chld1a-lft-btns">
+          <button class="btn-watch">Watch you webtv</button>
+          <button routerLink="/profile" class="btn-plan">Change Plan</button>
+        </div>
+      </div>
+      <div class="chld1a-rt">
+        <div class="pckg">
+          <div>
+            <small class="text-muted">Package</small>
+            <h4>{{analyticsData?.subscription?.subscriptionPlan?.name || 'Free'}}</h4>
+          </div>
+          <img src="/assets/icons/prof.png">
+        </div>
+        <div class="renew">
+          <div>
+            <small class="text-muted">Renewal in</small>
+            <h4>{{analyticsData?.to ? getDays(analyticsData.to) : ''}}</h4>
+          </div>
+          <img src="/assets/icons/renew.png">
+
+        </div>
+      </div>
+    </div>
+    <div class="chld-1-sub-prnt">
+      <div class="chld-1-b">
+        <h2>Storage</h2>
+        <div class="can-div">
+          <canvas #storage></canvas>
+        </div>
+
+
+      </div>
+
+      <div class="chld-1-c">
+        <h2>Bandwidth</h2>
+        <div class="can-div">
+          <canvas #bandwidth></canvas>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="db-main-chld-2">
+    <div routerLink="/archive" class="chld2-a">
+      <img src="/assets/icons/upload.png">
+
+      <div>Upload a new video</div>
+    </div>
+    <div routerLink="/published" class="chld2-b">
+      <img src="/assets/icons/play.png">
+
+      <div>Video Published</div>
+    </div>
+    <div routerLink="/profile" class="chld2-c">
+      <img src="/assets/icons/subsc.png">
+
+      <div>Subscriptions</div>
+    </div>
+  </div>
+
+  <div class="db-main-chld-3">
+    <div routerLink="/live-streaming" class="chld3-a">
+      <img src="/assets/icons/stream.png">
+      <div>Live Streaming</div>
+    </div>
+    <div routerLink="/schedules" class="chld3-b">
+      <img src="/assets/icons/sch.png">
+      <div>Schedules</div>
+    </div>
+    <div routerLink="/statistics" class="chld3-c">
+      <img src="/assets/icons/statt.png">
+      <div>Watch the Statistics</div>
+    </div>
+  </div>
+
+</div>

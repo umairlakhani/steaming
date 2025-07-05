@@ -1,0 +1,38 @@
+<div class="autofill-main">
+    <div class="header">
+        <div class="container">
+            <h2 class="h2">
+                Filler | Automatically fill
+            </h2>
+            <svg (click)="closeVideoModal()" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x-lg" viewBox="0 0 16 16">
+                <path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8 2.146 2.854Z"/>
+              </svg>
+        </div>
+    </div>
+    <div class="content">
+        <div class="sec-1">
+            <p>
+                The Filler automatically fills the video inside the daily programming. Videos are selected 
+            from the WimBox archive, from the most recent to the oldest in order of upload date. If you 
+            have already entered one or more videos within the timeline will be retained.
+            </p>
+            <p>Select the time interval to insert videos:</p>
+        </div>
+        <button (click)="selectVideosModal()" class="btn-videos">SELECT VIDEOS</button>
+        <div class="sec-2">
+            <div class="sec2-lft">
+                <div class="inp-main">
+                    <label>Start time</label>
+                    <input class="w-full border border-grey rounded-lg mt-2 h-[45px] px-[17px]" #startTime value="00:00:00" (change)="startTimeChange($event)" step="1" placeholder="00:00" type="time">
+                </div>
+            </div>
+            <div class="sec2-rt">
+                <div class="inp-main">
+                    <label>End time</label>
+                    <input class="w-full border border-grey rounded-lg mt-2 h-[45px] px-[17px]" #endTime value="05:00:00" (change)="endTimeChange($event)" step="1" placeholder="23:59" type="time">
+                </div>
+                <button (click)="startFilter()" class="btn-filter">START FILTER</button>
+            </div>
+        </div>
+    </div>
+</div>

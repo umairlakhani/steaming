@@ -1,0 +1,91 @@
+<div class="overflow-auto bg-white py-4 md:py-16 px-4 md:px-8 w-full border border-white border-t-primary border-t-[3px]">
+    <div class="switch-main flex items-center justify-center md:justify-between">
+        <h4 class="monthly-head">Monthly</h4>
+        <div class="form-check form-switch">
+            <input (change)="handleSwitch($event)" class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckDefault">
+        </div>
+        <h4 class="yearly-head">Yearly</h4>
+    </div>
+    <div *ngIf="monthlyCards.length > 0">
+        <div *ngIf="!monthly" class="cards grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 md:px-5 justify-center">
+            <div *ngFor="let card of monthlyCards" class="price-cards">
+                <div class="container card card-circle">
+                    <div class="card-body">
+                        <h2 class="text-lg price-header">{{card.name}}</h2>
+                        <small class="card-text">Risus ridiculus faucibus</small>
+                        <br>
+                        <h1 class="price-text">${{card.price}} <span class="per">/ mon</span></h1>
+                        <ul class="price-list">
+                            <li>
+                                <p class="card-text">
+                                    <svg class="price-icon" fill="none" height="18" viewBox="0 0 18 18" width="18" xmlns="http://www.w3.org/2000/svg">
+                                        <path clip-rule="evenodd"
+                                        d="M9.00004 0.666748C4.40004 0.666748 0.666705 4.40008 0.666705 9.00008C0.666705 13.6001 4.40004 17.3334 9.00004 17.3334C13.6 17.3334 17.3334 13.6001 17.3334 9.00008C17.3334 4.40008 13.6 0.666748 9.00004 0.666748ZM9.00003 15.6667C5.32503 15.6667 2.33337 12.6751 2.33337 9.00007C2.33337 5.32507 5.32503 2.3334 9.00003 2.3334C12.675 2.3334 15.6667 5.32507 15.6667 9.00007C15.6667 12.6751 12.675 15.6667 9.00003 15.6667ZM12.8251 5.31673L7.33341 10.8084L5.17507 8.6584L4.00007 9.8334L7.33341 13.1667L14.0001 6.50007L12.8251 5.31673Z"
+                                        fill="#811630" fill-rule="evenodd" />
+                                    </svg>
+                                    {{card.storage}} gb of Storage
+                                </p>
+                            </li>
+                            <li>
+                                <p class="card-text">
+                                    <svg class="price-icon" fill="none" height="18" viewBox="0 0 18 18" width="18" xmlns="http://www.w3.org/2000/svg">
+                                        <path clip-rule="evenodd"
+                                        d="M9.00004 0.666748C4.40004 0.666748 0.666705 4.40008 0.666705 9.00008C0.666705 13.6001 4.40004 17.3334 9.00004 17.3334C13.6 17.3334 17.3334 13.6001 17.3334 9.00008C17.3334 4.40008 13.6 0.666748 9.00004 0.666748ZM9.00003 15.6667C5.32503 15.6667 2.33337 12.6751 2.33337 9.00007C2.33337 5.32507 5.32503 2.3334 9.00003 2.3334C12.675 2.3334 15.6667 5.32507 15.6667 9.00007C15.6667 12.6751 12.675 15.6667 9.00003 15.6667ZM12.8251 5.31673L7.33341 10.8084L5.17507 8.6584L4.00007 9.8334L7.33341 13.1667L14.0001 6.50007L12.8251 5.31673Z"
+                                        fill="#811630" fill-rule="evenodd" />
+                                    </svg>
+                                    {{card.bandwidth}} gb of Bandwidth
+                                </p>
+                            </li>
+                        </ul>
+                        <div class="col-12 my-4">
+                            <button (click)="navigate(card.id)" class="btn-back w-full" type="button">Choose Plan</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="nocard-text" *ngIf="!monthly && monthlyCards.length < 1">No monthly packages available</div>
+    <div *ngIf="yearlyCards.length > 0">
+        <div *ngIf="monthly" class="cards grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 md:px-5 justify-center">
+            <div *ngFor="let card of yearlyCards" class="price-cards">
+                <div class="container card card-circle">
+                    <div class="card-body">
+                        <h2 class="text-lg price-header">{{card.name}}</h2>
+                        <small class="card-text">Risus ridiculus faucibus</small>
+                        <br>
+                        <h1 class="price-text">${{card.price}} <span class="per">/ year</span></h1>
+                        <hr class="hr">
+                        <h1 class="price-text">{{getDiscountedPrice(card)}}<span class="per">/ year</span></h1>
+                        <ul class="price-list">
+                            <li>
+                                <p class="card-text">
+                                    <svg class="price-icon" fill="none" height="18" viewBox="0 0 18 18" width="18" xmlns="http://www.w3.org/2000/svg">
+                                        <path clip-rule="evenodd"
+                                        d="M9.00004 0.666748C4.40004 0.666748 0.666705 4.40008 0.666705 9.00008C0.666705 13.6001 4.40004 17.3334 9.00004 17.3334C13.6 17.3334 17.3334 13.6001 17.3334 9.00008C17.3334 4.40008 13.6 0.666748 9.00004 0.666748ZM9.00003 15.6667C5.32503 15.6667 2.33337 12.6751 2.33337 9.00007C2.33337 5.32507 5.32503 2.3334 9.00003 2.3334C12.675 2.3334 15.6667 5.32507 15.6667 9.00007C15.6667 12.6751 12.675 15.6667 9.00003 15.6667ZM12.8251 5.31673L7.33341 10.8084L5.17507 8.6584L4.00007 9.8334L7.33341 13.1667L14.0001 6.50007L12.8251 5.31673Z"
+                                        fill="#811630" fill-rule="evenodd" />
+                                    </svg>
+                                    {{card.storage}} gb of Storage
+                                </p>
+                            </li>
+                            <li>
+                                <p class="card-text">
+                                    <svg class="price-icon" fill="none" height="18" viewBox="0 0 18 18" width="18" xmlns="http://www.w3.org/2000/svg">
+                                        <path clip-rule="evenodd"
+                                        d="M9.00004 0.666748C4.40004 0.666748 0.666705 4.40008 0.666705 9.00008C0.666705 13.6001 4.40004 17.3334 9.00004 17.3334C13.6 17.3334 17.3334 13.6001 17.3334 9.00008C17.3334 4.40008 13.6 0.666748 9.00004 0.666748ZM9.00003 15.6667C5.32503 15.6667 2.33337 12.6751 2.33337 9.00007C2.33337 5.32507 5.32503 2.3334 9.00003 2.3334C12.675 2.3334 15.6667 5.32507 15.6667 9.00007C15.6667 12.6751 12.675 15.6667 9.00003 15.6667ZM12.8251 5.31673L7.33341 10.8084L5.17507 8.6584L4.00007 9.8334L7.33341 13.1667L14.0001 6.50007L12.8251 5.31673Z"
+                                        fill="#811630" fill-rule="evenodd" />
+                                    </svg>
+                                    {{card.bandwidth}} gb of Bandwidth
+                                </p>
+                            </li>
+                        </ul>
+                        <div class="col-12 my-4">
+                            <button (click)="navigate(card.id)" class="btn-back w-full" type="button">Choose Plan</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="nocard-text" *ngIf="monthly && yearlyCards.length < 1">No yearly packages available</div>
+</div>

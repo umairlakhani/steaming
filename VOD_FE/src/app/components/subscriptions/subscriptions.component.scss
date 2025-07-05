@@ -1,0 +1,314 @@
+@font-face {
+  font-family: "Open";
+  src: url("../../../assets/OpenSauceSans-Regular.ttf") format("opentype");
+}
+
+p,
+h1,
+h2,
+h3,
+h4,
+h5,
+small,
+p,
+label,
+h6,
+button,
+textarea,
+div {
+  font-family: "Open" !important;
+}
+
+// .price-cards {
+.form-container {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+  overflow: auto;
+
+  .main {
+    width: 95%;
+    margin-left: auto;
+    margin-right: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+
+    .head-main {
+      display: flex;
+      justify-content: space-between;
+
+      .h2 {
+        font-weight: 800;
+      }
+
+      .btn-main {
+        display: flex;
+        gap: 20px;
+
+        .btn-cancel {
+          border: 1px solid #811630;
+          padding: 0.5em 1.2em;
+          font-size: 14px;
+          font-weight: 600;
+          background: white;
+          color: #811630;
+          white-space: nowrap;
+          border-radius: 6px;
+        }
+
+        .btn-upgrade {
+          border: 1px solid #811630;
+          padding: 0.5em 1.2em;
+          font-size: 14px;
+          height: 100%;
+          font-weight: 600;
+          background: white;
+          color: #811630;
+          white-space: nowrap;
+          border-radius: 6px;
+        }
+
+        .btn-buy {
+          border: 1px solid #811630;
+          padding: 0.5em 1.2em;
+          font-size: 14px;
+          font-weight: 600;
+          background: white;
+          color: #811630;
+          white-space: nowrap;
+          border-radius: 6px;
+        }
+
+        .dropdown-item {
+          cursor: pointer !important;
+        }
+      }
+    }
+
+    .sec-main {
+      display: flex;
+      flex-direction: column;
+
+      .sec-1 {
+        display: flex;
+        justify-content: space-between;
+
+        .sec1-lft {
+          width: 50%;
+          display: flex;
+          // flex-direction: column;
+          gap: 160px;
+
+          .sec1-left-lft {
+          }
+
+          .sec1-left-rt {
+          }
+
+          .desc-main {
+            h3 {
+              font-weight: 600;
+              margin-bottom: 0px;
+            }
+
+            h4 {
+            }
+          }
+        }
+
+        .card-circle {
+          text-align: center;
+          background: #ffffff;
+          border: 10px solid transparent;
+          color: #000000;
+          border-radius: 16px;
+          box-shadow: 0px 0px 92px 0px #000a2521;
+          width: 30%;
+
+          // box-shadow: 2px 10px 17px 2px rgb(0 0 0 / 9%);
+          .card-body {
+            .price-header {
+              padding-top: 30px;
+              margin: 0;
+              margin-bottom: 8px;
+              font-weight: 700;
+              font-size: 23px;
+            }
+
+            .price-text {
+              font-size: 40px;
+              margin: 35px 0px;
+              font-weight: 800;
+            }
+
+            .hr {
+              width: 47%;
+              position: absolute;
+              top: 140px;
+              left: 105px;
+              height: 2px;
+              color: #811630 !important;
+              opacity: 1;
+            }
+            .per {
+              font-size: 13px;
+            }
+            .price-list {
+              text-align: start;
+              display: table;
+              margin: 0 auto;
+              line-height: 30px;
+
+              .card-text {
+                color: #6c757d !important;
+
+                .price-icon {
+                  height: 14px;
+                  width: 14px;
+                  display: inline-flex;
+                  margin-right: 5px;
+                  vertical-align: middle;
+                  color: blue;
+                }
+              }
+            }
+
+            .btn-back {
+              border: 1px solid #811630;
+              padding: 0.5em 1.2em;
+              font-size: 14px;
+              font-weight: 600;
+              background: white;
+              color: #811630;
+              white-space: nowrap;
+              border-radius: 6px;
+            }
+
+            .btn-back:hover {
+              background-color: #811630;
+              font-weight: 700;
+              color: white;
+            }
+          }
+        }
+      }
+
+      .sec-2 {
+        .h2 {
+          font-weight: 800;
+        }
+      }
+    }
+  }
+}
+
+.pagination-main {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+}
+
+.pagination {
+  margin-top: 10px;
+
+  .page-item {
+    border-radius: 50px;
+
+    background: rgba(176, 176, 176, 0.2117647059);
+    border-color: rgba(176, 176, 176, 0.2117647059);
+    cursor: pointer;
+
+    .page-link {
+      // color: #811630;
+      color: white;
+      background: rgba(176, 176, 176, 0.2117647059);
+      border-color: rgba(176, 176, 176, 0.2117647059);
+      border-radius: 50px;
+    }
+  }
+}
+
+.active {
+  --bs-pagination-bg: #811630 !important;
+  background-color: #811630;
+
+  // color: #811630!important;
+  .page-link {
+    background-color: #811630 !important;
+    border-color: #811630;
+    color: white !important;
+  }
+}
+
+// }
+
+.card-circle {
+  transition: all ease-in-out 0.2s;
+}
+
+.price-container::-webkit-scrollbar {
+  width: 0 !important;
+}
+
+@media only screen and (min-width: 764px) and (max-width: 822px) {
+  .form-container {
+    .main {
+      .sec-main {
+        .sec-1 {
+          width: 100%;
+          justify-content: space-around;
+          //   flex-direction: column;
+          align-items: center;
+          .sec1-lft {
+            width: 50%;
+            display: flex;
+            flex-direction: column;
+            // justify-content:center;
+            gap: 5px;
+            .sec1-left-rt {
+              margin-left: 0;
+            }
+          }
+          .card-circle {
+            align-items: center;
+            width: 30vw;
+            .card-body {
+              width: 100%;
+              //   width: 30vw;
+              padding: 30px;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+@media only screen and (min-width: 360px) and (max-width: 432px) {
+  .form-container {
+    .main {
+        .sec-main {
+            .sec-1 {
+                flex-direction: column;
+                justify-content: space-around;
+                align-items: center;
+                gap: 10%;
+                .sec1-lft {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 5px;
+                }
+                .card {
+                    align-items: center;
+                    width: 60vw;
+                    margin-bottom: 5%;
+                    .card-body {
+                     padding: 20px 30px;
+                    }
+                }
+            }
+        }
+    }
+  }
+}

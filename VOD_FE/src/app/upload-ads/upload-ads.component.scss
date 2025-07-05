@@ -1,0 +1,42 @@
+.up-ad {
+  h1 {
+    margin-bottom: 35px;
+    font-weight: 500;
+  }
+
+  form {  
+    margin-bottom: 0px;
+    .upload-btn {
+      background: #811630;
+      color: white;
+      border: 0;
+    }
+  }
+
+}
+
+.form-container {
+  height: 82vh;
+  overflow: auto;
+}
+
+.fs-14px {
+  font-size: 14px;
+}
+
+input[type=file]::file-selector-button {
+  display: none;
+}
+
+/* Target the "No file chosen" placeholder */
+input[type="file"]::placeholder {
+  font-size: 14px;
+  /* Adjust the font size as needed */
+}
+
+/* Target the selected file name */
+input[type="file"]:valid {
+  font-size: 14px;
+  /* Adjust the font size as needed */
+  padding-top: 27px;
+}

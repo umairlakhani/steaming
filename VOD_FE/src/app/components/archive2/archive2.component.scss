@@ -1,0 +1,201 @@
+/*  Header  */
+.container-fluid {
+  display: block;
+  overflow-y: auto;
+  height: calc(100vh - 110px);
+}
+.header-title h4{
+  font-weight: bold;
+  font-size: 22px;
+  margin-bottom: 10px;
+}
+/* Body */
+
+//
+.card-container{
+  width:384px;
+}
+//
+.card-container img {
+  padding : 20px 20px 15px 20px;
+  border-radius: 28px;
+}
+.card-update-date {
+  color: #716F96;
+  font-weight: 400;
+  font-size: 15px;
+}
+.card-movie-description {
+  font-weight: 700;
+}
+.svg-container {
+  height: 40px;
+  width: 40px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.publish-btn-style {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #0000FF;
+  border-radius: 7px;
+  padding: 0.5em 1.2em;
+  color: white;
+  width: 211px;
+}
+.btn-pub-btn {
+  display: inline-flex;
+  margin-right: 7px;
+  width: 15px;
+  align-self: center;
+}
+/*        Pagination        */
+/* Pagination styles */
+.pagination {
+  display: flex;
+  justify-content: center;
+  margin: 20px 0;
+}
+
+.page-link {
+  background-color: #E9E9F0;
+  border: none;
+  color: #716F96;
+  font-weight: bold;
+  text-decoration: none;
+  transition: all 0.2s;
+  margin: 0 5px; /* Update to add margin */
+  border-radius: 50%;
+}
+
+
+.page-link:focus,
+.page-link:hover {
+  color: #004999;
+  outline: none;
+}
+
+.page-link.active,
+.page-link.active:hover {
+  background-color: #0000ff;
+  border-radius: 50%;
+  color: #fff; /* Update to white */
+}
+
+.page-item.disabled .page-link {
+  color: #6c757d;
+}
+
+.page-item.disabled .page-link:hover {
+  color: #6c757d;
+  pointer-events: none;
+}
+
+.page-item.disabled .page-link:focus {
+  box-shadow: none;
+}
+
+.page-item:first-child .page-link {
+  margin-right: 10px;
+}
+
+.page-item:last-child .page-link {
+  margin-left: 10px;
+}
+
+.page-item .page-link .sr-only {
+  position: absolute;
+  clip: rect(0, 0, 0, 0);
+  pointer-events: none;
+}
+
+.page-item .page-link .fa {
+  margin-right: 5px;
+}
+
+.page-item .page-link .fa-long-arrow-left {
+  margin-right: 0;
+  border-radius: 50%;
+}
+
+.page-item .page-link .fa-long-arrow-right {
+  margin-left: 0;
+}
+
+.page-item .page-link .page-number {
+  display: inline-block;
+  width: 28px;
+  height: 28px;
+  line-height: 28px;
+  text-align: center;
+  border-radius: 50%;
+  background-color: #ddd;
+  color: #333;
+  font-size: 14px;
+  font-weight: bold;
+  transition: all 0.2s;
+}
+
+.page-item .page-link .page-number.active {
+  background-color: #007bff;
+  color: #fff;
+}
+/*****************************************************/
+
+
+@media (max-width: 767px) {
+  .header-title {
+    margin-bottom: 20px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .header-title h4 {
+    margin-bottom: 0;
+    margin-right: 10px;
+  }
+  .form-inline {
+    width: calc(100% - 40px);
+    margin-right: 20px;
+  }
+  .col-svg {
+    flex-wrap: nowrap;
+  }
+
+  .col-svg .svg-container {
+    margin-right: 10px;
+  }
+
+  .publish-btn {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: -40px;
+  }
+
+  .publish-btn-style {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #0000FF;
+    border-radius: 7px;
+    padding: 0.5em 1.2em;
+    color: white;
+    width: 100px;
+  }
+
+  .publish-btn button {
+    margin-left: 10px;
+  }
+}
+
+@media only screen and (max-width: 335.20px) {
+  .publish-btn-style {
+    margin-top: 60px;
+    position: relative;
+    left: -124px;
+  }
+}

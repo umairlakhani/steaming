@@ -1,0 +1,45 @@
+@font-face {
+	font-family: "Open" ;
+	src: url("../../assets/OpenSauceSans-Regular.ttf") format("opentype");
+}
+label,button,p,h1,div{
+  font-family: "Open!important" ;
+}
+.bg-theme{
+    background-color: #811630;
+}
+.inputfield {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+  }
+  .input {
+    height: 2.7em;
+    width: 2.7em;
+    border: 1px solid #716F96;
+    outline: none;
+    text-align: center;
+    font-size: 1.5em;
+    border-radius: 0.3em;
+    background-color: #ffffff;
+    outline: none;
+    /*Hide number field arrows*/
+    -moz-appearance: textfield;
+  }
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  .show {
+    display: block;
+  }
+  .hide {
+    display: none;
+  }
+  .input:disabled {
+    color: #89888b;
+  }
+  .input:focus {
+    border: 2px solid #811630;
+  }

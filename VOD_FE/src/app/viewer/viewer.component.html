@@ -1,0 +1,12 @@
+<div class="btn-main">
+  <button class="hidden" id="subscribe_button" (click)="subscribe();" #subscribe_button>Subscribe</button>
+  <button id="disconnect_button" (click)="disconnect();" #disconnect_button>Disconnect</button>
+</div>
+<div>
+  <span id="state_span" #state_span></span>
+</div>
+<div id="remote_container" #remote_container>
+</div>
+<video #target id="vid" class="video-js vid vjs-default-skin" controls playsinline
+  preload="none">
+</video>

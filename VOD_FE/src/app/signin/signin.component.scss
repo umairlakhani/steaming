@@ -1,0 +1,44 @@
+@font-face {
+	font-family: "Open" ;
+	src: url("../../assets/OpenSauceSans-Regular.ttf") format("opentype");
+}
+label,button,p,h1,h2,h3,h4,h5,h6,div,a{
+  font-family: "Open!important" ;
+}
+
+.sign-in-button {
+  background-color: #811630;
+  color: white;
+  border-radius: 30px;
+}
+a {
+  font-weight: 700;
+  color: #811630;
+  text-decoration: none;
+}
+
+.prompt {
+  color: #716F96;
+  font-weight: 700;
+}
+
+.forgot-password {
+  font-weight: 700;
+  color: #811630;
+  text-decoration: none;
+}
+.input-main{
+  display: flex;
+  position: relative;
+}
+.custom-input{
+  position: relative;
+  &::after{
+    content: url('../../assets/icons/eye.png');
+    display: inline-block;
+    position: absolute;
+    right: 15px;
+    top: 22px;
+  }
+  
+}

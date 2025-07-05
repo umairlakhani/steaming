@@ -1,39 +1,80 @@
 <div class="create-sch-main">
-    <ng-container *ngIf="!data.streamKey; else streamKey">
-    <div class="sec-1">Stream Key Info</div>
+  <ng-container *ngIf="!data.streamKey; else streamKey">
+    <div class="sec-1">OBS Stream Setup</div>
     <form [formGroup]="videoInfo" class="sec-2">
-        <div class="sec2-lft">
-            <div class="inp-main">
-                <label>Name</label>
-                <input formControlName="title" placeholder="Name" type="text" >
-            </div>
-            <div class="inp-main">
-                <label>Description</label>
-                <input formControlName="description" placeholder="Description" type="text" >
-            </div>
+      <div class="sec2-lft">
+        <div class="inp-main">
+          <label>Stream Title</label>
+          <input formControlName="title" placeholder="My Live Stream" type="text">
         </div>
-        <div class="sec2-rt">
-            <!-- <input formControlName="image" placeholder="Upload image" type="image" > -->
+        <div class="inp-main">
+          <label>Description</label>
+          <input formControlName="description" placeholder="Description of your stream" type="text">
         </div>
-        <div class="inp-main" id="recordCheck">
-            <input class="form-check-input" type="checkbox" formControlName="recorded" id="flexCheckDefault">
-            <small class="form-check-label" for="flexCheckDefault">
-                Do you want to record this stream? (Recording will be archive)
-            </small>
-        </div>
+      </div>
+      <div class="inp-main" id="recordCheck">
+        <input class="form-check-input" type="checkbox" formControlName="recorded" id="flexCheckDefault">
+        <small class="form-check-label" for="flexCheckDefault">
+          Record this stream for later viewing
+        </small>
+      </div>
     </form>
     <div class="sec-3">
-        <button (click)="createLiveStreamInfo()">Create</button>
+      <button (click)="createLiveStreamInfo()">Generate Stream Key</button>
     </div>
-</ng-container>
-<ng-template #streamKey>
-    <div class="flex flex-col items-center justify-center h-screen">
-        <div>
-            <h1 >{{data.streamKey}} <mat-icon class="{{ showAlert ? 'no-cursor' : 'cursor-pointer' }}" (click)="!showAlert ? copyToClipboard() : null">{{ showAlert ? 'done' : 'content_copy' }}</mat-icon></h1>
-        <div class="sec-3 text-center">         
-      {{ showAlert ? 'Copied!' : 'Copy to clipboard' }}
+  </ng-container>
+
+  <ng-template #streamKey>
+    <div class="flex flex-col items-center justify-center p-6">
+      <h2 class="text-xl font-bold mb-4">OBS Studio Setup</h2>
+      
+      <!-- Stream Key Display -->
+      <div class="bg-gray-100 p-4 rounded-lg mb-4 w-full">
+        <h3 class="font-semibold mb-2">Stream Key:</h3>
+        <div class="flex items-center justify-between bg-white p-2 rounded border">
+          <code class="text-sm">{{data.streamKey}}</code>
+          <mat-icon 
+            class="{{ showAlert ? 'no-cursor' : 'cursor-pointer' }}" 
+            (click)="!showAlert ? copyToClipboard() : null"
+            [title]="showAlert ? 'Copied!' : 'Copy to clipboard'">
+            {{ showAlert ? 'done' : 'content_copy' }}
+          </mat-icon>
         </div>
+      </div>
+
+      <!-- OBS Instructions -->
+      <div class="w-full bg-blue-50 p-4 rounded-lg mb-4">
+        <h3 class="font-semibold mb-2">📺 OBS Studio Setup:</h3>
+        <ol class="list-decimal list-inside text-sm space-y-1">
+          <li>Open OBS Studio</li>
+          <li>Go to <strong>Settings → Stream</strong></li>
+          <li>Set <strong>Service:</strong> Custom</li>
+          <li>Set <strong>Server:</strong> <code>rtmp://localhost:1935/live</code></li>
+          <li>Set <strong>Stream Key:</strong> <code>{{data.streamKey}}</code></li>
+          <li>Click <strong>OK</strong> and then <strong>Start Streaming</strong></li>
+        </ol>
+      </div>
+
+      <!-- Viewer Link -->
+      <div class="w-full bg-green-50 p-4 rounded-lg">
+        <h3 class="font-semibold mb-2">👀 Viewer Link:</h3>
+        <p class="text-sm mb-2">Share this link for others to watch:</p>
+        <div class="flex items-center justify-between bg-white p-2 rounded border">
+          <code class="text-xs">{{getViewerUrl()}}</code>
+          <mat-icon 
+            class="cursor-pointer" 
+            (click)="copyViewerUrl()"
+            title="Copy viewer link">
+            content_copy
+          </mat-icon>
         </div>
+      </div>
+
+      <div class="text-center mt-4">
+        <small class="text-gray-500">
+          {{ showAlert ? 'Copied to clipboard!' : 'Click the copy icons to copy' }}
+        </small>
+      </div>
     </div>
-</ng-template>
+  </ng-template>
 </div>

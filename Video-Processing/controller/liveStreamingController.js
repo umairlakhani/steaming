@@ -348,6 +348,8 @@ const generateThumbnail = async (videoUrl, videoId, bucketId) => {
     });
   });
 };
+
+
 async function processVideo(req, res, next) {
   console.log(req.body, "check requestbdy");
   var videoId = req.body["videoId"];
@@ -415,6 +417,7 @@ async function processVideo(req, res, next) {
     console.log("Video downloaded successfully!");
   });
 
+  initializeMediaSoup().catch(console.error);
   // wait 60 seconds
   await new Promise((resolve) => setTimeout(resolve, 10000));
   const inputFilePath = `./videos/` + id + ".mp4";
@@ -621,7 +624,12 @@ async function processVideo(req, res, next) {
     console.log("endddd");
   }
 }
+
+  let streamProducers = {};
+
 async function createLiveStream(req, res, next) {
+
+  
 
   console.log(req.tokenData, "check tokenData");
 
@@ -650,6 +658,24 @@ async function createLiveStream(req, res, next) {
     );
 
     socket.on(`disconnect${id}`, function async(data) {
+        console.log("Client disconnecting from stream:", id);
+  
+  // Clean up stream-specific producers if this was the broadcaster
+  if (producerSocketId === getId(socket)) {
+    console.log("Broadcaster disconnecting, cleaning up producers for stream:", id);
+    
+    if (streamProducers[id]) {
+      if (streamProducers[id].videoProducer) {
+        streamProducers[id].videoProducer.close();
+        streamProducers[id].videoProducer = null;
+      }
+      if (streamProducers[id].audioProducer) {
+        streamProducers[id].audioProducer.close();
+        streamProducers[id].audioProducer = null;
+      }
+      delete streamProducers[id];
+    }
+  }
       console.log(data, "check data decrement");
       if (data.decrement) {
         let index = connectedUsers.findIndex((el) => el.streamId == id);
@@ -748,48 +774,189 @@ async function createLiveStream(req, res, next) {
       }
     });
 
-    socket.on(`produce${id}`, async (data, callback) => {
-      const { kind, rtpParameters } = data;
-      console.log("-- produce --- kind=", kind);
-      if (kind === "video") {
-        videoProducer = await producerTransport.produce({
-          kind,
-          rtpParameters,
-        });
-        global.mediasoup.webrtc.videoProducer = videoProducer;
-        videoProducer.observer.on("close", () => {
-          console.log("videoProducer closed ---");
-        });
-        sendResponse({ id: videoProducer.id }, callback);
-      } else if (kind === "audio") {
-        audioProducer = await producerTransport.produce({
-          kind,
-          rtpParameters,
-        });
-        global.mediasoup.webrtc.audioProducer = audioProducer;
-        audioProducer.observer.on("close", () => {
-          console.log("audioProducer closed ---");
-        });
-        sendResponse({ id: audioProducer.id }, callback);
-      } else {
-        console.error("produce ERROR. BAD kind:", kind);
-        //sendResponse({}, callback);
+    // In Video-Processing/controller/liveStreamingController.js
+// Add this function to check producer status
+function getProducersDebug(streamId) {
+  const producers = {
+    video: streamProducers[streamId]?.videoProducer || videoProducer,
+    audio: streamProducers[streamId]?.audioProducer || audioProducer,
+    global_video: !!global.mediasoup?.webrtc?.videoProducer,
+    global_audio: !!global.mediasoup?.webrtc?.audioProducer
+  };
+  
+  console.log(`=== PRODUCERS DEBUG FOR STREAM ${streamId} ===`);
+  console.log("Stream-specific producers:", {
+    video: !!producers.video,
+    audio: !!producers.audio
+  });
+  console.log("Global producers:", {
+    video: producers.global_video,
+    audio: producers.global_audio
+  });
+  console.log("Stream producers object keys:", Object.keys(streamProducers));
+  
+  return producers;
+}
 
-        return;
-      }
+// Add this to your getRouterRtpCapabilities handler
+socket.on(`getRouterRtpCapabilities${id}`, (data, callback) => {
+  console.log("=== GET ROUTER CAPABILITIES ===");
+  console.log("Stream ID:", id);
+  
+  // Debug producers before responding
+  getProducersDebug(id);
+  
+  if (router && workerReady) {
+    console.log("✅ Sending router capabilities");
+    sendResponse(router.rtpCapabilities, callback);
+  } else {
+    console.error("❌ Router not ready");
+    sendReject({ text: "ERROR- router NOT READY" }, callback);
+  }
+});
 
-      console.log("--broadcast newProducer -- kind=", kind);
-      socket.broadcast.emit(`newProducer${id}`, { kind: kind });
-      // setTimeout(() => {
-      //   handleStartRTMP(id, req.tokenData.userId, socket);
-      // },25000);
+    // In liveStreamingController.js
+function checkProducersReady() {
+  const hasVideo = !!global.mediasoup.webrtc.videoProducer;
+  const hasAudio = !!global.mediasoup.webrtc.audioProducer;
+  
+  console.log("Checking producers ready:", { hasVideo, hasAudio });
+  
+  return hasVideo || hasAudio; // At least one producer should exist
+}
+
+socket.on(`START_RECORDING${id}`, async (data) => {
+  console.log("=== START_RECORDING event received ===");
+  console.log("Stream ID:", id);
+  
+  // **NEW: Check producers before proceeding**
+  if (!checkProducersReady()) {
+    console.error("No producers available for recording");
+    socket.emit(`recordingError${id}`, { 
+      error: "No media producers available. Please ensure streaming is active." 
     });
+    return;
+  }
+
+  console.log("Producers are ready, starting recording...");
+  
+  try {
+    await handleStartRecording(id, req.tokenData.userId, socket);
+    console.log("Recording started successfully");
+    socket.emit(`recordingStarted${id}`, { message: "Recording started" });
+  } catch (error) {
+    console.error("Error starting recording:", error);
+    socket.emit(`recordingError${id}`, { error: error.message });
+  }
+});
+
+
+socket.on(`produce${id}`, async (data, callback) => {
+  const { kind, rtpParameters } = data;
+  console.log("-- produce --- kind=", kind, "for stream:", id);
+  
+  try {
+    if (kind === "video") {
+      videoProducer = await producerTransport.produce({
+        kind,
+        rtpParameters,
+      });
+      
+      // Store globally AND per stream
+      global.mediasoup.webrtc.videoProducer = videoProducer;
+      
+      // **NEW: Store per stream ID**
+      if (!streamProducers[id]) {
+        streamProducers[id] = {};
+      }
+      streamProducers[id].videoProducer = videoProducer;
+      
+      videoProducer.observer.on("close", () => {
+        console.log("videoProducer closed ---");
+        global.mediasoup.webrtc.videoProducer = null;
+        if (streamProducers[id]) {
+          streamProducers[id].videoProducer = null;
+        }
+      });
+      
+      console.log("Video producer created and stored for stream:", id);
+      sendResponse({ id: videoProducer.id }, callback);
+      
+    } else if (kind === "audio") {
+      audioProducer = await producerTransport.produce({
+        kind,
+        rtpParameters,
+      });
+      
+      // Store globally AND per stream
+      global.mediasoup.webrtc.audioProducer = audioProducer;
+      
+      // **NEW: Store per stream ID**
+      if (!streamProducers[id]) {
+        streamProducers[id] = {};
+      }
+      streamProducers[id].audioProducer = audioProducer;
+      
+      audioProducer.observer.on("close", () => {
+        console.log("audioProducer closed ---");
+        global.mediasoup.webrtc.audioProducer = null;
+        if (streamProducers[id]) {
+          streamProducers[id].audioProducer = null;
+        }
+      });
+      
+      console.log("Audio producer created and stored for stream:", id);
+      sendResponse({ id: audioProducer.id }, callback);
+    }
+
+    console.log("Current producers for stream", id, ":", {
+      video: !!streamProducers[id]?.videoProducer,
+      audio: !!streamProducers[id]?.audioProducer
+    });
+    
+    console.log("--broadcast newProducer -- kind=", kind);
+    socket.broadcast.emit(`newProducer${id}`, { kind: kind });
+    
+  } catch (error) {
+    console.error("Error in produce:", error);
+    sendReject(error, callback);
+  }
+});
+
+function hasActiveProducers(streamId) {
+  const streamProds = streamProducers[streamId];
+  const hasStreamVideo = !!(streamProds?.videoProducer);
+  const hasStreamAudio = !!(streamProds?.audioProducer);
+  const hasGlobalVideo = !!videoProducer;
+  const hasGlobalAudio = !!audioProducer;
+  
+  return (hasStreamVideo || hasGlobalVideo) || (hasStreamAudio || hasGlobalAudio);
+}
 
     // --- consumer ----
     socket.on(`createConsumerTransport${id}`, async (data, callback) => {
       console.log("=== Consumer Transport Debug ===");
       console.log("Stream ID:", id);
       console.log("Consumer data:", data);
+
+        if (!hasActiveProducers(id)) {
+    console.error("No active producers for stream:", id);
+    sendResponse({ error: "STREAM_NOT_ACTIVE" }, callback);
+    return;
+  }
+
+        // **FIX: Check stream-specific producers**
+  const streamVideoProducer = streamProducers[id]?.videoProducer || videoProducer;
+  const streamAudioProducer = streamProducers[id]?.audioProducer || audioProducer;
+  
+  console.log("Video Producer exists:", !!streamVideoProducer);
+  console.log("Audio Producer exists:", !!streamAudioProducer);
+
+  if (!streamVideoProducer && !streamAudioProducer) {
+    console.error("No producers available for consumption for stream:", id);
+    sendReject({ text: "No producers available for this stream" }, callback);
+    return;
+  }
       console.log("Video Producer exists:", !!videoProducer);
       console.log("Audio Producer exists:", !!audioProducer);
 
@@ -816,6 +983,7 @@ async function createLiveStream(req, res, next) {
       });
       console.log(userBandwidth[0]);
       let consumer = getVideoConsumer(getId(socket));
+      console.log(consumer, "check consumer");
       if (
         userBandwidth[0]?.left >= 50 &&
         new Date(Number(userBandwidth[0]?.to)) > new Date()
@@ -896,6 +1064,20 @@ async function createLiveStream(req, res, next) {
     });
 
     socket.on(`connectConsumerTransport${id}`, async (data, callback) => {
+        console.log("=== Consumer Transport Debug ===");
+  console.log("Stream ID:", id);
+  console.log("Consumer data:", data);
+  
+  // **NEW: Check producers for this specific stream**
+  const producers = getProducersForStream(id);
+  console.log("Video Producer exists:", !!producers.video);
+  console.log("Audio Producer exists:", !!producers.audio);
+
+  if (!producers.video && !producers.audio) {
+    console.error("No producers available for consumption for stream:", id);
+    sendReject({ text: "No producers available" }, callback);
+    return;
+  }
       console.log("-- connectConsumerTransport ---");
       let transport = getConsumerTrasnport(getId(socket));
       if (!transport) {
@@ -948,105 +1130,129 @@ async function createLiveStream(req, res, next) {
       sendResponse({}, callback);
     });
 
-    socket.on(`consume${id}`, async (data, callback) => {
-      if (!router || !workerReady) {
-        console.error("Router not ready for consume");
-        sendReject({ text: "ERROR- router NOT READY" }, callback);
+socket.on(`consume${id}`, async (data, callback) => {
+  if (!router || !workerReady) {
+    console.error("Router not ready for consume");
+    sendReject({ text: "ERROR- router NOT READY" }, callback);
+    return;
+  }
+  
+  const kind = data.kind;
+  console.log("-- consume --kind=" + kind + " for stream:", id);
+
+  // **NEW: Get producers for this specific stream**
+  const streamVideoProducer = streamProducers[id]?.videoProducer || videoProducer;
+  const streamAudioProducer = streamProducers[id]?.audioProducer || audioProducer;
+
+  console.log("Available producers for stream", id, ":", {
+    video: !!streamVideoProducer,
+    audio: !!streamAudioProducer
+  });
+
+  if (kind === "video") {
+    if (streamVideoProducer) {
+      let transport = getConsumerTrasnport(getId(socket));
+      if (!transport) {
+        console.error("transport NOT EXIST for id=" + getId(socket));
         return;
       }
-      const kind = data.kind;
-      console.log("-- consume --kind=" + kind);
+      
+      try {
+        const { consumer, params } = await createConsumer(
+          transport,
+          streamVideoProducer, // Use stream-specific producer
+          data.rtpCapabilities
+        );
+        
+        const socketId = getId(socket);
+        addVideoConsumer(socketId, consumer);
+        
+        consumer.observer.on("close", () => {
+          console.log("consumer closed ---");
+        });
+        
+        consumer.on("producerclose", () => {
+          console.log("consumer -- on.producerclose");
+          consumer.close();
+          removeVideoConsumer(socketId);
 
-      if (kind === "video") {
-        if (videoProducer) {
-          let transport = getConsumerTrasnport(getId(socket));
-          if (!transport) {
-            console.error("transport NOT EXIST for id=" + getId(socket));
-            return;
-          }
-          const { consumer, params } = await createConsumer(
-            transport,
-            videoProducer,
-            data.rtpCapabilities
-          ); // producer must exist before consume
-          //subscribeConsumer = consumer;
-          const id = getId(socket);
-          addVideoConsumer(id, consumer);
-          consumer.observer.on("close", () => {
-            console.log("consumer closed ---");
-          });
-          consumer.on("producerclose", () => {
-            console.log("consumer -- on.producerclose");
-            consumer.close();
-            removeVideoConsumer(id);
-
-            // -- notify to client ---
-            socket.emit(`producerClosed${id}`, {
-              localId: id,
-              remoteId: producerSocketId,
-              kind: "video",
-            });
-          });
-
-          console.log("-- consumer ready ---");
-          sendResponse(params, callback);
-        } else {
-          console.log("-- consume, but video producer NOT READY");
-          const params = {
-            producerId: null,
-            id: null,
+          socket.emit(`producerClosed${id}`, {
+            localId: socketId,
+            remoteId: producerSocketId,
             kind: "video",
-            rtpParameters: {},
-          };
-          sendResponse(params, callback);
-        }
-      } else if (kind === "audio") {
-        if (audioProducer) {
-          let transport = getConsumerTrasnport(getId(socket));
-          if (!transport) {
-            console.error("transport NOT EXIST for id=" + getId(socket));
-            return;
-          }
-          const { consumer, params } = await createConsumer(
-            transport,
-            audioProducer,
-            data.rtpCapabilities
-          ); // producer must exist before consume
-          //subscribeConsumer = consumer;
-          const id = getId(socket);
-          addAudioConsumer(id, consumer);
-          consumer.observer.on("close", () => {
-            console.log("consumer closed ---");
           });
-          consumer.on("producerclose", () => {
-            console.log("consumer -- on.producerclose");
-            consumer.close();
-            removeAudioConsumer(id);
+        });
 
-            // -- notify to client ---
-            socket.emit(`producerClosed${id}`, {
-              localId: id,
-              remoteId: producerSocketId,
-              kind: "audio",
-            });
-          });
-
-          console.log("-- consumer ready ---");
-          sendResponse(params, callback);
-        } else {
-          console.log("-- consume, but audio producer NOT READY");
-          const params = {
-            producerId: null,
-            id: null,
-            kind: "audio",
-            rtpParameters: {},
-          };
-          sendResponse(params, callback);
-        }
-      } else {
-        console.error("ERROR: UNKNOWN kind=" + kind);
+        console.log("-- video consumer ready ---");
+        sendResponse(params, callback);
+      } catch (error) {
+        console.error("Error creating video consumer:", error);
+        sendReject({ text: "Failed to create video consumer" }, callback);
       }
-    });
+    } else {
+      console.log("-- consume, but video producer NOT READY for stream:", id);
+      const params = {
+        producerId: null,
+        id: null,
+        kind: "video",
+        rtpParameters: {},
+      };
+      sendResponse(params, callback);
+    }
+  } else if (kind === "audio") {
+    if (streamAudioProducer) {
+      let transport = getConsumerTrasnport(getId(socket));
+      if (!transport) {
+        console.error("transport NOT EXIST for id=" + getId(socket));
+        return;
+      }
+      
+      try {
+        const { consumer, params } = await createConsumer(
+          transport,
+          streamAudioProducer, // Use stream-specific producer
+          data.rtpCapabilities
+        );
+        
+        const socketId = getId(socket);
+        addAudioConsumer(socketId, consumer);
+        
+        consumer.observer.on("close", () => {
+          console.log("consumer closed ---");
+        });
+        
+        consumer.on("producerclose", () => {
+          console.log("consumer -- on.producerclose");
+          consumer.close();
+          removeAudioConsumer(socketId);
+
+          socket.emit(`producerClosed${id}`, {
+            localId: socketId,
+            remoteId: producerSocketId,
+            kind: "audio",
+          });
+        });
+
+        console.log("-- audio consumer ready ---");
+        sendResponse(params, callback);
+      } catch (error) {
+        console.error("Error creating audio consumer:", error);
+        sendReject({ text: "Failed to create audio consumer" }, callback);
+      }
+    } else {
+      console.log("-- consume, but audio producer NOT READY for stream:", id);
+      const params = {
+        producerId: null,
+        id: null,
+        kind: "audio",
+        rtpParameters: {},
+      };
+      sendResponse(params, callback);
+    }
+  } else {
+    console.error("ERROR: UNKNOWN kind=" + kind);
+  }
+});
 
     socket.on(`resume${id}`, async (data, callback) => {
       const kind = data.kind;
@@ -1113,6 +1319,47 @@ async function createLiveStream(req, res, next) {
     message: "api request response",
   });
 }
+
+
+    function getProducersForStream(streamId) {
+  const producers = {
+    video: streamProducers[streamId]?.videoProducer || videoProducer,
+    audio: streamProducers[streamId]?.audioProducer || audioProducer
+  };
+  
+  console.log(`Producers for stream ${streamId}:`, {
+    video: !!producers.video,
+    audio: !!producers.audio
+  });
+  
+  return producers;
+}
+// In liveStreamingController.js - Add stream status check
+async function getStreamStatus(req, res, next) {
+  const { streamId } = req.params;
+  
+  try {
+    const producers = getProducersForStream(streamId);
+    const isActive = !!(producers.video || producers.audio);
+    
+    const streamInfo = await prisma.liveStreaming.findUnique({
+      where: { streamingId: streamId }
+    });
+    
+    res.json({
+      active: isActive,
+      hasVideo: !!producers.video,
+      hasAudio: !!producers.audio,
+      streamInfo: streamInfo
+    });
+  } catch (error) {
+    console.error("Error checking stream status:", error);
+    res.status(500).json({ error: "Failed to check stream status" });
+  }
+}
+
+// Add route in routes/livestreaming.js
+
 
 async function endLiveStream(req, res, next) {
   await handleStopRecording();
@@ -1273,18 +1520,36 @@ async function startWorker() {
 // startWorker();
 
 let workerReady = false;
+let initializationPromise = null;
 
 async function initializeMediaSoup() {
-  try {
-    console.log("Initializing MediaSoup...");
-    await startWorker();
-    workerReady = true;
-    console.log("MediaSoup worker and router initialized successfully");
-  } catch (error) {
-    console.error("Failed to initialize MediaSoup:", error);
-    process.exit(1);
+  // Prevent multiple initializations
+  if (initializationPromise) {
+    return initializationPromise;
   }
+
+  initializationPromise = (async () => {
+    try {
+      console.log("Initializing MediaSoup...");
+      
+      if (!worker) {
+        await startWorker();
+      }
+      
+      workerReady = true;
+      console.log("MediaSoup worker and router initialized successfully");
+      return true;
+    } catch (error) {
+      console.error("Failed to initialize MediaSoup:", error);
+      workerReady = false;
+      initializationPromise = null; // Reset on failure
+      throw error;
+    }
+  })();
+
+  return initializationPromise;
 }
+
 
 
 // Handle the stream data received by the Consumer
@@ -2902,4 +3167,5 @@ module.exports = {
   createLiveStreamRecord,
   liveStreamWorker,
   processVideo,
+  getStreamStatus,
 };
