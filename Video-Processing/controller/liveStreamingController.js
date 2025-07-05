@@ -20,6 +20,37 @@ const { pipeline } = require("stream");
 const cliProgress = require("cli-progress");
 const { upload360p, upload480p, upload720p } = require("../upload_spaces");
 const mediasoup = require("mediasoup");
+
+// Verify mediasoup is properly loaded
+if (!mediasoup) {
+  throw new Error("MediaSoup module failed to load");
+}
+
+// Validate MediaSoup options
+function validateMediaSoupOptions() {
+  console.log("=== Validating MediaSoup Options ===");
+  console.log("Worker options:", !!mediasoupOptions.worker);
+  console.log("Router options:", !!mediasoupOptions.router);
+  console.log("WebRTC transport options:", !!mediasoupOptions.webRtcTransport);
+  console.log("Media codecs count:", mediasoupOptions.router?.mediaCodecs?.length || 0);
+  console.log("Listen IPs count:", mediasoupOptions.webRtcTransport?.listenIps?.length || 0);
+  console.log("Announced IP:", mediasoupOptions.webRtcTransport?.listenIps?.[0]?.announcedIp);
+  console.log("MEDIA_SOUP_IP env var:", process.env.MEDIA_SOUP_IP);
+
+  if (!mediasoupOptions.worker || !mediasoupOptions.router || !mediasoupOptions.webRtcTransport) {
+    throw new Error("MediaSoup options are not properly configured");
+  }
+  
+  if (!mediasoupOptions.router.mediaCodecs || mediasoupOptions.router.mediaCodecs.length === 0) {
+    throw new Error("MediaSoup router mediaCodecs are not configured");
+  }
+  
+  if (!mediasoupOptions.webRtcTransport.listenIps || mediasoupOptions.webRtcTransport.listenIps.length === 0) {
+    throw new Error("MediaSoup WebRTC transport listenIps are not configured");
+  }
+  
+  console.log("✅ MediaSoup options validation passed");
+}
 require("dotenv").config();
 
 // Set AWS configuration once at the top level
@@ -70,31 +101,10 @@ const mediasoupOptions = {
       "rtp",
       "srtp",
       "rtcp",
-      // 'rtx',
-      // 'bwe',
-      // 'score',
-      // 'simulcast',
-      // 'svc'
     ],
   },
   // Router settings
   router: {
-    // mediaCodecs: [
-    //   {
-    //     kind: "audio",
-    //     mimeType: "audio/opus",
-    //     clockRate: 48000,
-    //     channels: 2,
-    //   },
-    //   {
-    //     kind: "video",
-    //     mimeType: "video/VP8",
-    //     clockRate: 90000,
-    //     parameters: {
-    //       "x-google-start-bitrate": 1000,
-    //     },
-    //   },
-    // ],
     mediaCodecs: [
       {
         kind: "audio",
@@ -126,14 +136,13 @@ const mediasoupOptions = {
       },
     ],
   },
-  // WebRtcTransport settings
+  // WebRtcTransport settings - **CRITICAL CONFIGURATION**
   webRtcTransport: {
     listenIps: [
-      // { ip: "0.0.0.0", announcedIp: "192.168.18.189" },
-      // { ip: "0.0.0.0", announcedIp: "137.184.92.6" },
-      { ip: "0.0.0.0", announcedIp: process.env.MEDIA_SOUP_IP },
-      // { ip: "0.0.0.0", announcedIp: "18.188.104.48" },
-      // { ip: '192.168.18.186', announcedIp: null }
+      {
+        ip: "0.0.0.0",
+        announcedIp: process.env.MEDIA_SOUP_IP || "127.0.0.1" // Make sure this is correct
+      },
     ],
     enableUdp: true,
     enableTcp: true,
@@ -719,7 +728,16 @@ async function createLiveStream(req, res, next) {
       console.error("client connection error", err);
     });
 
-    socket.on(`getRouterRtpCapabilities${id}`, (data, callback) => {
+    socket.on(`getRouterRtpCapabilities${id}`, async (data, callback) => {
+      // Ensure MediaSoup is initialized before proceeding
+      try {
+        await initializeMediaSoup();
+      } catch (error) {
+        console.error("Failed to initialize MediaSoup:", error);
+        sendReject({ text: "Failed to initialize media server" }, callback);
+        return;
+      }
+
       if (router && workerReady) {
         console.log("getRouterRtpCapabilities: ", router.rtpCapabilities);
         sendResponse(router.rtpCapabilities, callback);
@@ -728,22 +746,78 @@ async function createLiveStream(req, res, next) {
         sendReject({ text: "ERROR- router NOT READY" }, callback);
       }
     });
-
     socket.on(`createProducerTransport${id}`, async (data, callback) => {
-      if (!router || !workerReady) {
-        console.error("Router not ready for createProducerTransport");
-        sendReject({ text: "ERROR- router NOT READY" }, callback);
+      console.log("=== createProducerTransport START ===");
+      console.log("Stream ID:", id);
+      console.log("Socket ID:", getId(socket));
+      console.log("Request data:", data);
+
+      // Check prerequisites
+      console.log("Checking prerequisites...");
+      console.log("Worker ready:", workerReady);
+      console.log("Worker exists:", !!worker);
+      console.log("Router exists:", !!router);
+
+      // Ensure MediaSoup is initialized before proceeding
+      try {
+        await initializeMediaSoup();
+      } catch (error) {
+        console.error("Failed to initialize MediaSoup:", error);
+        sendReject({ text: "Failed to initialize media server" }, callback);
         return;
       }
 
-      console.log("-- createProducerTransport ---");
-      producerSocketId = getId(socket);
+      if (!worker) {
+        const error = "MediaSoup worker not initialized";
+        console.error("❌", error);
+        sendReject({ text: error }, callback);
+        return;
+      }
+
+      if (!router) {
+        const error = "MediaSoup router not initialized";
+        console.error("❌", error);
+        sendReject({ text: error }, callback);
+        return;
+      }
+
+      if (!workerReady) {
+        const error = "MediaSoup worker not ready";
+        console.error("❌", error);
+        sendReject({ text: error }, callback);
+        return;
+      }
 
       try {
+        console.log("Creating producer transport...");
+        console.log("MediaSoup options:", JSON.stringify(mediasoupOptions.webRtcTransport, null, 2));
+
+        // Check if router is still alive
+        if (worker.closed) {
+          throw new Error("MediaSoup worker is closed");
+        }
+
+        producerSocketId = getId(socket);
+        console.log("Producer socket ID set to:", producerSocketId);
+
+        await checkMediaSoupStatus();
+
         const { transport, params } = await createTransport();
         producerTransport = transport;
 
+        console.log("✅ Producer transport created successfully");
+        console.log("Transport ID:", transport.id);
+        console.log("Transport state:", transport.connectionState);
+        console.log("Transport params keys:", Object.keys(params));
+
+        // Validate params before sending
+        if (!params.id || !params.iceParameters || !params.iceCandidates || !params.dtlsParameters) {
+          throw new Error("Invalid transport parameters generated");
+        }
+
+        // Set up transport event handlers
         producerTransport.observer.on("close", () => {
+          console.log("Producer transport closed");
           if (videoProducer) {
             videoProducer.close();
             videoProducer = null;
@@ -755,22 +829,52 @@ async function createLiveStream(req, res, next) {
           producerTransport = null;
         });
 
-        sendResponse(params, callback);
-      } catch (error) {
-        console.error("Error creating producer transport:", error);
-        sendReject({ text: "Failed to create transport" }, callback);
-      }
-    });
+        producerTransport.observer.on("newproducer", (producer) => {
+          console.log("New producer created:", producer.id, producer.kind);
+        });
 
+        console.log("Sending successful response with params");
+        sendResponse(params, callback);
+
+      } catch (error) {
+        console.error("❌ Error creating producer transport:");
+        console.error("Error message:", error.message);
+        console.error("Error stack:", error.stack);
+        console.error("Error name:", error.name);
+
+        sendReject({
+          text: "Failed to create producer transport",
+          error: error.message,
+          stack: error.stack,
+          name: error.name
+        }, callback);
+      }
+
+      console.log("=== createProducerTransport END ===");
+    });
     socket.on(`connectProducerTransport${id}`, async (data, callback) => {
-      console.log(producerTransport, "producerTransport");
+      console.log("=== connectProducerTransport ===");
+      console.log("Stream ID:", id);
+      console.log("DTLS Parameters received");
+
+      if (!producerTransport) {
+        console.error("❌ Producer transport not found");
+        sendReject({ text: "Producer transport not found" }, callback);
+        return;
+      }
+
       try {
+        console.log("Connecting producer transport...");
         await producerTransport.connect({
           dtlsParameters: data.dtlsParameters,
         });
+
+        console.log("✅ Producer transport connected successfully");
         sendResponse({}, callback);
+
       } catch (error) {
-        console.log(error, "error connecting to producer transport");
+        console.error("❌ Error connecting producer transport:", error);
+        sendReject({ text: error.message }, callback);
       }
     });
 
@@ -799,9 +903,18 @@ async function createLiveStream(req, res, next) {
     }
 
     // Add this to your getRouterRtpCapabilities handler
-    socket.on(`getRouterRtpCapabilities${id}`, (data, callback) => {
+    socket.on(`getRouterRtpCapabilities${id}`, async (data, callback) => {
       console.log("=== GET ROUTER CAPABILITIES ===");
       console.log("Stream ID:", id);
+
+      // Ensure MediaSoup is initialized before proceeding
+      try {
+        await initializeMediaSoup();
+      } catch (error) {
+        console.error("Failed to initialize MediaSoup:", error);
+        sendReject({ text: "Failed to initialize media server" }, callback);
+        return;
+      }
 
       // Debug producers before responding
       getProducersDebug(id);
@@ -849,63 +962,84 @@ async function createLiveStream(req, res, next) {
         socket.emit(`recordingError${id}`, { error: error.message });
       }
     });
-    
-  
-    
-    // In Video-Processing/controller/liveStreamingController.js
-// Fix the produce handler:
 
+
+
+    // In Video-Processing/controller/liveStreamingController.js
+    // Fix the produce handler:
 socket.on(`produce${id}`, async (data, callback) => {
   const { kind, rtpParameters } = data;
-  console.log("-- produce --- kind=", kind, "for stream:", id);
+  console.log("=== PRODUCE EVENT ===");
+  console.log("Stream ID:", id);
+  console.log("Kind:", kind);
+  console.log("Producer socket ID:", producerSocketId);
   
   try {
-    // **CRITICAL FIX**: Ensure stream object exists
+    // **CRITICAL**: Ensure stream object exists
     if (!streamProducers[id]) {
       streamProducers[id] = { videoProducer: null, audioProducer: null };
+      console.log("Created new stream producers object for:", id);
     }
 
     let producer;
     if (kind === "video") {
       producer = await producerTransport.produce({ kind, rtpParameters });
       
-      // Store BOTH globally and per-stream
-      global.mediasoup.webrtc.videoProducer = producer;
+      // Store in ALL locations for maximum compatibility
       streamProducers[id].videoProducer = producer;
-      videoProducer = producer; // Keep global reference
+      global.mediasoup.webrtc.videoProducer = producer;
+      videoProducer = producer;
+      
+      console.log(`✅ Video producer created and stored for stream ${id}:`, producer.id);
       
       producer.observer.on("close", () => {
-        console.log("videoProducer closed for stream:", id);
-        global.mediasoup.webrtc.videoProducer = null;
+        console.log("Video producer closed for stream:", id);
         if (streamProducers[id]) {
           streamProducers[id].videoProducer = null;
         }
+        global.mediasoup.webrtc.videoProducer = null;
         videoProducer = null;
       });
       
     } else if (kind === "audio") {
       producer = await producerTransport.produce({ kind, rtpParameters });
       
-      // Store BOTH globally and per-stream
-      global.mediasoup.webrtc.audioProducer = producer;
+      // Store in ALL locations for maximum compatibility
       streamProducers[id].audioProducer = producer;
-      audioProducer = producer; // Keep global reference
+      global.mediasoup.webrtc.audioProducer = producer;
+      audioProducer = producer;
+      
+      console.log(`✅ Audio producer created and stored for stream ${id}:`, producer.id);
       
       producer.observer.on("close", () => {
-        console.log("audioProducer closed for stream:", id);
-        global.mediasoup.webrtc.audioProducer = null;
+        console.log("Audio producer closed for stream:", id);
         if (streamProducers[id]) {
           streamProducers[id].audioProducer = null;
         }
+        global.mediasoup.webrtc.audioProducer = null;
         audioProducer = null;
       });
     }
 
-    console.log(`${kind} producer created for stream ${id}:`, producer.id);
+    // **DEBUG**: Log current state after creation
+    console.log("=== PRODUCERS STATE AFTER CREATION ===");
+    console.log("Stream producers:", Object.keys(streamProducers));
+    console.log(`Stream ${id} producers:`, {
+      video: !!streamProducers[id]?.videoProducer,
+      audio: !!streamProducers[id]?.audioProducer
+    });
+    console.log("Global producers:", {
+      video: !!global.mediasoup.webrtc.videoProducer,
+      audio: !!global.mediasoup.webrtc.audioProducer
+    });
+
     sendResponse({ id: producer.id }, callback);
     
-    // Broadcast to other clients
-    socket.broadcast.emit(`newProducer${id}`, { kind: kind });
+    // Broadcast to other clients that a new producer is available
+    socket.broadcast.emit(`newProducer${id}`, { 
+      kind: kind,
+      producerId: producer.id 
+    });
     
   } catch (error) {
     console.error("Error in produce:", error);
@@ -923,62 +1057,116 @@ socket.on(`produce${id}`, async (data, callback) => {
       return (hasStreamVideo || hasGlobalVideo) || (hasStreamAudio || hasGlobalAudio);
     }
 
-    // --- consumer ----
-    socket.on(`createConsumerTransport${id}`, async (data, callback) => {
-      console.log("=== Consumer Transport Debug ===");
-      console.log("Stream ID:", id);
-      console.log("Consumer data:", data);
+// In Video-Processing/controller/liveStreamingController.js
+// Update the createConsumerTransport handler:
 
-      if (!hasActiveProducers(id)) {
-        console.error("No active producers for stream:", id);
-        sendResponse({ error: "STREAM_NOT_ACTIVE" }, callback);
-        return;
+socket.on(`createConsumerTransport${id}`, async (data, callback) => {
+  console.log("=== Consumer Transport Request ===");
+  console.log("Stream ID:", id);
+  console.log("Viewer data:", data);
+  console.log("Callback parameter:", callback);
+  console.log("Callback type:", typeof callback);
+  
+  if (typeof callback !== 'function') {
+    console.error("❌ Invalid callback provided to createConsumerTransport");
+    return;
+  }
+
+  // **ENHANCED DEBUGGING**: Check all producer sources
+  console.log("=== PRODUCER DEBUG ===");
+  console.log("Stream producers object:", Object.keys(streamProducers));
+  console.log("Stream-specific producers:", {
+    video: !!streamProducers[id]?.videoProducer,
+    audio: !!streamProducers[id]?.audioProducer
+  });
+  console.log("Global producers:", {
+    video: !!global.mediasoup.webrtc.videoProducer,
+    audio: !!global.mediasoup.webrtc.audioProducer
+  });
+  console.log("Legacy global producers:", {
+    video: !!videoProducer,
+    audio: !!audioProducer
+  });
+
+  // **IMPROVED**: Check ALL possible producer sources
+  const hasStreamVideo = !!(streamProducers[id]?.videoProducer);
+  const hasStreamAudio = !!(streamProducers[id]?.audioProducer);
+  const hasGlobalVideo = !!(global.mediasoup.webrtc.videoProducer || videoProducer);
+  const hasGlobalAudio = !!(global.mediasoup.webrtc.audioProducer || audioProducer);
+  
+  console.log("Producer availability:", {
+    streamVideo: hasStreamVideo,
+    streamAudio: hasStreamAudio,
+    globalVideo: hasGlobalVideo,
+    globalAudio: hasGlobalAudio,
+    anyProducers: hasStreamVideo || hasStreamAudio || hasGlobalVideo || hasGlobalAudio
+  });
+
+  if (!hasStreamVideo && !hasStreamAudio && !hasGlobalVideo && !hasGlobalAudio) {
+    console.error("❌ No active producers found for stream:", id);
+    console.error("Available streams:", Object.keys(streamProducers));
+    
+    sendResponse({ 
+      error: "STREAM_NOT_ACTIVE",
+      debug: {
+        requestedStreamId: id,
+        availableStreams: Object.keys(streamProducers),
+        hasGlobalProducers: { video: hasGlobalVideo, audio: hasGlobalAudio }
       }
+    }, callback);
+    return;
+  }
 
-      // **FIX: Check stream-specific producers**
-      const streamVideoProducer = streamProducers[id]?.videoProducer || videoProducer;
-      const streamAudioProducer = streamProducers[id]?.audioProducer || audioProducer;
+  // Ensure MediaSoup is initialized before proceeding
+  try {
+    await initializeMediaSoup();
+  } catch (error) {
+    console.error("Failed to initialize MediaSoup:", error);
+    sendReject({ text: "Failed to initialize media server" }, callback);
+    return;
+  }
 
-      console.log("Video Producer exists:", !!streamVideoProducer);
-      console.log("Audio Producer exists:", !!streamAudioProducer);
+  if (!router || !workerReady) {
+    console.error("Router not ready for createConsumerTransport");
+    sendReject({ text: "ERROR- router NOT READY" }, callback);
+    return;
+  }
 
-      if (!streamVideoProducer && !streamAudioProducer) {
-        console.error("No producers available for consumption for stream:", id);
-        sendReject({ text: "No producers available for this stream" }, callback);
-        return;
-      }
-      console.log("Video Producer exists:", !!videoProducer);
-      console.log("Audio Producer exists:", !!audioProducer);
+  const { userId, latitude, longitude, platform } = data;
+  console.log("-- createConsumerTransport for user:", userId);
+  
+  try {
+    // Check user bandwidth
+    let userBandwidth = await prisma.userBandwidth.findMany({
+      where: { userId: Number(userId) },
+      orderBy: { createdAt: "desc" },
+    });
 
-      if (!videoProducer && !audioProducer) {
-        console.error("No producers available for consumption");
-        sendReject({ text: "No producers available" }, callback);
-        return;
-      }
+    console.log("User bandwidth check:", {
+      hasRecords: userBandwidth.length > 0,
+      left: userBandwidth[0]?.left,
+      validDate: userBandwidth[0] ? new Date(Number(userBandwidth[0]?.to)) > new Date() : false
+    });
 
-      if (!router || !workerReady) {
-        console.error("Router not ready for createConsumerTransport");
-        sendReject({ text: "ERROR- router NOT READY" }, callback);
-        return;
-      }
-      const { userId, latitude, longitude, platform } = data;
-      console.log("-- createConsumerTransport ---");
-      let userBandwidth = await prisma.userBandwidth.findMany({
-        where: {
-          userId: Number(userId),
-        },
-        orderBy: {
-          createdAt: "desc",
-        },
+    console.log("User bandwidth records:", userBandwidth[0]);
+
+
+    if (userBandwidth[0]?.left >= 50 && new Date(Number(userBandwidth[0]?.to)) > new Date()) {
+      const { transport, params } = await createTransport();
+      
+      // Create analytics record
+      console.log("=== Creating Live Analytics Record ===");
+      console.log("Prisma object:", !!prisma);
+      console.log("LiveAnalytics model:", !!prisma.liveAnalytics);
+      console.log("Analytics data:", {
+        streamingId: id,
+        userId: Number(userId),
+        latitude: Number(latitude),
+        longitude: Number(longitude),
+        platform,
       });
-      console.log(userBandwidth[0]);
-      let consumer = getVideoConsumer(getId(socket));
-      console
-      if (
-        userBandwidth[0]?.left >= 50 &&
-        new Date(Number(userBandwidth[0]?.to)) > new Date()
-      ) {
-        const { transport, params } = await createTransport();
+      
+      try {
         var liveAnalytic = await prisma.liveAnalytics.create({
           data: {
             streamingId: id,
@@ -988,70 +1176,73 @@ socket.on(`produce${id}`, async (data, callback) => {
             platform,
           },
         });
-
-        setInterval(async () => {
-          try {
-            if (consumer) {
-              console.log("userId==>", userId);
-              console.log("socketId==>", socket.id);
-              const stats = await consumer.getStats();
-              stats.forEach((report) => {
-                console.log(report);
-                if (report.type === "outbound-rtp" && report.kind === "video") {
-                  const bytesSent = report.byteCount / 1048576;
-                  if (Number(bytesSent.toFixed) % 50) {
-                    socket.emit("bandwidthUsed", { bandwidthUsed: bytesSent });
-                  }
-                  saveBandwidthData({
-                    analyticId: liveAnalytic.id,
-                    downloaded: bytesSent.toFixed(2),
-                    streamingId: id,
-                    userId: userId,
-                    socketId: socket.id,
-                  });
-                  // Use the data to calculate bandwidth or make decisions
-                  // For example, you can log the bandwidth to the console
-                  console.log(`Video consumer Bandwidth: ${bytesSent}mb`);
-                }
-              });
-            }
-          } catch (error) {
-            console.error("Error fetching stats:", error);
-          }
-        }, 2000);
-        addConsumerTrasport(getId(socket), transport);
-        transport.observer.on("close", async () => {
-          const id = getId(socket);
-          console.log("--- consumerTransport closed. --");
-          await logLastSavedData(socket.id);
-          deleteDataOnDisconnect(socket.id);
-          // socket.emit(`consumerLeft${id}`, Object.keys(videoConsumers).length)
-          // socket.broadcast.emit(`consumerLeft${id}`, Object.keys(videoConsumers).length)
-          let consumer = getVideoConsumer(getId(socket));
-          if (consumer) {
-            consumer.close();
-            removeVideoConsumer(id);
-          }
-          consumer = getAudioConsumer(getId(socket));
-          if (consumer) {
-            // socket.emit(`consumerLeft${id}`, Object.keys(videoConsumers).length)
-            // socket.broadcast.emit(`consumerLeft${id}`, Object.keys(videoConsumers).length)
-            consumer.close();
-            removeAudioConsumer(id);
-          }
-          console.log("createConsumerTransport in createConsumerTransport");
-
-          removeConsumerTransport(id);
-        });
-        //console.log('-- createTransport params:', params);
-        sendResponse(params, callback);
-      } else {
-        sendResponse({}, callback);
-        socket.emit("endBandwidth", {
-          message: "Update your bandwidth subscription",
-        });
+        console.log("✅ Live analytics record created successfully");
+      } catch (prismaError) {
+        console.error("❌ Error creating live analytics record:", prismaError);
+        // Continue without analytics if it fails
+        var liveAnalytic = null;
       }
-    });
+
+      addConsumerTrasport(getId(socket), transport);
+      
+      console.log("=== Setting up transport observer ===");
+      console.log("Transport object:", !!transport);
+      console.log("Transport observer:", !!transport.observer);
+      console.log("Transport observer.on method:", typeof transport.observer?.on);
+      
+      transport.observer.on("close", async () => {
+        console.log("--- consumerTransport closed. --");
+        try {
+          await logLastSavedData(socket.id);
+        } catch (error) {
+          console.error("Error in logLastSavedData:", error);
+        }
+        try {
+          deleteDataOnDisconnect(socket.id);
+        } catch (error) {
+          console.error("Error in deleteDataOnDisconnect:", error);
+        }
+        
+        let consumer = getVideoConsumer(getId(socket));
+        if (consumer) {
+          try {
+            consumer.close();
+          } catch (error) {
+            console.error("Error closing video consumer:", error);
+          }
+          removeVideoConsumer(getId(socket));
+        }
+        
+        consumer = getAudioConsumer(getId(socket));
+        if (consumer) {
+          try {
+            consumer.close();
+          } catch (error) {
+            console.error("Error closing audio consumer:", error);
+          }
+          removeAudioConsumer(getId(socket));
+        }
+        
+        removeConsumerTransport(getId(socket));
+      });
+
+      console.log("✅ Consumer transport created successfully");
+      console.log("=== Sending response to client ===");
+      console.log("Params:", params);
+      console.log("Callback function:", typeof callback);
+      sendResponse(params, callback);
+    } else {
+      console.log("❌ Insufficient bandwidth for user:", userId);
+      sendResponse({}, callback);
+      socket.emit("endBandwidth", {
+        message: "Update your bandwidth subscription",
+      });
+    }
+  } catch (error) {
+    console.error("Error in createConsumerTransport:", error);
+    sendReject({ text: error.message }, callback);
+  }
+});
 
     socket.on(`connectConsumerTransport${id}`, async (data, callback) => {
       console.log("=== Consumer Transport Debug ===");
@@ -1253,18 +1444,29 @@ socket.on(`consume${id}`, async (data, callback) => {
   }
   
   const kind = data.kind;
-  console.log("-- consume --kind=" + kind + " for stream:", id);
+  console.log("=== CONSUME REQUEST ===");
+  console.log("Stream ID:", id);
+  console.log("Kind:", kind);
 
-  // **CRITICAL FIX**: Check producers exist for this specific stream
-  const streamVideoProducer = streamProducers[id]?.videoProducer || global.mediasoup.webrtc.videoProducer;
-  const streamAudioProducer = streamProducers[id]?.audioProducer || global.mediasoup.webrtc.audioProducer;
-
+  // **IMPROVED**: Find the producer using multiple sources
   let targetProducer = null;
-  if (kind === "video" && streamVideoProducer) {
-    targetProducer = streamVideoProducer;
-  } else if (kind === "audio" && streamAudioProducer) {
-    targetProducer = streamAudioProducer;
+  
+  if (kind === "video") {
+    targetProducer = streamProducers[id]?.videoProducer || 
+                    global.mediasoup.webrtc.videoProducer || 
+                    videoProducer;
+  } else if (kind === "audio") {
+    targetProducer = streamProducers[id]?.audioProducer || 
+                    global.mediasoup.webrtc.audioProducer || 
+                    audioProducer;
   }
+
+  console.log(`Producer search for ${kind}:`, {
+    streamSpecific: !!(kind === "video" ? streamProducers[id]?.videoProducer : streamProducers[id]?.audioProducer),
+    globalMediasoup: !!(kind === "video" ? global.mediasoup.webrtc.videoProducer : global.mediasoup.webrtc.audioProducer),
+    legacyGlobal: !!(kind === "video" ? videoProducer : audioProducer),
+    found: !!targetProducer
+  });
 
   if (targetProducer) {
     let transport = getConsumerTrasnport(getId(socket));
@@ -1282,6 +1484,8 @@ socket.on(`consume${id}`, async (data, callback) => {
         return;
       }
 
+      console.log(`Creating consumer for ${kind} producer:`, targetProducer.id);
+      
       const { consumer, params } = await createConsumer(
         transport,
         targetProducer,
@@ -1315,7 +1519,7 @@ socket.on(`consume${id}`, async (data, callback) => {
         });
       });
 
-      console.log(`-- ${kind} consumer ready ---`);
+      console.log(`✅ ${kind} consumer created successfully`);
       sendResponse(params, callback);
       
     } catch (error) {
@@ -1323,7 +1527,10 @@ socket.on(`consume${id}`, async (data, callback) => {
       sendReject({ text: `Failed to create ${kind} consumer: ${error.message}` }, callback);
     }
   } else {
-    console.log(`-- consume, but ${kind} producer NOT READY for stream:`, id);
+    console.log(`❌ No ${kind} producer available for stream:`, id);
+    console.log("Available streams:", Object.keys(streamProducers));
+    
+    // Return empty response instead of error
     const params = {
       producerId: null,
       id: null,
@@ -1380,14 +1587,64 @@ socket.on(`consume${id}`, async (data, callback) => {
 
     // --- send response to client ---
     function sendResponse(response, callback) {
-      //console.log('sendResponse() callback:', callback);
-      callback(null, response);
+      console.log('=== sendResponse called ===');
+      console.log('Response:', response);
+      console.log('Callback type:', typeof callback);
+      console.log('Callback:', callback);
+      
+      if (typeof callback !== 'function') {
+        console.error('❌ Callback is not a function:', callback);
+        return;
+      }
+      
+      try {
+        callback(null, response);
+        console.log('✅ Response sent successfully');
+      } catch (error) {
+        console.error('❌ Error in sendResponse callback:', error);
+      }
     }
 
     // --- send error to client ---
+    // Improve the sendReject function to properly serialize errors
     function sendReject(error, callback) {
-      callback(error.toString(), null);
+      console.error("=== sendReject called ===");
+      console.error("Original error:", error);
+      console.error("Callback type:", typeof callback);
+      console.error("Callback:", callback);
+
+      if (typeof callback !== 'function') {
+        console.error('❌ Callback is not a function in sendReject:', callback);
+        return;
+      }
+
+      let errorMessage;
+      if (error instanceof Error) {
+        errorMessage = {
+          message: error.message,
+          stack: error.stack,
+          name: error.name
+        };
+      } else if (typeof error === 'object') {
+        errorMessage = {
+          message: error.text || error.message || 'Unknown error',
+          details: error
+        };
+      } else {
+        errorMessage = error.toString();
+      }
+
+      console.error("Serialized error:", errorMessage);
+      
+      try {
+        callback(errorMessage, null);
+        console.log('✅ Error sent successfully');
+      } catch (callbackError) {
+        console.error('❌ Error in sendReject callback:', callbackError);
+      }
     }
+
+    // Removed duplicate sendResponse function
 
     function sendback(socket, message) {
       socket.emit(`message${id}`, message);
@@ -1581,17 +1838,31 @@ async function startWorker() {
       rtcMaxPort: mediasoupOptions.worker.rtcMaxPort,
     });
 
+    if (!worker) {
+      throw new Error("Failed to create MediaSoup worker");
+    }
+
     worker.on('died', (error) => {
       console.error('MediaSoup worker died:', error);
+      workerReady = false;
+      worker = null;
+      router = null;
       process.exit(1);
     });
 
     console.log("Creating MediaSoup router...");
     router = await worker.createRouter({ mediaCodecs });
 
+    if (!router) {
+      throw new Error("Failed to create MediaSoup router");
+    }
+
     console.log("-- mediasoup worker and router started successfully --");
   } catch (error) {
     console.error("Error starting MediaSoup worker:", error);
+    workerReady = false;
+    worker = null;
+    router = null;
     throw error;
   }
 }
@@ -1651,36 +1922,43 @@ async function initializeMediaSoup() {
   initializationPromise = (async () => {
     try {
       console.log("Initializing MediaSoup...");
-      
+
+      // Validate options first
+      validateMediaSoupOptions();
+
       if (!worker) {
         console.log("Creating new MediaSoup worker...");
         await startWorker();
-        
+
         // **CRITICAL**: Wait for worker to be ready
-        await new Promise((resolve) => {
-          worker.once('died', () => {
+        await new Promise((resolve, reject) => {
+          if (worker.died) {
             console.error('MediaSoup worker died during initialization');
             workerReady = false;
             initializationPromise = null;
-          });
-          
+            reject(new Error('Worker died'));
+            return;
+          }
+
           // Give worker time to initialize
-          setTimeout(resolve, 1000);
+          setTimeout(resolve, 2000); // Increased to 2 seconds
         });
       }
-      
+
       if (!router) {
         console.log("Creating new MediaSoup router...");
         router = await worker.createRouter({
           mediaCodecs: mediasoupOptions.router.mediaCodecs
         });
+
+        console.log("Router created successfully with codecs:", router.rtpCapabilities.codecs.length);
       }
-      
+
       workerReady = true;
-      console.log("MediaSoup worker and router initialized successfully");
+      console.log("✅ MediaSoup worker and router initialized successfully");
       return true;
     } catch (error) {
-      console.error("Failed to initialize MediaSoup:", error);
+      console.error("❌ Failed to initialize MediaSoup:", error);
       workerReady = false;
       initializationPromise = null;
       throw error;
@@ -1760,31 +2038,104 @@ function removeAllConsumers() {
   }
 }
 async function createTransport() {
+  console.log("=== createTransport START ===");
+
+  // Ensure MediaSoup is initialized
+  try {
+    await initializeMediaSoup();
+  } catch (error) {
+    console.error("Failed to initialize MediaSoup in createTransport:", error);
+    throw new Error(`MediaSoup initialization failed: ${error.message}`);
+  }
+
   if (!router) {
-    throw new Error("Router not initialized");
+    throw new Error("Router not initialized in createTransport");
   }
 
   try {
+    console.log("Creating WebRTC transport with options:");
+    console.log(JSON.stringify(mediasoupOptions.webRtcTransport, null, 2));
+
+    // Check router status
+    console.log("Router ID:", router.id);
+    console.log("Router closed:", router.closed);
+    console.log("Router type:", typeof router);
+    console.log("Router createWebRtcTransport method:", typeof router.createWebRtcTransport);
+
     const transport = await router.createWebRtcTransport(
       mediasoupOptions.webRtcTransport
     );
-    console.log("-- create transport id=" + transport.id);
+
+    console.log("✅ WebRTC transport created");
+    console.log("Transport ID:", transport.id);
+    console.log("Transport closed:", transport.closed);
+    console.log("Transport appData:", transport.appData);
+
+    // Log transport properties
+    console.log("ICE state:", transport.iceState);
+    console.log("ICE role:", transport.iceRole);
+    console.log("DTLS state:", transport.dtlsState);
+
+    const params = {
+      id: transport.id,
+      iceParameters: transport.iceParameters,
+      iceCandidates: transport.iceCandidates,
+      dtlsParameters: transport.dtlsParameters,
+    };
+
+    console.log("Transport params created:");
+    console.log("- ID:", params.id);
+    console.log("- ICE Parameters:", !!params.iceParameters);
+    console.log("- ICE Candidates count:", params.iceCandidates?.length || 0);
+    console.log("- DTLS Parameters:", !!params.dtlsParameters);
+
+    console.log("=== createTransport END ===");
 
     return {
       transport: transport,
-      params: {
-        id: transport.id,
-        iceParameters: transport.iceParameters,
-        iceCandidates: transport.iceCandidates,
-        dtlsParameters: transport.dtlsParameters,
-      },
+      params: params,
     };
   } catch (error) {
-    console.error("Error creating WebRTC transport:", error);
-    throw error;
+    console.error("❌ Error in createTransport:");
+    console.error("Type:", typeof error);
+    console.error("Message:", error.message);
+    console.error("Stack:", error.stack);
+    console.error("Name:", error.name);
+
+    // Re-throw with more context
+    throw new Error(`createTransport failed: ${error.message}`);
   }
 }
+
+function checkMediaSoupStatus() {
+  console.log("=== MediaSoup Status Check ===");
+  console.log("Worker exists:", !!worker);
+  console.log("Worker ready:", workerReady);
+  console.log("Worker closed:", worker?.closed);
+  console.log("Worker died:", worker?.died);
+  console.log("Router exists:", !!router);
+  console.log("Router closed:", router?.closed);
+  console.log("Router ID:", router?.id);
+
+  if (worker && worker.observer) {
+    console.log("Worker observer events:", worker.observer.eventNames());
+  }
+
+  if (router && router.observer) {
+    console.log("Router observer events:", router.observer.eventNames());
+  }
+}
+
+// Call this before any transport creation
 async function createConsumer(transport, producer, rtpCapabilities) {
+  // Ensure MediaSoup is initialized
+  try {
+    await initializeMediaSoup();
+  } catch (error) {
+    console.error("Failed to initialize MediaSoup in createConsumer:", error);
+    throw new Error(`MediaSoup initialization failed: ${error.message}`);
+  }
+
   let consumer = null;
   if (
     !router.canConsume({
@@ -2162,6 +2513,14 @@ async function handleStartRecording(videoID, userId, socket) {
   console.log("Video Producer:", !!global.mediasoup.webrtc.videoProducer);
   console.log("Audio Producer:", !!global.mediasoup.webrtc.audioProducer);
 
+  // Ensure MediaSoup is initialized
+  try {
+    await initializeMediaSoup();
+  } catch (error) {
+    console.error("Failed to initialize MediaSoup in handleStartRecording:", error);
+    throw new Error(`MediaSoup initialization failed: ${error.message}`);
+  }
+
   // Check if output directories exist
   const recordingDir = path.join(__dirname, 'recording');
   const rtmpDir = path.join(__dirname, 'rtmp');
@@ -2360,6 +2719,15 @@ async function handleStartRecording(videoID, userId, socket) {
 }
 async function handleStartRTMP(videoID, userId, socket) {
   console.log(videoID, "Video id");
+  
+  // Ensure MediaSoup is initialized
+  try {
+    await initializeMediaSoup();
+  } catch (error) {
+    console.error("Failed to initialize MediaSoup in handleStartRTMP:", error);
+    throw new Error(`MediaSoup initialization failed: ${error.message}`);
+  }
+  
   const router1 = router;
 
   const useAudio = true;

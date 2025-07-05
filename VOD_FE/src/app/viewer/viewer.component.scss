@@ -33,3 +33,22 @@ button{
   ::ng-deep .vid_ima-ad-container{
     top: 0!important;
   }
+  .video-container {
+  position: relative;
+  
+  #autoplay-play-button {
+    &:hover {
+      background: rgba(0, 0, 0, 0.9) !important;
+      transform: translate(-50%, -50%) scale(1.05) !important;
+    }
+    
+    &:active {
+      transform: translate(-50%, -50%) scale(0.95) !important;
+    }
+    
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  }
+}

@@ -109,65 +109,89 @@ async ngAfterViewInit(): Promise<void> {
 }
 // In broadcaster.component.ts - Fix the socket connection
 async connectSocket() {
-  console.log("Connecting to socket...");
+  // Close existing socket
   if (this.socket) {
     this.socket.close();
     this.socket = null;
     this.clientId = null;
   }
 
-  return new Promise<void>((resolve, reject) => {
-    this.socket = io(environment.socketUrl, {
-      autoConnect: true,
-      transports: ["websocket", "polling"],
-      timeout: 20000, // Add timeout
-      forceNew: true  // Force new connection
-    });
-
-    this.socket.on("connect", () => {
-      console.log("socket.io connected()");
+  const tryConnect = (attemptsLeft: number) => {
+    return new Promise<void>((resolve, reject) => {
+      console.log("=== SOCKET CONNECTION ATTEMPT ===");
+      console.log("Stream ID:", this.streamId);
+      console.log("Attempts left:", attemptsLeft);
       
-      // **NEW: Join stream as broadcaster immediately after connection**
-      if (this.streamId) {
-        console.log(`Joining stream ${this.streamId} as broadcaster`);
-        this.socket.emit('joinStream', { 
-          streamId: this.streamId, 
-          role: 'broadcaster' 
-        });
-      }
+      const socketUrl = environment.socketUrl; // Should be http://localhost:3000
+      console.log("Connecting to:", socketUrl);
       
-      this.canRecord = true;
-      resolve(); // Move resolve here
-    });
+      this.socket = io(socketUrl, {
+        autoConnect: true,
+        transports: ["websocket", "polling"],
+        timeout: 20000,
+        forceNew: true,
+        reconnection: false // Disable auto-reconnection for manual control
+      });
 
-    this.socket.on("disconnect", (evt: any) => {
-      console.log("socket.io disconnect:", evt);
-      this.canRecord = false;
-      this.published = false;
-    });
+      let connected = false;
+      let timeoutId = setTimeout(() => {
+        if (!connected && attemptsLeft > 0) {
+          console.log(`Connection timeout. Retrying... Attempts left: ${attemptsLeft - 1}`);
+          this.socket.disconnect();
+          tryConnect(attemptsLeft - 1).then(resolve).catch(reject);
+        } else if (attemptsLeft === 0) {
+          console.error("❌ All connection attempts failed");
+          reject(new Error("Connection failed after all attempts"));
+        }
+      }, 20000);
 
-    this.socket.on(`message${this.streamId}`, (message: any) => {
-      console.log("socket.io message:", message);
-      if (message.type === "welcome") {
-        this.clientId = message.id;
-        console.log("connected to server. clientId=" + this.clientId);
-        // Don't resolve here, resolve on connect event
-      }
-    });
+      this.socket.on("connect", () => {
+        console.log("✅ Socket connected successfully");
+        console.log("Socket ID:", this.socket.id);
+        connected = true;
+        clearTimeout(timeoutId);
+        
+        // Send welcome message immediately
+        this.socket.emit(`message${this.streamId}`, { type: "join", streamId: this.streamId });
+        
+        resolve();
+      });
 
-    // Add error handling
-    this.socket.on('connect_error', (error: any) => {
-      console.error('Socket connection error:', error);
-      reject(error);
-    });
+      this.socket.on("connect_error", (error: any) => {
+        console.error("❌ Socket connection error:", error);
+        clearTimeout(timeoutId);
+        if (attemptsLeft > 0 && !connected) {
+          console.log(`Retrying connection... Attempts left: ${attemptsLeft - 1}`);
+          tryConnect(attemptsLeft - 1).then(resolve).catch(reject);
+        } else {
+          reject(new Error(`Connection error: ${error.message || error}`));
+        }
+      });
 
-    // Add timeout for connection
-    setTimeout(() => {
-      if (!this.socket || !this.socket.connected) {
-        reject(new Error("Connection timeout"));
-      }
-    }, 20000);
-  });
+      this.socket.on("disconnect", (reason: any) => {
+        console.log("Socket disconnected:", reason);
+        connected = false;
+      });
+
+      // **IMPORTANT**: Listen for welcome message
+      this.socket.on(`message${this.streamId}`, (message: any) => {
+        console.log("Received message:", message);
+        
+        if (message.type === "welcome") {
+          this.clientId = message.id;
+          console.log("✅ Received welcome, clientId:", this.clientId);
+          this.canRecord = true;
+        }
+      });
+
+      // Add error handler
+      this.socket.on("error", (error: any) => {
+        console.error("Socket error:", error);
+      });
+    });
+  };
+
+  return tryConnect(3);
 }
   connectSocketBe() {
     if (this.socketBe) {
@@ -242,6 +266,7 @@ async connectSocket() {
       this.disconnect();
     }
   }
+// Update your sendRequest method to better handle errors
 async sendRequest(type: any, data: any): Promise<any> {
   return new Promise((resolve, reject) => {
     if (!this.socket || !this.socket.connected) {
@@ -253,18 +278,26 @@ async sendRequest(type: any, data: any): Promise<any> {
       reject(new Error(`Request timeout for ${type}`));
     }, 30000);
 
+    console.log(`📤 Sending ${type}:`, data);
+
     this.socket.emit(type, data, (err: any, response: any) => {
       clearTimeout(timeout);
+      
+      console.log(`📥 Response for ${type}:`, { err, response });
+      
       if (!err) {
         resolve(response);
       } else {
-        console.error(`Error in ${type}:`, err);
-        reject(new Error(err.toString()));
+        // Better error logging
+        console.error(`❌ Error in ${type}:`, err);
+        if (typeof err === 'object') {
+          console.error('Error details:', JSON.stringify(err, null, 2));
+        }
+        reject(new Error(typeof err === 'string' ? err : JSON.stringify(err)));
       }
     });
   });
 }
-
 checkDeviceSupport(): boolean {
   try {
     // Check if MediaSoup Device is supported
@@ -352,13 +385,11 @@ checkDeviceSupport(): boolean {
   // }
 
 
-  start_recording() {
+start_recording() {
   console.log("=== Start Recording Debug ===");
   console.log("Can record:", this.canRecord);
   console.log("Published:", this.published);
   console.log("Socket connected:", this.socket?.connected);
-  console.log("Storage end:", this.storageEnd);
-  console.log("Recording started:", this.recordingStarted);
   console.log("Transport connected:", this.producerTransport?.connectionState);
 
   // **ENHANCED VALIDATION**
@@ -384,6 +415,13 @@ checkDeviceSupport(): boolean {
   if (!this.producerTransport || this.producerTransport.connectionState !== 'connected') {
     console.error("Cannot record - transport not connected");
     this.toaster.error("Transport connection lost. Please restart streaming.");
+    return;
+  }
+  
+  // **NEW**: Check if we have active producers
+  if (!this.videoProducer && !this.audioProducer) {
+    console.error("Cannot record - no active producers");
+    this.toaster.error("No media stream available. Please restart streaming.");
     return;
   }
   
@@ -751,145 +789,73 @@ async publish() {
   }
   
   this.isPublishing = true;
-  this.connectionState = 'publishing';
   
   console.log("=== Starting Publish Process ===");
   
   if (!this.localStream) {
-    console.warn("WARN: local media NOT READY");
     this.toaster.error("Please enable camera first");
     this.resetPublishState();
     return;
   }
 
   try {
-    // Connect socket if not connected
-    if (!this.isSocketConnected()) {
-      console.log("Connecting to socket...");
-      this.connectionState = 'connecting';
-      await this.connectSocket();
-    }
-    
-    this.connectionState = 'connected';
-    console.log("Socket connected, testing backend response...");
+    // Step 1: Connect socket
+    console.log("Step 1: Connecting socket...");
+    await this.connectSocket();
+    console.log("✅ Socket connected");
 
-    // **NEW: Test backend response first**
-    try {
-      const testResponse = await this.sendRequest('ping', {});
-      console.log("✅ Backend is responding:", testResponse);
-    } catch (error) {
-      console.error("❌ Backend is not responding:", error);
-      throw new Error("Backend server is not available");
-    }
-
-    console.log("Getting router capabilities...");
-
-    // Get router capabilities
-    const data = await this.sendRequest(
+    // Step 2: Get router capabilities
+    console.log("Step 2: Getting router capabilities...");
+    const routerCapabilities = await this.sendRequest(
       `getRouterRtpCapabilities${this.streamId}`,
       {}
     );
     
-    if (!data) {
+    if (!routerCapabilities) {
       throw new Error("Failed to get router capabilities");
     }
-    
-    console.log("Router capabilities received, loading device...");
+    console.log("✅ Router capabilities received");
 
-    // Load device
-    await this.loadDevice(data);
+    // Step 3: Load device
+    console.log("Step 3: Loading MediaSoup device...");
+    await this.loadDevice(routerCapabilities);
     
-    if (!this.device || !this.device.loaded) {
-      throw new Error("Device not properly loaded");
+    if (!this.device?.loaded) {
+      throw new Error("Device failed to load");
     }
-    
-    console.log("Device loaded, creating producer transport...");
+    console.log("✅ Device loaded successfully");
 
-    // Create producer transport
-    const params = await this.sendRequest(
+    // Step 4: Create producer transport
+    console.log("Step 4: Creating producer transport...");
+    const transportParams = await this.sendRequest(
       `createProducerTransport${this.streamId}`,
       {}
     );
     
-    if (!params) {
-      throw new Error("Failed to get producer transport parameters");
+    if (!transportParams) {
+      throw new Error("Failed to create producer transport");
     }
-    
-    console.log("Creating send transport...");
-    
-    // **DEBUG: Log the params object**
-    console.log("Transport params received:", params);
-    console.log("Params type:", typeof params);
-    console.log("Params keys:", Object.keys(params || {}));
-    
-    // **DEBUG: Check device state**
-    console.log("Device loaded:", this.device?.loaded);
-    console.log("Device RTP capabilities:", this.device?.rtpCapabilities);
-    console.log("Device can produce:", this.device?.canProduce);
-    
-    // **DEBUG: Validate params structure**
-    if (!params) {
-      throw new Error("Transport params are null or undefined");
-    }
-    
-    const requiredKeys = ['id', 'iceParameters', 'iceCandidates', 'dtlsParameters'];
-    const missingKeys = requiredKeys.filter(key => !(key in params));
-    
-    if (missingKeys.length > 0) {
-      throw new Error(`Missing required transport params: ${missingKeys.join(', ')}`);
-    }
-    
-    // **DEBUG: Check if device can produce**
-    if (!this.device?.canProduce) {
-      throw new Error("Device cannot produce - check RTP capabilities");
-    }
-    
-    try {
-      this.producerTransport = this.device.createSendTransport(params);
-      console.log("✅ Send transport created successfully:", this.producerTransport);
-    } catch (error: any) {
-      console.error("❌ Error creating send transport:", error);
-      console.error("Error details:", {
-        message: error.message,
-        name: error.name,
-        stack: error.stack
-      });
-      throw error;
-    }
+    console.log("✅ Transport params received");
 
-    // Set up transport event handlers
-    console.log("Setting up transport handlers...");
+    // Step 5: Create transport
+    console.log("Step 5: Creating WebRTC transport...");
+    this.producerTransport = this.device.createSendTransport(transportParams);
+    console.log("✅ Producer transport created");
+
+    // Step 6: Set up handlers BEFORE producing
+    console.log("Step 6: Setting up transport handlers...");
     this.setupTransportHandlers();
 
-    // **FIXED: Start media production which triggers the connect event**
-    console.log("Starting media production...");
+    // Step 7: Start producing media (this will trigger the connect event)
+    console.log("Step 7: Starting media production...");
     await this.startMediaProduction();
 
-    // **FIXED: Wait a moment for the connection to establish**
-    console.log("Waiting for transport connection to establish...");
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    // **FIXED: Check if transport is connected**
-    if (this.producerTransport?.connectionState === 'connected') {
-      console.log("✅ Transport connected successfully");
-      this.canRecord = true;
-      this.connectionState = 'published';
-      this.isPublishing = false;
-      this.published = true;
-      this.startThumbnailInterval();
-      this.updateButtons();
-    } else {
-      console.error("❌ Transport not connected after media production");
-      console.error("Final transport state:", this.producerTransport?.connectionState);
-      throw new Error("Transport connection failed");
-    }
-
-    console.log("Media production completed successfully - Stream is now live!");
+    // **REMOVED**: No more waiting logic - the connection state handler will manage this
+    console.log("✅ Media production started - connection state will be handled by events");
     
-  } catch (error) {
-    console.error("Error in publish:", error);
-    this.error = "Failed to start publishing";
-    this.toaster.error(`Failed to start live stream: ${error}`);
+  } catch (error: any) {
+    console.error("❌ Publish failed:", error);
+    this.toaster.error(`Failed to start stream: ${error.message}`);
     this.resetPublishState();
   }
 }
@@ -899,7 +865,7 @@ private async waitForTransportConnection(): Promise<void> {
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => {
       reject(new Error("Transport connection timeout"));
-    }, 30000); // 30 second timeout
+    }, 15000); // 15 second timeout
 
     if (!this.producerTransport) {
       clearTimeout(timeout);
@@ -907,52 +873,48 @@ private async waitForTransportConnection(): Promise<void> {
       return;
     }
 
-    console.log("=== WAIT FOR TRANSPORT CONNECTION ===");
+    console.log("=== WAITING FOR TRANSPORT CONNECTION ===");
     console.log("Current transport state:", this.producerTransport.connectionState);
-    console.log("Transport ID:", this.producerTransport.id);
 
-    // **FIX: Check if transport is already connected after media production**
+    // Check if already connected
     if (this.producerTransport.connectionState === 'connected') {
-      console.log("✅ Transport already connected after media production");
+      console.log("✅ Transport already connected");
       clearTimeout(timeout);
-      this.canRecord = true;
-      this.connectionState = 'published';
-      this.isPublishing = false;
-      this.published = true;
-      this.startThumbnailInterval();
-      this.updateButtons();
+      this.onTransportConnected();
       resolve();
       return;
     }
 
-    // **SIMPLIFIED: Just use event listener, no periodic checking**
+    // Set up one-time listener for connection
     const onConnectionStateChange = (state: any) => {
-      console.log("Transport connection state changed:", state);
+      console.log(`🔄 Transport state changed to: ${state}`);
       
       if (state === 'connected') {
-        console.log("✅ Transport connected via event");
+        console.log("✅ Transport connected successfully");
         clearTimeout(timeout);
         this.producerTransport?.off('connectionstatechange', onConnectionStateChange);
-        this.canRecord = true;
-        this.connectionState = 'published';
-        this.isPublishing = false;
-        this.published = true;
-        this.startThumbnailInterval();
-        this.updateButtons();
+        this.onTransportConnected();
         resolve();
       } else if (state === 'failed' || state === 'disconnected') {
-        console.error("❌ Transport connection failed via event:", state);
+        console.error("❌ Transport connection failed:", state);
         clearTimeout(timeout);
         this.producerTransport?.off('connectionstatechange', onConnectionStateChange);
         reject(new Error(`Transport connection failed: ${state}`));
-      } else {
-        console.log("Transport state via event:", state);
       }
     };
 
-    console.log("Setting up connection state listener...");
     this.producerTransport.on('connectionstatechange', onConnectionStateChange);
   });
+}
+
+private onTransportConnected() {
+  this.canRecord = true;
+  this.connectionState = 'published';
+  this.isPublishing = false;
+  this.published = true;
+  this.startThumbnailInterval();
+  this.updateButtons();
+  console.log("🎉 Stream is now LIVE!");
 }
 
 private setupTransportHandlers() {
@@ -963,48 +925,67 @@ private setupTransportHandlers() {
     return;
   }
 
+  console.log("Setting up transport event handlers...");
+
+  // **CRITICAL**: The connect event is triggered when we call transport.produce()
   transport.on("connect", async ({ dtlsParameters }: any, callback: any, errback: any) => {
-    console.log("=== TRANSPORT CONNECT EVENT ===");
+    console.log("🔗 TRANSPORT CONNECT EVENT TRIGGERED");
     console.log("Stream ID:", this.streamId);
-    console.log("DTLS Parameters:", dtlsParameters);
-    console.log("Transport ID:", transport.id);
+    console.log("DTLS Parameters received");
     
     try {
       console.log("Sending connectProducerTransport request...");
-      const response = await this.sendRequest(`connectProducerTransport${this.streamId}`, {
+      await this.sendRequest(`connectProducerTransport${this.streamId}`, {
         dtlsParameters: dtlsParameters,
       });
-      console.log("✅ Transport connection response:", response);
-      callback();
+      
+      console.log("✅ Transport connect successful, calling callback");
+      callback(); // This is CRITICAL - it tells MediaSoup the connection succeeded
+      
     } catch (error: any) {
       console.error("❌ Transport connection failed:", error);
-      console.error("Error details:", {
-        message: error.message,
-        name: error.name,
-        stack: error.stack
-      });
       errback(error);
     }
   });
 
   transport.on("produce", async ({ kind, rtpParameters }: any, callback: any, errback: any) => {
-    console.log(`Producing ${kind}...`);
+    console.log(`🎬 TRANSPORT PRODUCE EVENT (${kind})`);
     try {
-      const { id }: any = await this.sendRequest(
-        `produce${this.streamId}`,
-        {
-          transportId: transport.id,
-          kind,
-          rtpParameters,
-        }
-      );
-      console.log(`${kind} producer created with ID:`, id);
-      callback({ id });
+      const response = await this.sendRequest(`produce${this.streamId}`, {
+        transportId: transport.id,
+        kind,
+        rtpParameters,
+      });
+      
+      console.log(`✅ ${kind} producer created with ID:`, response.id);
+      callback({ id: response.id });
     } catch (err) {
-      console.error(`Failed to produce ${kind}:`, err);
+      console.error(`❌ Failed to produce ${kind}:`, err);
       errback(err);
     }
   });
+
+  // Listen for connection state changes
+  transport.on("connectionstatechange", (state: any) => {
+    console.log(`🔄 Transport connection state: ${state}`);
+    
+    if (state === 'connected') {
+      console.log("✅ Transport successfully connected!");
+      this.onTransportConnected();
+    } else if (state === 'failed' || state === 'disconnected') {
+      console.error("❌ Transport connection failed:", state);
+      this.onTransportFailed();
+    } else if (state === 'connecting') {
+      console.log("🔄 Transport is connecting...");
+    }
+  });
+}
+
+
+
+private onTransportFailed() {
+  this.resetPublishState();
+  this.toaster.error("Transport connection failed");
 }
 
 private async startMediaProduction() {
@@ -1013,8 +994,6 @@ private async startMediaProduction() {
   if (!this.producerTransport) {
     throw new Error("Producer transport is null");
   }
-  
-  console.log("Transport state before production:", this.producerTransport.connectionState);
   
   const useVideo = this.checkUseVideo();
   const useAudio = this.checkUseAudio();
@@ -1025,60 +1004,79 @@ private async startMediaProduction() {
     throw new Error("Local stream is null");
   }
   
-  const productionPromises = [];
+  // **IMPORTANT**: Produce media sequentially, not in parallel
+  const producers = [];
   
   if (useVideo) {
     const videoTrack = (this.localStream as any).getVideoTracks()[0];
-    if (videoTrack && this.producerTransport) {
-      console.log("Creating video producer...");
-      console.log("Video track:", videoTrack);
+    if (videoTrack) {
+      console.log("🎥 Creating video producer...");
+      console.log("Video track settings:", videoTrack.getSettings());
       
-      const videoPromise = this.producerTransport.produce({ track: videoTrack })
-        .then((producer) => {
-          this.videoProducer = producer;
-          console.log("✅ Video producer created:", producer.id);
-          return producer;
-        })
-        .catch((error) => {
-          console.error("❌ Failed to create video producer:", error);
-          throw error;
+      try {
+        const videoProducer = await this.producerTransport.produce({ 
+          track: videoTrack,
+          // Simplified encoding parameters
+          encodings: [{ maxBitrate: 1000000 }],
         });
-      productionPromises.push(videoPromise);
-    } else {
-      console.warn("No video track available or transport is null");
+        
+        this.videoProducer = videoProducer;
+        producers.push(videoProducer);
+        console.log("✅ Video producer created:", videoProducer.id);
+        
+        // Set up producer event handlers
+        videoProducer.on("trackended", () => {
+          console.log("Video track ended");
+        });
+        
+        videoProducer.on("transportclose", () => {
+          console.log("Video producer transport closed");
+        });
+        
+      } catch (error) {
+        console.error("❌ Failed to create video producer:", error);
+        throw error;
+      }
     }
   }
   
   if (useAudio) {
     const audioTrack = (this.localStream as any).getAudioTracks()[0];
-    if (audioTrack && this.producerTransport) {
-      console.log("Creating audio producer...");
-      console.log("Audio track:", audioTrack);
+    if (audioTrack) {
+      console.log("🎵 Creating audio producer...");
+      console.log("Audio track settings:", audioTrack.getSettings());
       
-      const audioPromise = this.producerTransport.produce({ track: audioTrack })
-        .then((producer) => {
-          this.audioProducer = producer;
-          console.log("✅ Audio producer created:", producer.id);
-          return producer;
-        })
-        .catch((error) => {
-          console.error("❌ Failed to create audio producer:", error);
-          throw error;
+      try {
+        const audioProducer = await this.producerTransport.produce({ 
+          track: audioTrack,
         });
-      productionPromises.push(audioPromise);
-    } else {
-      console.warn("No audio track available or transport is null");
+        
+        this.audioProducer = audioProducer;
+        producers.push(audioProducer);
+        console.log("✅ Audio producer created:", audioProducer.id);
+        
+        // Set up producer event handlers
+        audioProducer.on("trackended", () => {
+          console.log("Audio track ended");
+        });
+        
+        audioProducer.on("transportclose", () => {
+          console.log("Audio producer transport closed");
+        });
+        
+      } catch (error) {
+        console.error("❌ Failed to create audio producer:", error);
+        throw error;
+      }
     }
   }
 
-  // Wait for all producers to be created
-  if (productionPromises.length === 0) {
-    throw new Error("No media tracks available for production");
+  if (producers.length === 0) {
+    throw new Error("No media producers created");
   }
 
-  console.log(`Waiting for ${productionPromises.length} producer(s) to be created...`);
-  await Promise.all(productionPromises);
-  console.log("✅ All media producers created successfully");
+  console.log(`✅ Created ${producers.length} producer(s) successfully`);
+  return producers;
 }
 
 private resetPublishState() {

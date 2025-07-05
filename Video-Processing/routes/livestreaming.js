@@ -28,4 +28,61 @@ router.get('/api/rtmp/status', (req, res) => {
 });
 // router.post('/live-stream-create-record',authorization, liveStreamingController.createLiveStreamRecord);
 
+// Add this route to test MediaSoup status
+router.get('/mediasoup-status', (req, res) => {
+  res.json({
+    workerReady,
+    hasWorker: !!worker,
+    hasRouter: !!router,
+    routerId: router?.id,
+    rtpCapabilities: router?.rtpCapabilities ? 'Available' : 'Missing'
+  });
+});
+
+// Add stream status endpoint
+router.get('/stream-status/:streamId', async (req, res) => {
+  try {
+    const { streamId } = req.params;
+    console.log("Checking stream status for:", streamId);
+    
+    // Check if producers exist for this stream
+    const streamVideo = streamProducers[streamId]?.videoProducer;
+    const streamAudio = streamProducers[streamId]?.audioProducer;
+    const globalVideo = global.mediasoup?.webrtc?.videoProducer || videoProducer;
+    const globalAudio = global.mediasoup?.webrtc?.audioProducer || audioProducer;
+    
+    const hasVideo = !!(streamVideo || globalVideo);
+    const hasAudio = !!(streamAudio || globalAudio);
+    const isActive = hasVideo || hasAudio;
+    
+    console.log("Stream status check result:", {
+      streamId,
+      hasVideo,
+      hasAudio,
+      isActive,
+      availableStreams: Object.keys(streamProducers)
+    });
+
+    res.json({
+      active: isActive,
+      hasVideo,
+      hasAudio,
+      streamId: streamId,
+      availableStreams: Object.keys(streamProducers),
+      debug: {
+        streamSpecific: { video: !!streamVideo, audio: !!streamAudio },
+        global: { video: !!globalVideo, audio: !!globalAudio }
+      }
+    });
+    
+  } catch (error) {
+    console.error("Error checking stream status:", error);
+    res.status(500).json({ 
+      active: false, 
+      error: "Server error",
+      message: error.message 
+    });
+  }
+});
+
 module.exports = router;
