@@ -3,6 +3,8 @@ var router = express.Router();
 
 const liveStreamingController = require('../controller/liveStreamingController');
 const { authorization } = require('../common/authentication');
+const { PrismaClient } = require("@prisma/client");
+const prisma = require('../prisma/client');
 router.get('/streaming/:id', liveStreamingController.getLiveStreaming);
 router.get('/streamingrecord/:streamingId', liveStreamingController.getLiveStreamRecord);
 router.get('/live-stream-download', liveStreamingController.downloadStream);

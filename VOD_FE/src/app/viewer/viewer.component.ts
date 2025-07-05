@@ -743,12 +743,23 @@ private handleWebRTCAds(adTagUrl: string, imaOptions: any) {
   const tryConnect = (attemptsLeft: number) => {
     return new Promise<void>((resolve, reject) => {
       console.log("=== SOCKET CONNECTION ===");
-      console.log("Connecting to:", environment.socketUrl);
       console.log("Stream ID:", this.liveStreamId);
+      console.log("Is RTMP Stream:", this.isRTMPStream);
       console.log("Attempts left:", attemptsLeft);
       
-      // **Use the Video-Processing server for WebRTC streams**
-      this.socket = io(environment.socketUrl, {
+      // **CRITICAL FIX: Use different socket URLs for different stream types**
+      let socketUrl;
+      if (this.isRTMPStream) {
+        // RTMP streams use VOD_BE socket (port 3005)
+        socketUrl = environment.socketUrlBe;
+        console.log("Connecting to VOD_BE for RTMP stream:", socketUrl);
+      } else {
+        // WebRTC streams use Video-Processing socket (port 3000)
+        socketUrl = environment.socketUrl;
+        console.log("Connecting to Video-Processing for WebRTC stream:", socketUrl);
+      }
+      
+      this.socket = io(socketUrl, {
         autoConnect: true,
         transports: ["websocket", "polling"],
         timeout: 10000,
@@ -767,6 +778,15 @@ private handleWebRTCAds(adTagUrl: string, imaOptions: any) {
 
       this.socket.on("connect", () => {
         console.log("Socket connected successfully");
+        
+        // **NEW: Join stream as viewer immediately after connection**
+        if (this.liveStreamId && !this.isRTMPStream) {
+          console.log(`Joining stream ${this.liveStreamId} as viewer`);
+          this.socket.emit('joinStream', { 
+            streamId: this.liveStreamId, 
+            role: 'viewer' 
+          });
+        }
       });
 
       this.socket.on("connect_error", (error: any) => {
@@ -1218,17 +1238,6 @@ async subscribe() {
       console.log("Connecting to Video-Processing server...");
       await this.connectSocket();
 
-            try {
-        const routerCaps = await this.sendRequest(
-          `getRouterRtpCapabilities${this.liveStreamId}`,
-          {}
-        );
-        console.log("✅ Router capabilities received:", !!routerCaps);
-      } catch (error) {
-        console.error("❌ Failed to get router capabilities:", error);
-        throw new Error("Stream not found on Video-Processing server. Make sure broadcaster is active.");
-      }
-      
       // **3. Get router capabilities from Video-Processing server**
       console.log("Getting router capabilities...");
       const data = await this.sendRequest(
@@ -1290,7 +1299,47 @@ async subscribe() {
       
       console.log("Transport params received");
       
-      // ... rest of your existing MediaSoup logic
+      // **5. Create consumer transport**
+      this.consumerTransport = (this.device as any).createRecvTransport(params);
+      
+      (this.consumerTransport as any).on("connect", ({ dtlsParameters }: any, callback: any, errback: any) => {
+        console.log("--consumer transport connect");
+        this.sendRequest(`connectConsumerTransport${this.liveStreamId}`, {
+          dtlsParameters,
+        })
+          .then(callback)
+          .catch(errback);
+      });
+
+      (this.consumerTransport as any).on("consume", ({ rtpCapabilities }: any, callback: any, errback: any) => {
+        console.log("--consumer transport consume");
+        this.sendRequest(`consume${this.liveStreamId}`, {
+          rtpCapabilities,
+        })
+          .then(callback)
+          .catch(errback);
+      });
+
+      // **6. Consume video and audio tracks**
+      console.log("Consuming video track...");
+      this.videoConsumer = await this.consumeAndResume(this.consumerTransport, "video");
+      
+      console.log("Consuming audio track...");
+      this.audioConsumer = await this.consumeAndResume(this.consumerTransport, "audio");
+      
+      console.log("✅ WebRTC connection established successfully");
+      
+      // **7. Set up event listeners for new consumers**
+      this.socket.on(`newConsumer${this.liveStreamId}`, async (data: any) => {
+        console.log("New consumer event:", data);
+        const { kind } = data;
+        
+        if (kind === "video" && !this.videoConsumer) {
+          this.videoConsumer = await this.consumeAndResume(this.consumerTransport, "video");
+        } else if (kind === "audio" && !this.audioConsumer) {
+          this.audioConsumer = await this.consumeAndResume(this.consumerTransport, "audio");
+        }
+      });
       
     } catch (error: any) {
       console.error("Error in subscribe:", error);

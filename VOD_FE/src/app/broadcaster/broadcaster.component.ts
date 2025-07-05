@@ -126,6 +126,16 @@ async connectSocket() {
 
     this.socket.on("connect", () => {
       console.log("socket.io connected()");
+      
+      // **NEW: Join stream as broadcaster immediately after connection**
+      if (this.streamId) {
+        console.log(`Joining stream ${this.streamId} as broadcaster`);
+        this.socket.emit('joinStream', { 
+          streamId: this.streamId, 
+          role: 'broadcaster' 
+        });
+      }
+      
       this.canRecord = true;
       resolve(); // Move resolve here
     });
@@ -188,12 +198,24 @@ async connectSocket() {
   }
 
   disconnectSocket() {
-    console.log("Dis");
+    console.log("=== DISCONNECTING SOCKET ===");
+    console.log("Stream ID:", this.streamId);
+    console.log("Published:", this.published);
+    console.log("Is Publishing:", this.isPublishing);
+    
     if (this.socket) {
+      // Send disconnect event to server before closing
+      if (this.streamId) {
+        this.socket.emit(`disconnect${this.streamId}`, { 
+          decrement: false,
+          reason: 'broadcaster_disconnect'
+        });
+      }
+      
       this.socket.close();
       this.socket = null;
       this.clientId = null;
-      console.log("socket.io closed..");
+      console.log("✅ Socket disconnected");
     }
   }
 
@@ -229,7 +251,7 @@ async sendRequest(type: any, data: any): Promise<any> {
 
     const timeout = setTimeout(() => {
       reject(new Error(`Request timeout for ${type}`));
-    }, 10000);
+    }, 30000);
 
     this.socket.emit(type, data, (err: any, response: any) => {
       clearTimeout(timeout);
@@ -257,18 +279,89 @@ checkDeviceSupport(): boolean {
   }
 }
 
-start_recording() {
+// start_recording() {
+//   console.log("=== Start Recording Debug ===");
+//   console.log("Can record:", this.canRecord);
+//   console.log("Published:", this.published);
+//   console.log("Socket connected:", this.socket?.connected);
+//   console.log("Storage end:", this.storageEnd);
+//   console.log("Recording started:", this.recordingStarted);
+//   console.log("Stream ID:", this.streamId);
+//   console.log("Video Producer exists:", !!this.videoProducer);
+//   console.log("Audio Producer exists:", !!this.audioProducer);
+
+//   // Enhanced validation
+//   if (!this.canRecord) {
+//     console.error("Cannot record - canRecord is false");
+//     this.toaster.error("Please wait for connection to establish");
+//     return;
+//   }
+  
+//   if (!this.published) {
+//     console.error("Cannot record - not published");
+//     this.toaster.error("Please publish stream first");
+//     return;
+//   }
+  
+//   if (!this.socket || !this.socket.connected) {
+//     console.error("Cannot record - socket not connected");
+//     this.toaster.error("Socket connection lost");
+//     return;
+//   }
+  
+//   // **NEW: Check if producers exist**
+//   if (!this.videoProducer && !this.audioProducer) {
+//     console.error("Cannot record - no media producers available");
+//     this.toaster.error("No media stream available. Please restart streaming.");
+//     return;
+//   }
+  
+//   if (this.recordingStarted) {
+//     console.warn("Recording already started");
+//     this.toaster.info("Recording already started");
+//     return;
+//   }
+  
+//   if (this.storageEnd) {
+//     console.error("Cannot record - storage full");
+//     this.toaster.error("Insufficient storage space");
+//     return;
+//   }
+
+//   try {
+//     console.log("Sending START_RECORDING event...");
+//     this.sendRequest(`START_RECORDING${this.streamId}`, "")
+//       .then(() => {
+//         console.log("Recording request sent successfully");
+//         this.recordingStarted = true;
+//         this.toaster.success("Recording started");
+//       })
+//       .catch((error) => {
+//         console.error("Error sending recording request:", error);
+//         this.toaster.error("Failed to start recording");
+//       });
+//   } catch (error) {
+//     console.error("Error in start_recording:", error);
+//     this.toaster.error("Failed to start recording");
+//   }
+// }
+  // stop_recording(){
+  //   if(this.socket){
+  //     this.sendRequest(`STOP_RECORDING${this.streamId}`, '')
+  //   }
+  // }
+
+
+  start_recording() {
   console.log("=== Start Recording Debug ===");
   console.log("Can record:", this.canRecord);
   console.log("Published:", this.published);
   console.log("Socket connected:", this.socket?.connected);
   console.log("Storage end:", this.storageEnd);
   console.log("Recording started:", this.recordingStarted);
-  console.log("Stream ID:", this.streamId);
-  console.log("Video Producer exists:", !!this.videoProducer);
-  console.log("Audio Producer exists:", !!this.audioProducer);
+  console.log("Transport connected:", this.producerTransport?.connectionState);
 
-  // Enhanced validation
+  // **ENHANCED VALIDATION**
   if (!this.canRecord) {
     console.error("Cannot record - canRecord is false");
     this.toaster.error("Please wait for connection to establish");
@@ -286,11 +379,11 @@ start_recording() {
     this.toaster.error("Socket connection lost");
     return;
   }
-  
-  // **NEW: Check if producers exist**
-  if (!this.videoProducer && !this.audioProducer) {
-    console.error("Cannot record - no media producers available");
-    this.toaster.error("No media stream available. Please restart streaming.");
+
+  // **NEW**: Check transport state
+  if (!this.producerTransport || this.producerTransport.connectionState !== 'connected') {
+    console.error("Cannot record - transport not connected");
+    this.toaster.error("Transport connection lost. Please restart streaming.");
     return;
   }
   
@@ -323,12 +416,6 @@ start_recording() {
     this.toaster.error("Failed to start recording");
   }
 }
-  // stop_recording(){
-  //   if(this.socket){
-  //     this.sendRequest(`STOP_RECORDING${this.streamId}`, '')
-  //   }
-  // }
-
 async stream_end() {
   if (!this.published) {
     this.toaster.error("No active stream to end");
@@ -463,10 +550,12 @@ async stream_end() {
   }
 
   startMedia() {
+    console.log("=== STARTING MEDIA ===");
+    
     if (this.localStream) {
       console.warn("WARN: local media ALREADY started");
-      this.error=""
-      this.buttonDisabled=true        
+      this.error = "";
+      this.buttonDisabled = true;
       this.addNoDropClass(this.camera_button.nativeElement);
       this.removeNoDropClass(this.publish_button.nativeElement);
       return;
@@ -474,26 +563,118 @@ async stream_end() {
 
     const useVideo = this.checkUseVideo();
     const useAudio = this.checkUseAudio();
-    console.log(useVideo, "useVideo");
-    console.log(useAudio, "useAudio");
+    console.log("Video enabled:", useVideo);
+    console.log("Audio enabled:", useAudio);
+
+    // Improved webcam constraints for better compatibility
+    const constraints = {
+      video: useVideo ? {
+        width: { ideal: 1280, min: 640, max: 1920 },
+        height: { ideal: 720, min: 480, max: 1080 },
+        frameRate: { ideal: 30, min: 15, max: 60 },
+        facingMode: "user", // Ensure front camera
+      } : false,
+      audio: useAudio ? {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+        sampleRate: { ideal: 48000 },
+        channelCount: { ideal: 2 },
+      } : false,
+    };
+
+    console.log("Requesting media with constraints:", constraints);
+
     navigator.mediaDevices
-      .getUserMedia({ audio: useAudio, video: useVideo })
-      // navigator.mediaDevices.getUserMedia({ audio: true, video: true })
+      .getUserMedia(constraints)
       .then((stream: any) => {
+        console.log("✅ Media stream obtained successfully");
+        console.log("Video tracks:", stream.getVideoTracks().length);
+        console.log("Audio tracks:", stream.getAudioTracks().length);
+
         this.localStream = stream;
         this.addNoDropClass(this.camera_button.nativeElement);
-        console.log(this.localVideo);
         this.playVideo(this.localVideo.nativeElement, this.localStream);
         this.removeNoDropClass(this.publish_button.nativeElement);
         this.updateButtons();
-        this.error=""
-        this.buttonDisabled=true        
+        this.error = "";
+        this.buttonDisabled = true;
+
+        // Log track details for debugging
+        stream.getVideoTracks().forEach((track: any, index: number) => {
+          console.log(`Video track ${index}:`, {
+            label: track.label,
+            enabled: track.enabled,
+            muted: track.muted,
+            readyState: track.readyState,
+            settings: track.getSettings()
+          });
+        });
+
+        stream.getAudioTracks().forEach((track: any, index: number) => {
+          console.log(`Audio track ${index}:`, {
+            label: track.label,
+            enabled: track.enabled,
+            muted: track.muted,
+            readyState: track.readyState
+          });
+        });
       })
-      .catch((err) => {
-        this.error = "Please enable camera from your browser settings";
-        console.error("media ERROR:", err);
+      .catch((err: any) => {
+        console.error("❌ Error accessing media devices:", err);
+
+        // Provide more specific error messages
+        let errorMessage = "Please enable camera from your browser settings";
+        if (err.name === "NotAllowedError") {
+          errorMessage = "Camera/microphone access denied. Please allow access and try again.";
+        } else if (err.name === "NotFoundError") {
+          errorMessage = "No camera or microphone found. Please check your devices.";
+        } else if (err.name === "NotReadableError") {
+          errorMessage = "Camera or microphone is already in use by another application.";
+        } else if (err.name === "OverconstrainedError") {
+          errorMessage = "Camera doesn't support the requested settings. Trying with basic settings...";
+          // Try with basic constraints
+          this.startMediaWithBasicConstraints();
+          return;
+        }
+
+        this.error = errorMessage;
+        this.toaster.error(errorMessage);
         this.addNoDropClass(this.publish_button.nativeElement);
-        this.buttonDisabled=true        
+        this.buttonDisabled = true;
+        this.removeNoDropClass(this.camera_button.nativeElement);
+      });
+  }
+
+  // Fallback method with basic constraints
+  private startMediaWithBasicConstraints() {
+    console.log("Trying with basic constraints...");
+    const useVideo = this.checkUseVideo();
+    const useAudio = this.checkUseAudio();
+    
+    const basicConstraints = {
+      video: useVideo,
+      audio: useAudio
+    };
+
+    navigator.mediaDevices
+      .getUserMedia(basicConstraints)
+      .then((stream: any) => {
+        console.log("✅ Media stream obtained with basic constraints");
+        this.localStream = stream;
+        this.addNoDropClass(this.camera_button.nativeElement);
+        this.playVideo(this.localVideo.nativeElement, this.localStream);
+        this.removeNoDropClass(this.publish_button.nativeElement);
+        this.updateButtons();
+        this.error = "";
+        this.buttonDisabled = true;
+      })
+      .catch((err: any) => {
+        console.error("❌ Failed even with basic constraints:", err);
+        this.error = "Unable to access camera/microphone. Please check your browser permissions.";
+        this.toaster.error("Unable to access camera/microphone. Please check your browser permissions.");
+        this.addNoDropClass(this.publish_button.nativeElement);
+        this.buttonDisabled = true;
         this.removeNoDropClass(this.camera_button.nativeElement);
       });
   }
@@ -562,6 +743,7 @@ async apiCall() {
   //     });
   // }
 
+// Fix the publish method:
 async publish() {
   if (this.isPublishing) {
     console.log("Already publishing, ignoring");
@@ -589,7 +771,18 @@ async publish() {
     }
     
     this.connectionState = 'connected';
-    console.log("Socket connected, getting capabilities...");
+    console.log("Socket connected, testing backend response...");
+
+    // **NEW: Test backend response first**
+    try {
+      const testResponse = await this.sendRequest('ping', {});
+      console.log("✅ Backend is responding:", testResponse);
+    } catch (error) {
+      console.error("❌ Backend is not responding:", error);
+      throw new Error("Backend server is not available");
+    }
+
+    console.log("Getting router capabilities...");
 
     // Get router capabilities
     const data = await this.sendRequest(
@@ -623,16 +816,75 @@ async publish() {
     }
     
     console.log("Creating send transport...");
-    this.producerTransport = this.device.createSendTransport(params);
     
+    // **DEBUG: Log the params object**
+    console.log("Transport params received:", params);
+    console.log("Params type:", typeof params);
+    console.log("Params keys:", Object.keys(params || {}));
+    
+    // **DEBUG: Check device state**
+    console.log("Device loaded:", this.device?.loaded);
+    console.log("Device RTP capabilities:", this.device?.rtpCapabilities);
+    console.log("Device can produce:", this.device?.canProduce);
+    
+    // **DEBUG: Validate params structure**
+    if (!params) {
+      throw new Error("Transport params are null or undefined");
+    }
+    
+    const requiredKeys = ['id', 'iceParameters', 'iceCandidates', 'dtlsParameters'];
+    const missingKeys = requiredKeys.filter(key => !(key in params));
+    
+    if (missingKeys.length > 0) {
+      throw new Error(`Missing required transport params: ${missingKeys.join(', ')}`);
+    }
+    
+    // **DEBUG: Check if device can produce**
+    if (!this.device?.canProduce) {
+      throw new Error("Device cannot produce - check RTP capabilities");
+    }
+    
+    try {
+      this.producerTransport = this.device.createSendTransport(params);
+      console.log("✅ Send transport created successfully:", this.producerTransport);
+    } catch (error: any) {
+      console.error("❌ Error creating send transport:", error);
+      console.error("Error details:", {
+        message: error.message,
+        name: error.name,
+        stack: error.stack
+      });
+      throw error;
+    }
+
     // Set up transport event handlers
+    console.log("Setting up transport handlers...");
     this.setupTransportHandlers();
 
-    // **IMPORTANT: Start producing media BEFORE marking as published**
+    // **FIXED: Start media production which triggers the connect event**
     console.log("Starting media production...");
     await this.startMediaProduction();
 
-    console.log("Media production started successfully - Stream is now live!");
+    // **FIXED: Wait a moment for the connection to establish**
+    console.log("Waiting for transport connection to establish...");
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // **FIXED: Check if transport is connected**
+    if (this.producerTransport?.connectionState === 'connected') {
+      console.log("✅ Transport connected successfully");
+      this.canRecord = true;
+      this.connectionState = 'published';
+      this.isPublishing = false;
+      this.published = true;
+      this.startThumbnailInterval();
+      this.updateButtons();
+    } else {
+      console.error("❌ Transport not connected after media production");
+      console.error("Final transport state:", this.producerTransport?.connectionState);
+      throw new Error("Transport connection failed");
+    }
+
+    console.log("Media production completed successfully - Stream is now live!");
     
   } catch (error) {
     console.error("Error in publish:", error);
@@ -640,6 +892,67 @@ async publish() {
     this.toaster.error(`Failed to start live stream: ${error}`);
     this.resetPublishState();
   }
+}
+
+// Add new method to wait for transport connection:
+private async waitForTransportConnection(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => {
+      reject(new Error("Transport connection timeout"));
+    }, 30000); // 30 second timeout
+
+    if (!this.producerTransport) {
+      clearTimeout(timeout);
+      reject(new Error("Producer transport is null"));
+      return;
+    }
+
+    console.log("=== WAIT FOR TRANSPORT CONNECTION ===");
+    console.log("Current transport state:", this.producerTransport.connectionState);
+    console.log("Transport ID:", this.producerTransport.id);
+
+    // **FIX: Check if transport is already connected after media production**
+    if (this.producerTransport.connectionState === 'connected') {
+      console.log("✅ Transport already connected after media production");
+      clearTimeout(timeout);
+      this.canRecord = true;
+      this.connectionState = 'published';
+      this.isPublishing = false;
+      this.published = true;
+      this.startThumbnailInterval();
+      this.updateButtons();
+      resolve();
+      return;
+    }
+
+    // **SIMPLIFIED: Just use event listener, no periodic checking**
+    const onConnectionStateChange = (state: any) => {
+      console.log("Transport connection state changed:", state);
+      
+      if (state === 'connected') {
+        console.log("✅ Transport connected via event");
+        clearTimeout(timeout);
+        this.producerTransport?.off('connectionstatechange', onConnectionStateChange);
+        this.canRecord = true;
+        this.connectionState = 'published';
+        this.isPublishing = false;
+        this.published = true;
+        this.startThumbnailInterval();
+        this.updateButtons();
+        resolve();
+      } else if (state === 'failed' || state === 'disconnected') {
+        console.error("❌ Transport connection failed via event:", state);
+        clearTimeout(timeout);
+        this.producerTransport?.off('connectionstatechange', onConnectionStateChange);
+        reject(new Error(`Transport connection failed: ${state}`));
+      } else {
+        console.log("Transport state via event:", state);
+      }
+    };
+
+    console.log("Setting up connection state listener...");
+    this.producerTransport.on('connectionstatechange', onConnectionStateChange);
+  });
 }
 
 private setupTransportHandlers() {
@@ -651,15 +964,25 @@ private setupTransportHandlers() {
   }
 
   transport.on("connect", async ({ dtlsParameters }: any, callback: any, errback: any) => {
-    console.log("Transport connecting...");
+    console.log("=== TRANSPORT CONNECT EVENT ===");
+    console.log("Stream ID:", this.streamId);
+    console.log("DTLS Parameters:", dtlsParameters);
+    console.log("Transport ID:", transport.id);
+    
     try {
-      await this.sendRequest(`connectProducerTransport${this.streamId}`, {
+      console.log("Sending connectProducerTransport request...");
+      const response = await this.sendRequest(`connectProducerTransport${this.streamId}`, {
         dtlsParameters: dtlsParameters,
       });
-      console.log("Transport connected successfully");
+      console.log("✅ Transport connection response:", response);
       callback();
-    } catch (error) {
-      console.error("Transport connection failed:", error);
+    } catch (error: any) {
+      console.error("❌ Transport connection failed:", error);
+      console.error("Error details:", {
+        message: error.message,
+        name: error.name,
+        stack: error.stack
+      });
       errback(error);
     }
   });
@@ -682,38 +1005,25 @@ private setupTransportHandlers() {
       errback(err);
     }
   });
-
-  transport.on("connectionstatechange", (state: any) => {
-    console.log("Transport connection state changed:", state);
-    switch (state) {
-      case "connecting":
-        console.log("Transport connecting...");
-        break;
-      case "connected":
-        console.log("Transport connected - stream is live!");
-        this.canRecord = true;
-        this.connectionState = 'published';
-        this.isPublishing = false;
-        this.published = true;
-        this.startThumbnailInterval();
-        this.updateButtons();
-        break;
-      case "failed":
-        console.error("Transport connection failed");
-        this.error = "Connection failed";
-        this.resetPublishState();
-        break;
-      case "disconnected":
-        console.log("Transport disconnected");
-        this.resetPublishState();
-        break;
-    }
-  });
 }
 
 private async startMediaProduction() {
+  console.log("=== STARTING MEDIA PRODUCTION ===");
+  
+  if (!this.producerTransport) {
+    throw new Error("Producer transport is null");
+  }
+  
+  console.log("Transport state before production:", this.producerTransport.connectionState);
+  
   const useVideo = this.checkUseVideo();
   const useAudio = this.checkUseAudio();
+  
+  console.log("Media options:", { useVideo, useAudio });
+  
+  if (!this.localStream) {
+    throw new Error("Local stream is null");
+  }
   
   const productionPromises = [];
   
@@ -721,13 +1031,21 @@ private async startMediaProduction() {
     const videoTrack = (this.localStream as any).getVideoTracks()[0];
     if (videoTrack && this.producerTransport) {
       console.log("Creating video producer...");
+      console.log("Video track:", videoTrack);
+      
       const videoPromise = this.producerTransport.produce({ track: videoTrack })
         .then((producer) => {
           this.videoProducer = producer;
-          console.log("Video producer created:", producer.id);
+          console.log("✅ Video producer created:", producer.id);
           return producer;
+        })
+        .catch((error) => {
+          console.error("❌ Failed to create video producer:", error);
+          throw error;
         });
       productionPromises.push(videoPromise);
+    } else {
+      console.warn("No video track available or transport is null");
     }
   }
   
@@ -735,13 +1053,21 @@ private async startMediaProduction() {
     const audioTrack = (this.localStream as any).getAudioTracks()[0];
     if (audioTrack && this.producerTransport) {
       console.log("Creating audio producer...");
+      console.log("Audio track:", audioTrack);
+      
       const audioPromise = this.producerTransport.produce({ track: audioTrack })
         .then((producer) => {
           this.audioProducer = producer;
-          console.log("Audio producer created:", producer.id);
+          console.log("✅ Audio producer created:", producer.id);
           return producer;
+        })
+        .catch((error) => {
+          console.error("❌ Failed to create audio producer:", error);
+          throw error;
         });
       productionPromises.push(audioPromise);
+    } else {
+      console.warn("No audio track available or transport is null");
     }
   }
 
@@ -750,8 +1076,9 @@ private async startMediaProduction() {
     throw new Error("No media tracks available for production");
   }
 
+  console.log(`Waiting for ${productionPromises.length} producer(s) to be created...`);
   await Promise.all(productionPromises);
-  console.log("All media producers created successfully");
+  console.log("✅ All media producers created successfully");
 }
 
 private resetPublishState() {
