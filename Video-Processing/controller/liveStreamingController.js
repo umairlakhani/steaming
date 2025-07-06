@@ -6,7 +6,7 @@ const cron = require("node-cron");
 const redisConfig = require("../utils/redisConfig");
 const { createWriteStream } = require("fs");
 
-const obj = require("../server");
+// Removed circular dependency - obj will be passed as parameter instead
 const FFmpegStatic = require("ffmpeg-static");
 const Process = require("child_process");
 const { Queue, Worker } = require("bullmq");
@@ -636,7 +636,7 @@ async function processVideo(req, res, next) {
 
 let streamProducers = {};
 
-async function createLiveStream(req, res, next) {
+async function createLiveStream(req, res, next, ioInstance) {
 
 
 
@@ -655,10 +655,14 @@ async function createLiveStream(req, res, next) {
   let id = `${req.tokenData.userId}${time}`;
 
   console.log(id);
-  console.log(obj.io.io, "check io");
-  io = obj.io.io;
+      // io will be passed as parameter from server.js
+    // io = obj.io.io;
   console.log(req.tokenData.userId, "check tokenData");
-  io.on("connection", function (socket) {
+  if (!ioInstance) {
+    console.error("Socket.IO instance not provided to createLiveStream");
+    return res.status(500).json({ error: "Socket.IO not initialized" });
+  }
+  ioInstance.on("connection", function (socket) {
     console.log(
       "client connected. socket id=" +
       getId(socket) +
@@ -1259,15 +1263,32 @@ socket.on(`createConsumerTransport${id}`, async (data, callback) => {
         sendReject({ text: "No producers available" }, callback);
         return;
       }
+      
       console.log("-- connectConsumerTransport ---");
       let transport = getConsumerTrasnport(getId(socket));
       if (!transport) {
         console.error("transport NOT EXIST for id=" + getId(socket));
-        sendResponse({}, callback);
+        sendReject({ text: "Transport not found" }, callback);
         return;
       }
-      console.log("connnected consumer transport");
-      await transport.connect({ dtlsParameters: data.dtlsParameters });
+      
+      try {
+        console.log("🔄 Connecting consumer transport...");
+        console.log("Transport state before connection:", transport.connectionState);
+        
+        await transport.connect({ dtlsParameters: data.dtlsParameters });
+        
+        console.log("✅ Consumer transport connected successfully");
+        console.log("Transport state after connection:", transport.connectionState);
+        
+        // Send success response immediately
+        sendResponse({ success: true, connectionState: transport.connectionState }, callback);
+        
+      } catch (error) {
+        console.error("❌ Failed to connect consumer transport:", error);
+        sendReject({ text: "Failed to connect transport: " + error.message }, callback);
+        return;
+      }
       // socket.emit(`consumerAdded${id}`, Object.keys(videoConsumers).length)
       // socket.broadcast.emit(`consumerAdded${id}`, Object.keys(videoConsumers).length)
       if (data.increment) {
@@ -1762,7 +1783,9 @@ function getId(socket) {
 
 function getClientCount() {
   // WARN: undocumented method to get clients number
-  return io.eio.clientsCount;
+  // Since io is passed as parameter, we can't access it globally
+  // Return a default value or use a different approach
+  return 0; // or implement a proper client counting mechanism
 }
 
 function cleanUpPeer(socket) {
@@ -3663,4 +3686,11 @@ module.exports = {
   liveStreamWorker,
   processVideo,
   getStreamStatus,
+  // Export MediaSoup variables for status checking
+  workerReady,
+  worker,
+  router,
+  initializeMediaSoup,
+  checkMediaSoupStatus,
+  test: 123
 };

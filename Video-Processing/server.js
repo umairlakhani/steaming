@@ -37,7 +37,7 @@ const morgan = require("morgan");
 //     origin: 'https://dev.mediapilot.io/'
 // }));
 const webPort = serverOptions.listenPort;
-const streamRouter = require("./routes/livestreaming");
+// We'll set up the streamRouter after io is created
 const cronRouter = require("./routes/cronRouter");
 const nms = require("./controller/obsStreamingController/media_server");
 const { createClient } = require("redis");
@@ -58,7 +58,7 @@ app.use(
 );
 app.use(express.json());
 app.use(morgan("dev"));
-app.use("/api/livestream", streamRouter);
+// We'll set up the streamRouter after io is created
 app.use("/api/paperspace", cronRouter);
 app.use(function (err, req, res, next) {
   console.log(err, "Error in app");
@@ -131,6 +131,11 @@ Promise.all([pubClient.connect(), subClient.connect()])
     console.log("Error connecting Pub or Sub clients", err);
   });
 console.log(io, "check io in serve");
+
+// Set up streamRouter with io instance
+const streamRouter = require("./routes/livestreaming")(io);
+app.use("/api/livestream", streamRouter);
+
 nms.run();
 // Start adding your cron job
 const cronExpression = process.env.CRON_SCHEDULE_PAPERSPACE;
@@ -165,5 +170,4 @@ nms.on('donePublish', (id, StreamPath, args) => {
 });
 
 module.exports = app;
-module.exports = { io }
-exports.io = { io };
+module.exports.io = io;

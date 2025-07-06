@@ -34,7 +34,6 @@ const { handleWebhook } = require("./controller/buySubscriptionController");
 // const { socketResponse: analyticsSocketResponse } = require("./controller/bandwidthController");
 
 
-
 var app = express();
 app.use((req, res, next) => {
   req.setTimeout(10 * 60 * 1000); // 10 minutes timeout for each request
@@ -45,9 +44,11 @@ var corsOptions = {
   // optionsSuccessStatus: 200, // some legacy browsers (IE11, various SmartTVs) choke on 204
 };
 app.use(cors({
-  origin: ["http://localhost:4200", "http://localhost:5173", "https://dev.mediapilot.io","http://192.168.18.185:4200"],
-  credentials:true,
-  optionsSuccessStatus: 200
+  origin: ["http://localhost:4200", "http://localhost:5173", "https://dev.mediapilot.io","http://192.168.18.185:4200", "https://3c75-2407-aa80-15-e8cb-b903-aada-5be2-1ae7.ngrok-free.app"],
+  credentials: true,
+  optionsSuccessStatus: 200,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
 app.use(timeout(2147483647));
@@ -120,6 +121,38 @@ app.use("/api/storage", storageRouter);
 app.use("/api/subscriptions", subscriptionRouter);
 app.use("/api/analytics", analyticsRouter);
 app.use("/api/bandwidth",bandwidthRouter );
+
+// Add MediaSoup status endpoints
+app.get("/api/health", (req, res) => {
+  res.json({ status: "ok", timestamp: new Date().toISOString() });
+});
+
+app.get("/api/ping", (req, res) => {
+  res.send("pong");
+});
+
+app.get("/api/mediasoup-status", (req, res) => {
+  // Import the MediaSoup status from the Video-Processing livestreaming controller
+  try {
+    const { workerReady, worker, router } = require('../Video-Processing/controller/liveStreamingController');
+    res.json({
+      workerReady: workerReady || false,
+      hasWorker: !!worker,
+      hasRouter: !!router,
+      routerId: router?.id || null,
+      rtpCapabilities: router?.rtpCapabilities ? 'Available' : 'Missing'
+    });
+  } catch (error) {
+    res.json({
+      workerReady: false,
+      hasWorker: false,
+      hasRouter: false,
+      routerId: null,
+      rtpCapabilities: 'Missing',
+      error: error.message
+    });
+  }
+});
 
 app.use(
   "/tempVideo/:token",

@@ -16,7 +16,7 @@
   <video id="local_video" autoplay style="border: 1px solid black;" #local_video></video>
   <span id="state_span" #state_span></span>
 </div>
-<div class="white" *ngIf="canRecord" id="sharelink">Shareable link: {{link}}/#/viewer/{{streamId}}</div>
+<div class="white" *ngIf="canRecord" id="sharelink">Shareable link: <a href="/#/viewer/{{streamId}}" target="_blank"> click to see streaming</a></div>
 <div class="btn-stream-main" >
   <button (click)="enableMedia()" class="enable-btn" id="camera_button" #camera_button>Enable Camera</button>
   <button class="publish-btn" id="publish_button" (click)="apiCall(); " #publish_button>Publish</button>
