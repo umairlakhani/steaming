@@ -1,10 +1,17 @@
 <div class="flex flex-col px-2 json">
-    <h1 mat-dialog-title>JSON data</h1>
+    <h1 mat-dialog-title>Roku-Compatible JSON Data</h1>
+    <div class="mb-3 text-sm text-gray-600">
+        This JSON is formatted according to Roku channel standards and includes ad break information.
+    </div>
     <div mat-dialog-content>
         <pre>{{ data | json }}
         </pre>
     </div>
-    <div mat-dialog-actions>
-        <button mat-button mat-dialog-close>Ok</button>
+    <div mat-dialog-actions class="flex justify-between">
+        <button mat-button (click)="copyToClipboard()" class="bg-blue-500 text-white">
+            <mat-icon>content_copy</mat-icon>
+            Copy JSON
+        </button>
+        <button mat-button mat-dialog-close>Close</button>
     </div>
 </div>

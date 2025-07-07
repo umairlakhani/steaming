@@ -753,7 +753,18 @@ async apiCall() {
         
         // Start live stream and get stream ID
         const streamRes = await this.videoService.startLiveStream(time).toPromise();
-        this.streamId = (streamRes as any).body.data.streamId;
+        console.log("Stream response:", streamRes);
+        
+        // Handle different response structures
+        if ((streamRes as any).body?.data?.streamId) {
+          this.streamId = (streamRes as any).body.data.streamId;
+        } else if ((streamRes as any).data?.streamId) {
+          this.streamId = (streamRes as any).data.streamId;
+        } else {
+          throw new Error("Invalid stream response structure");
+        }
+        
+        console.log("Stream ID set to:", this.streamId);
         
         if (this.streamId) {
           // Now connect socket with proper streamId
@@ -1013,6 +1024,37 @@ private async startMediaProduction() {
       console.log("🎥 Creating video producer...");
       console.log("Video track settings:", videoTrack.getSettings());
       
+      // **CRITICAL**: Ensure video track is enabled and active
+      if (!videoTrack.enabled) {
+        console.warn("⚠️ Video track is disabled, enabling it...");
+        videoTrack.enabled = true;
+      }
+      
+      // **CRITICAL**: Wait for track to be ready
+      if (videoTrack.readyState !== 'live') {
+        console.warn("⚠️ Video track is not live, waiting...");
+        await new Promise<void>((resolve) => {
+          const checkReady = () => {
+            if (videoTrack.readyState === 'live') {
+              console.log("✅ Video track is now live");
+              resolve();
+            } else if (videoTrack.readyState === 'ended') {
+              console.error("❌ Video track ended while waiting");
+              resolve();
+            } else {
+              setTimeout(checkReady, 100);
+            }
+          };
+          checkReady();
+          
+          // Timeout after 5 seconds
+          setTimeout(() => {
+            console.warn("⏰ Video track ready timeout");
+            resolve();
+          }, 5000);
+        });
+      }
+      
       try {
         const videoProducer = await this.producerTransport.produce({ 
           track: videoTrack,
@@ -1023,6 +1065,19 @@ private async startMediaProduction() {
         this.videoProducer = videoProducer;
         producers.push(videoProducer);
         console.log("✅ Video producer created:", videoProducer.id);
+        
+        // **CRITICAL**: Verify producer is active
+        console.log("📊 Video producer state:", {
+          id: videoProducer.id,
+          kind: videoProducer.kind,
+          paused: videoProducer.paused,
+          closed: videoProducer.closed,
+          track: videoProducer.track ? {
+            id: videoProducer.track.id,
+            enabled: videoProducer.track.enabled,
+            readyState: videoProducer.track.readyState
+          } : 'No track'
+        });
         
         // Set up producer event handlers
         videoProducer.on("trackended", () => {
@@ -1037,6 +1092,9 @@ private async startMediaProduction() {
         console.error("❌ Failed to create video producer:", error);
         throw error;
       }
+    } else {
+      console.error("❌ No video track found in local stream");
+      throw new Error("No video track available");
     }
   }
   
@@ -1046,6 +1104,37 @@ private async startMediaProduction() {
       console.log("🎵 Creating audio producer...");
       console.log("Audio track settings:", audioTrack.getSettings());
       
+      // **CRITICAL**: Ensure audio track is enabled and active
+      if (!audioTrack.enabled) {
+        console.warn("⚠️ Audio track is disabled, enabling it...");
+        audioTrack.enabled = true;
+      }
+      
+      // **CRITICAL**: Wait for track to be ready
+      if (audioTrack.readyState !== 'live') {
+        console.warn("⚠️ Audio track is not live, waiting...");
+        await new Promise<void>((resolve) => {
+          const checkReady = () => {
+            if (audioTrack.readyState === 'live') {
+              console.log("✅ Audio track is now live");
+              resolve();
+            } else if (audioTrack.readyState === 'ended') {
+              console.error("❌ Audio track ended while waiting");
+              resolve();
+            } else {
+              setTimeout(checkReady, 100);
+            }
+          };
+          checkReady();
+          
+          // Timeout after 5 seconds
+          setTimeout(() => {
+            console.warn("⏰ Audio track ready timeout");
+            resolve();
+          }, 5000);
+        });
+      }
+      
       try {
         const audioProducer = await this.producerTransport.produce({ 
           track: audioTrack,
@@ -1054,6 +1143,19 @@ private async startMediaProduction() {
         this.audioProducer = audioProducer;
         producers.push(audioProducer);
         console.log("✅ Audio producer created:", audioProducer.id);
+        
+        // **CRITICAL**: Verify producer is active
+        console.log("📊 Audio producer state:", {
+          id: audioProducer.id,
+          kind: audioProducer.kind,
+          paused: audioProducer.paused,
+          closed: audioProducer.closed,
+          track: audioProducer.track ? {
+            id: audioProducer.track.id,
+            enabled: audioProducer.track.enabled,
+            readyState: audioProducer.track.readyState
+          } : 'No track'
+        });
         
         // Set up producer event handlers
         audioProducer.on("trackended", () => {
@@ -1068,6 +1170,9 @@ private async startMediaProduction() {
         console.error("❌ Failed to create audio producer:", error);
         throw error;
       }
+    } else {
+      console.error("❌ No audio track found in local stream");
+      throw new Error("No audio track available");
     }
   }
 

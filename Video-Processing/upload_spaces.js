@@ -13,27 +13,27 @@ async function fileSize(path) {
 
 async function generateThumbnail(videoUrl, videoId, bucketId) {
 
-  AWS.config.update({
-    accessKeyId: process.env.DIGITAL_OCEAN_ACCESS_KEY,
-    secretAccessKey: process.env.DIGITAL_OCEAN_SECRET_KEY,
-    endpoint: `https://${bucketId}.${process.env.DO_BUCKET_REGION}.digitaloceanspaces.com`,
-    s3ForcePathStyle: true,
-  })
-
-  const spaces = new AWS.S3({
-    signatureVersion: 'v4',
-    params: {
-      acl: 'public-read',
+  // **FIXED**: Use the exact same S3 configuration as videoProcessorServer.js
+  const { S3Client } = require("@aws-sdk/client-s3");
+  const { Upload } = require("@aws-sdk/lib-storage");
+  
+  const s3Client = new S3Client({
+    region: process.env.DO_BUCKET_REGION,
+    endpoint: `https://${process.env.DO_BUCKET_NAME}.${process.env.DO_BUCKET_REGION}.digitaloceanspaces.com`,
+    credentials: {
+      accessKeyId: process.env.DIGITAL_OCEAN_ACCESS_KEY,
+      secretAccessKey: process.env.DIGITAL_OCEAN_SECRET_KEY,
     },
+    forcePathStyle: true,
   });
 
   let outputFileName = videoId.slice(0, -4);
   let url;
-  const thumbnailKey = `thumbnail/${outputFileName}.jpg`;
-  const thumbnailExists = await doesObjectExist(bucketId, thumbnailKey);
+  const thumbnailKey = `users/${bucketId}/thumbnail/${outputFileName}.jpg`;
+  const thumbnailExists = await doesObjectExist(process.env.DO_BUCKET_NAME, thumbnailKey);
 
   if (thumbnailExists) {
-    const thumbnailUrl = getThumbnailUrl(bucketId, thumbnailKey);
+    const thumbnailUrl = getThumbnailUrl(process.env.DO_BUCKET_NAME, thumbnailKey);
     console.log('Thumbnail already exists:', thumbnailUrl);
     url = thumbnailUrl
     return thumbnailUrl;
@@ -53,21 +53,31 @@ async function generateThumbnail(videoUrl, videoId, bucketId) {
     process.on('close', (code) => {
       if (code === 0) {
         console.log('Thumbnail generated successfully');
-        spaces.upload({
-          Bucket: bucketId,
-          Key: `thumbnail/${outputFileName}.jpg`,
-          Body: fs.createReadStream(`thumbnail/${outputFileName}.jpg`),
-          ACL: 'public-read',
-        }, async function (err, data) {
-          if (err) {
-            console.log('Error', err);
-            reject(err);
-          } else {
-            console.log(data.Location, 'check thumbnail data.Location');
-            console.log(outputFileName, 'check video id ');
-            console.log('Thumbnail uploaded');
-            resolve(data.Location);
-          }
+        
+        const upload = new Upload({
+          client: s3Client,
+          params: {
+            Bucket: process.env.DO_BUCKET_NAME,
+            Key: `users/${bucketId}/thumbnail/${outputFileName}.jpg`,
+            Body: fs.createReadStream(`thumbnail/${outputFileName}.jpg`),
+            ACL: 'public-read',
+          },
+        });
+
+        upload.done().then(result => {
+          // Convert to CDN URL (same as videoProcessorServer.js)
+          const cdnUrl = result.Location?.replace(
+            `${process.env.DO_BUCKET_REGION}`,
+            `${process.env.DO_BUCKET_REGION}.cdn`
+          );
+          
+          console.log(cdnUrl, 'check thumbnail data.Location');
+          console.log(outputFileName, 'check video id ');
+          console.log('Thumbnail uploaded');
+          resolve(cdnUrl);
+        }).catch(err => {
+          console.log('Error', err);
+          reject(err);
         });
       } else {
         console.error('Thumbnail generation failed');
@@ -99,8 +109,9 @@ function doesObjectExist(bucketId, key) {
   });
 }
 
-function getThumbnailUrl(bucketId, key) {
-  return `https://${bucketId}.${process.env.USER_BUCKET_URL}/${key}`;
+function getThumbnailUrl(bucketName, key) {
+  const REGION = process.env.DO_BUCKET_REGION || 'nyc3';
+  return `https://${bucketName}.${REGION}.cdn.digitaloceanspaces.com/${key}`;
 }
 
 const prisma = new PrismaClient();
@@ -108,33 +119,33 @@ const prisma = new PrismaClient();
 const upload360p = async (videoId, videoUrl, bucketId) => {
   console.log("upload360p function execute")
 
-  AWS.config.update({
-    accessKeyId: process.env.DIGITAL_OCEAN_ACCESS_KEY,
-    secretAccessKey: process.env.DIGITAL_OCEAN_SECRET_KEY,
-    endpoint: `https://${bucketId}.${process.env.DO_BUCKET_REGION}.digitaloceanspaces.com`,
-    s3ForcePathStyle: true,
-  })
-
-
-  const spaces = new AWS.S3({
-    signatureVersion: 'v4',
-    params: {
-      acl: 'private',
+  // **FIXED**: Use the exact same S3 configuration as videoProcessorServer.js
+  const { S3Client } = require("@aws-sdk/client-s3");
+  const { Upload } = require("@aws-sdk/lib-storage");
+  
+  const s3Client = new S3Client({
+    region: process.env.DO_BUCKET_REGION,
+    endpoint: `https://${process.env.DO_BUCKET_NAME}.${process.env.DO_BUCKET_REGION}.digitaloceanspaces.com`,
+    credentials: {
+      accessKeyId: process.env.DIGITAL_OCEAN_ACCESS_KEY,
+      secretAccessKey: process.env.DIGITAL_OCEAN_SECRET_KEY,
     },
+    forcePathStyle: true,
   });
   console.log(videoId, "check videoId")
 
   return await new Promise((resolve, reject) => {
-    spaces.upload({
-      Bucket: bucketId,
-      Key: `videos/${videoId}/360p/${videoId}.m3u8`,
-      Body: fs.createReadStream(`${__dirname}/controller/streams/360p/${videoId}.m3u8`),
-      ACL: "private"
-    }, async function async(err, data) {
-      if (err) {
-        console.log('Error', err);
-        reject(err);
-      }
+    const upload = new Upload({
+      client: s3Client,
+      params: {
+        Bucket: process.env.DO_BUCKET_NAME,
+        Key: `users/${bucketId}/videos/${videoId}/360p/${videoId}.m3u8`,
+        Body: fs.createReadStream(`${__dirname}/controller/streams/360p/${videoId}.m3u8`),
+        ACL: "private"
+      },
+    });
+
+    upload.done().then(async function(data) {
       if (data) {
         getVideoDurationInSeconds(`${__dirname}/controller/recording/${videoId}.mp4`).then(async (durationInSeconds) => {
           console.log(durationInSeconds, "Video duration")

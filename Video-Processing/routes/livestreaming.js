@@ -5,9 +5,9 @@ module.exports = (io) => {
   const liveStreamingController = require('../controller/liveStreamingController');
   const { workerReady, worker, router: mediaSoupRouter } = liveStreamingController;
 
-  // Wrapper function to pass io instance
+  // Use the controller function directly since io is imported in the controller
   const createLiveStreamWrapper = (req, res, next) => {
-    return liveStreamingController.createLiveStream(req, res, next, io);
+    return liveStreamingController.createLiveStream(req, res, next);
   };
 
   router.get('/live-stream-create', authorization, createLiveStreamWrapper);
@@ -93,6 +93,57 @@ module.exports = (io) => {
       });
     }
   });
+
+  // In Video-Processing/routes/livestreaming.js
+router.get('/stream-status/:streamId', async (req, res) => {
+  try {
+    const { streamId } = req.params;
+    console.log("Checking stream status for:", streamId);
+    
+    // Check all producer sources
+    const streamVideo = streamProducers[streamId]?.videoProducer;
+    const streamAudio = streamProducers[streamId]?.audioProducer;
+    const globalVideo = globalProducers?.video || global.mediasoup?.webrtc?.videoProducer || videoProducer;
+    const globalAudio = globalProducers?.audio || global.mediasoup?.webrtc?.audioProducer || audioProducer;
+    
+    const hasVideo = !!(streamVideo || globalVideo);
+    const hasAudio = !!(streamAudio || globalAudio);
+    const isActive = hasVideo || hasAudio;
+    
+    // Also check database record
+    const streamRecord = await prisma.liveStreaming.findUnique({
+      where: { streamingId: streamId },
+      select: { 
+        streamingId: true, 
+        Title: true, 
+        startTime: true, 
+        endTime: true,
+        streamType: true 
+      }
+    });
+
+    res.json({
+      active: isActive,
+      hasVideo,
+      hasAudio,
+      streamId: streamId,
+      streamInfo: streamRecord,
+      debug: {
+        streamSpecific: { video: !!streamVideo, audio: !!streamAudio },
+        global: { video: !!globalVideo, audio: !!globalAudio },
+        availableStreams: Object.keys(streamProducers)
+      }
+    });
+    
+  } catch (error) {
+    console.error("Error checking stream status:", error);
+    res.status(500).json({ 
+      active: false, 
+      error: "Server error",
+      message: error.message 
+    });
+  }
+});
 
   return router;
 };

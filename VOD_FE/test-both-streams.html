@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Both Streams Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .video-container {
+            width: 100%;
+            max-width: 800px;
+            margin: 20px 0;
+        }
+        video {
+            width: 100%;
+            height: auto;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+        }
+        .button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .button:hover {
+            background: #0056b3;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        .warning { background: #fff3cd; color: #856404; }
+    </style>
+</head>
+<body>
+    <h1>🎥 Both Streams Test</h1>
+    
+    <div class="test-container">
+        <h2>Stream Detection Test</h2>
+        <p>Testing automatic detection of stream types:</p>
+        <button class="button" onclick="testStreamDetection()">Test Stream Detection</button>
+        <div id="detection-status"></div>
+    </div>
+
+    <div class="test-container">
+        <h2>OBS Stream Test</h2>
+        <p>Testing OBS/RTMP stream: <strong>8f1SGyR84J</strong></p>
+        <div class="video-container">
+            <video id="obs-video" controls autoplay muted playsinline>
+                <source src="http://localhost:8000/live/8f1SGyR84J/index.m3u8" type="application/x-mpegURL">
+                Your browser does not support the video tag.
+            </video>
+        </div>
+        <button class="button" onclick="testOBSStream()">Test OBS Stream</button>
+        <div id="obs-status"></div>
+    </div>
+
+    <div class="test-container">
+        <h2>Webcam Stream Test</h2>
+        <p>Testing Webcam/WebRTC stream: <strong>8f1SGyR84J</strong></p>
+        <div class="video-container">
+            <video id="webcam-video" controls autoplay muted playsinline></video>
+        </div>
+        <button class="button" onclick="testWebcamStream()">Test Webcam Stream</button>
+        <div id="webcam-status"></div>
+    </div>
+
+    <div class="test-container">
+        <h2>Angular Viewer Links</h2>
+        <p>Test the Angular viewer with automatic detection:</p>
+        <a href="http://localhost:4200/viewer/8f1SGyR84J" target="_blank" class="button">Test Auto-Detection</a>
+        <br><br>
+        <p>Or test with explicit format:</p>
+        <a href="http://localhost:4200/viewer/8f1SGyR84J_streamKey" target="_blank" class="button">Test OBS Format</a>
+    </div>
+
+    <script>
+        function showStatus(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+
+        async function testStreamDetection() {
+            showStatus('detection-status', 'Testing stream detection...', 'info');
+            
+            try {
+                // Test OBS stream
+                const obsResponse = await fetch('http://localhost:8000/live/8f1SGyR84J/index.m3u8');
+                const obsAvailable = obsResponse.ok;
+                
+                // Test WebRTC stream
+                const webrtcResponse = await fetch('http://localhost:3000/api/livestream/stream-status/8f1SGyR84J');
+                const webrtcData = await webrtcResponse.json();
+                const webrtcAvailable = webrtcData.active;
+                
+                let statusHtml = '';
+                
+                if (obsAvailable) {
+                    statusHtml += '<div class="status success">✅ OBS Stream: Available</div>';
+                } else {
+                    statusHtml += '<div class="status error">❌ OBS Stream: Not available</div>';
+                }
+                
+                if (webrtcAvailable) {
+                    statusHtml += '<div class="status success">✅ WebRTC Stream: Available</div>';
+                } else {
+                    statusHtml += '<div class="status error">❌ WebRTC Stream: Not available</div>';
+                }
+                
+                if (obsAvailable && webrtcAvailable) {
+                    statusHtml += '<div class="status warning">⚠️ Both streams available - Angular will auto-detect</div>';
+                } else if (obsAvailable) {
+                    statusHtml += '<div class="status success">✅ Only OBS stream available</div>';
+                } else if (webrtcAvailable) {
+                    statusHtml += '<div class="status success">✅ Only WebRTC stream available</div>';
+                } else {
+                    statusHtml += '<div class="status error">❌ No streams available</div>';
+                }
+                
+                document.getElementById('detection-status').innerHTML = statusHtml;
+                
+            } catch (error) {
+                showStatus('detection-status', `❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testOBSStream() {
+            showStatus('obs-status', 'Testing OBS stream...', 'info');
+            
+            try {
+                const response = await fetch('http://localhost:8000/live/8f1SGyR84J/index.m3u8');
+                if (response.ok) {
+                    showStatus('obs-status', '✅ OBS stream is available and should be playing!', 'success');
+                } else {
+                    showStatus('obs-status', '❌ OBS stream not available', 'error');
+                }
+            } catch (error) {
+                showStatus('obs-status', `❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testWebcamStream() {
+            showStatus('webcam-status', 'Testing WebRTC stream...', 'info');
+            
+            try {
+                const response = await fetch('http://localhost:3000/api/livestream/stream-status/8f1SGyR84J');
+                const data = await response.json();
+                
+                if (data.active) {
+                    showStatus('webcam-status', '✅ WebRTC stream is active!', 'success');
+                } else {
+                    showStatus('webcam-status', '❌ WebRTC stream not active', 'error');
+                }
+            } catch (error) {
+                showStatus('webcam-status', `❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Auto-run on page load
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                testStreamDetection();
+                testOBSStream();
+                testWebcamStream();
+            }, 1000);
+        });
+    </script>
+</body>
+</html> 

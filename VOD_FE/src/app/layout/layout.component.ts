@@ -8,7 +8,7 @@ import { MatDrawer } from '@angular/material/sidenav';
   styleUrls: ['./layout.component.scss']
 })
 export class LayoutComponent implements OnInit, AfterViewInit {
-  title = 'VODandLiveStreamFE';
+  title = 'MediaPilot';
   showFiller = true;
   pageTitle: string = '';
   hideNavigation = false;

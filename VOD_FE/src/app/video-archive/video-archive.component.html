@@ -44,9 +44,21 @@
                     <p class="!mb-0 text-[#716F96] up-p">Uploaded on {{video.createdAt | date: 'MMM d, yyy'}}</p>
                     <div class="flex mt-2 flex-row justify-between">
                         <div class="vid-icons actions w-[38%] justify-between flex flex-row">
-                            <img (click)="downloadVideo(video.videoUrl, video.Title)" src="/assets/icons/down.png" alt="Download">
-                            <img (click)="removeVideo(video.id)" src="/assets/icons/delete.png" alt="Delete">
-                            <img (click)="editVideo(video)" src="/assets/icons/edit.png" alt="Edit">
+                            <button (click)="downloadVideo(video.videoUrl, video.Title)" 
+                                class="action-btn download-btn" 
+                                matTooltip="Download video">
+                                <img src="/assets/icons/down.png" alt="Download">
+                            </button>
+                            <button (click)="removeVideo(video.id)" 
+                                class="action-btn delete-btn" 
+                                matTooltip="Delete video">
+                                <img src="/assets/icons/delete.png" alt="Delete">
+                            </button>
+                            <button (click)="editVideo(video)" 
+                                class="action-btn edit-btn" 
+                                matTooltip="Edit video">
+                                <img src="/assets/icons/edit.png" alt="Edit">
+                            </button>
                         </div>
                         <button [class.bg-black]="video.published" class="btn-publish text-white align-items-center !bg-primary flex flex-row py-3 px-4 justify-center rounded" (click)="publishVideo(video)">
                             <img alt="" class="w-[19px] grayscale brightness-0 invert-[1] mr-1" src="/assets/icons/pub.png">

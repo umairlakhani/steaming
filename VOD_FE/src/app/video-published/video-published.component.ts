@@ -168,7 +168,20 @@ export class VideoPublishedComponent implements OnInit {
   styleUrls: ['./video-published.component.scss']
 })
 export class VideoJSONComponent {
-  constructor(private videoService: VideoService, public dialogRef: MatDialogRef<VideoJSONComponent>, @Inject(MAT_DIALOG_DATA) public data: any) {
+  constructor(
+    private videoService: VideoService, 
+    public dialogRef: MatDialogRef<VideoJSONComponent>, 
+    @Inject(MAT_DIALOG_DATA) public data: any
+  ) {}
+
+  copyToClipboard() {
+    const jsonString = JSON.stringify(this.data, null, 2);
+    navigator.clipboard.writeText(jsonString).then(() => {
+      // You could add a toast notification here
+      console.log('JSON copied to clipboard');
+    }).catch(err => {
+      console.error('Failed to copy JSON: ', err);
+    });
   }
 }
 

@@ -481,168 +481,6 @@ export class SchedulesComponent implements OnInit, AfterContentChecked {
   //     id: '10',
   //     url: '../../../assets/schedules/image 3.png',
   //     title: 'SO1E86 BOTP movie'
-  //   }, {
-  //     id: '0',
-  //     url: '../../../assets/schedules/image 3.png',
-  //     title: 'SO1E86 BOTP movie'
-  //   },
-  //   {
-  //     id: '1',
-  //     url: '../../../assets/schedules/image 2.png',
-  //     title: 'SO1E86 BOTP movie'
-  //   },
-  //   {
-  //     id: '2',
-  //     url: '../../../assets/schedules/image 3.png',
-  //     title: 'SO1E86 BOTP movie'
-  //   },
-  //   {
-  //     id: '3',
-  //     url: '../../../assets/schedules/image 3.png',
-  //     title: 'SO1E86 BOTP movie'
-  //   },
-  //   {
-  //     id: '4',
-  //     url: '../../../assets/schedules/image 2.png',
-  //     title: 'SO1E86 BOTP movie'
-  //   },
-  //   {
-  //     id: '5',
-  //     url: '../../../assets/schedules/image 3.png',
-  //     title: 'SO1E86 BOTP movie'
-  //   },
-  //   {
-  //     id: '6',
-  //     url: '../../../assets/schedules/image 2.png',
-  //     title: 'SO1E86 BOTP movie'
-  //   },
-  //   {
-  //     id: '7',
-  //     url: '../../../assets/schedules/image 3.png',
-  //     title: 'SO1E86 BOTP movie'
-  //   },
-  //   {
-  //     id: '8',
-  //     url: '../../../assets/schedules/image 3.png',
-  //     title: 'SO1E86 BOTP movie'
-  //   },
-  //   {
-  //     id: '9',
-  //     url: '../../../assets/schedules/image 2.png',
-  //     title: 'SO1E86 BOTP movie'
-  //   },
-  //   {
-  //     id: '10',
-  //     url: '../../../assets/schedules/image 3.png',
-  //     title: 'SO1E86 BOTP movie'
-  //   }, {
-  //     id: '0',
-  //     url: '../../../assets/schedules/image 3.png',
-  //     title: 'SO1E86 BOTP movie'
-  //   },
-  //   {
-  //     id: '1',
-  //     url: '../../../assets/schedules/image 2.png',
-  //     title: 'SO1E86 BOTP movie'
-  //   },
-  //   {
-  //     id: '2',
-  //     url: '../../../assets/schedules/image 3.png',
-  //     title: 'SO1E86 BOTP movie'
-  //   },
-  //   {
-  //     id: '3',
-  //     url: '../../../assets/schedules/image 3.png',
-  //     title: 'SO1E86 BOTP movie'
-  //   },
-  //   {
-  //     id: '4',
-  //     url: '../../../assets/schedules/image 2.png',
-  //     title: 'SO1E86 BOTP movie'
-  //   },
-  //   {
-  //     id: '5',
-  //     url: '../../../assets/schedules/image 3.png',
-  //     title: 'SO1E86 BOTP movie'
-  //   },
-  //   {
-  //     id: '6',
-  //     url: '../../../assets/schedules/image 2.png',
-  //     title: 'SO1E86 BOTP movie'
-  //   },
-  //   {
-  //     id: '7',
-  //     url: '../../../assets/schedules/image 3.png',
-  //     title: 'SO1E86 BOTP movie'
-  //   },
-  //   {
-  //     id: '8',
-  //     url: '../../../assets/schedules/image 3.png',
-  //     title: 'SO1E86 BOTP movie'
-  //   },
-  //   {
-  //     id: '9',
-  //     url: '../../../assets/schedules/image 2.png',
-  //     title: 'SO1E86 BOTP movie'
-  //   },
-  //   {
-  //     id: '10',
-  //     url: '../../../assets/schedules/image 3.png',
-  //     title: 'SO1E86 BOTP movie'
-  //   }, {
-  //     id: '0',
-  //     url: '../../../assets/schedules/image 3.png',
-  //     title: 'SO1E86 BOTP movie'
-  //   },
-  //   {
-  //     id: '1',
-  //     url: '../../../assets/schedules/image 2.png',
-  //     title: 'SO1E86 BOTP movie'
-  //   },
-  //   {
-  //     id: '2',
-  //     url: '../../../assets/schedules/image 3.png',
-  //     title: 'SO1E86 BOTP movie'
-  //   },
-  //   {
-  //     id: '3',
-  //     url: '../../../assets/schedules/image 3.png',
-  //     title: 'SO1E86 BOTP movie'
-  //   },
-  //   {
-  //     id: '4',
-  //     url: '../../../assets/schedules/image 2.png',
-  //     title: 'SO1E86 BOTP movie'
-  //   },
-  //   {
-  //     id: '5',
-  //     url: '../../../assets/schedules/image 3.png',
-  //     title: 'SO1E86 BOTP movie'
-  //   },
-  //   {
-  //     id: '6',
-  //     url: '../../../assets/schedules/image 2.png',
-  //     title: 'SO1E86 BOTP movie'
-  //   },
-  //   {
-  //     id: '7',
-  //     url: '../../../assets/schedules/image 3.png',
-  //     title: 'SO1E86 BOTP movie'
-  //   },
-  //   {
-  //     id: '8',
-  //     url: '../../../assets/schedules/image 3.png',
-  //     title: 'SO1E86 BOTP movie'
-  //   },
-  //   {
-  //     id: '9',
-  //     url: '../../../assets/schedules/image 2.png',
-  //     title: 'SO1E86 BOTP movie'
-  //   },
-  //   {
-  //     id: '10',
-  //     url: '../../../assets/schedules/image 3.png',
-  //     title: 'SO1E86 BOTP movie'
   //   },
   // ];
   videos: any[] = [];
@@ -763,6 +601,15 @@ export class SchedulesComponent implements OnInit, AfterContentChecked {
       })
   }
 
+  openScheduleModal() {
+    // Navigate to the schedule-date component with the current query parameters
+    this.router.navigate(['/schedule-date'], { 
+      queryParams: { 
+        id: this.queryId,
+        date: this.queryDate 
+      } 
+    });
+  }
 
   onBack() {
     this.router.navigate([`/schedule-date`,], { queryParams: { id: this.queryId } });

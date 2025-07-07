@@ -136,6 +136,18 @@ console.log(io, "check io in serve");
 const streamRouter = require("./routes/livestreaming")(io);
 app.use("/api/livestream", streamRouter);
 
+// **INITIALIZE MEDIASOUP ON SERVER START**
+const { initializeMediaSoup } = require("./controller/liveStreamingController");
+console.log("🚀 Initializing MediaSoup on server start...");
+// Pass io instance to avoid circular dependency
+initializeMediaSoup(io)
+  .then(() => {
+    console.log("✅ MediaSoup initialized successfully on server start");
+  })
+  .catch((error) => {
+    console.error("❌ Failed to initialize MediaSoup on server start:", error);
+  });
+
 nms.run();
 // Start adding your cron job
 const cronExpression = process.env.CRON_SCHEDULE_PAPERSPACE;
@@ -145,6 +157,7 @@ process.on("unhandledRejection", (reason, promise) => {
   console.error("Unhandled Rejection at:", promise, "reason:", reason);
 });
 
+// RTMP event listeners
 nms.on('preConnect', (id, args) => {
   console.log('[NodeEvent on preConnect]', `id=${id} args=${JSON.stringify(args)}`);
 });

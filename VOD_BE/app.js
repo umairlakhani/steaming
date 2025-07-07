@@ -26,6 +26,8 @@ const subscriptionPlanRouter = require("./routes/subscriptionPlan")
 const storageRouter = require("./routes/storage")
 const subscriptionRouter = require("./routes/buysubscription")
 const analyticsRouter = require("./routes/analytics")
+const rokuAdsRouter = require("./routes/rokuAds")
+const internalRouter = require("./routes/internal")
 const cors = require("cors");
 require("dotenv").config();
 
@@ -121,6 +123,8 @@ app.use("/api/storage", storageRouter);
 app.use("/api/subscriptions", subscriptionRouter);
 app.use("/api/analytics", analyticsRouter);
 app.use("/api/bandwidth",bandwidthRouter );
+app.use("/api/rokuAds", rokuAdsRouter);
+app.use("/internal", internalRouter);
 
 // Add MediaSoup status endpoints
 app.get("/api/health", (req, res) => {

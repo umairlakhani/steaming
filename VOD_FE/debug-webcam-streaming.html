@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webcam Streaming Diagnostic</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .warning { background-color: #fff3cd; color: #856404; }
+        .info { background-color: #d1ecf1; color: #0c5460; }
+        .video-container {
+            margin: 20px 0;
+            text-align: center;
+        }
+        video {
+            max-width: 100%;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        .log {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 10px 0;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .step {
+            border-left: 4px solid #007bff;
+            padding-left: 15px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎥 Webcam Streaming Diagnostic</h1>
+    
+    <div class="container">
+        <h2>Step 1: Environment Check</h2>
+        <button onclick="checkEnvironment()">Check Environment</button>
+        <div id="environment-status"></div>
+    </div>
+
+    <div class="container">
+        <h2>Step 2: Backend Services Check</h2>
+        <button onclick="checkBackendServices()">Check Backend Services</button>
+        <div id="backend-status"></div>
+    </div>
+
+    <div class="container">
+        <h2>Step 3: Webcam Access Test</h2>
+        <button onclick="testWebcamAccess()">Test Webcam Access</button>
+        <div class="video-container">
+            <video id="localVideo" autoplay muted playsinline></video>
+        </div>
+        <div id="webcam-status"></div>
+    </div>
+
+    <div class="container">
+        <h2>Step 4: MediaSoup Connection Test</h2>
+        <button onclick="testMediaSoupConnection()">Test MediaSoup Connection</button>
+        <div id="mediasoup-status"></div>
+    </div>
+
+    <div class="container">
+        <h2>Step 5: Stream Creation Test</h2>
+        <button onclick="testStreamCreation()">Test Stream Creation</button>
+        <div id="stream-creation-status"></div>
+    </div>
+
+    <div class="container">
+        <h2>Step 6: Producer Test</h2>
+        <button onclick="testProducerCreation()">Test Producer Creation</button>
+        <div id="producer-status"></div>
+    </div>
+
+    <div class="container">
+        <h2>Step 7: Consumer Test</h2>
+        <button onclick="testConsumerCreation()">Test Consumer Creation</button>
+        <div class="video-container">
+            <video id="remoteVideo" autoplay muted playsinline></video>
+        </div>
+        <div id="consumer-status"></div>
+    </div>
+
+    <div class="container">
+        <h2>Debug Log</h2>
+        <div id="debug-log" class="log"></div>
+        <button onclick="clearLog()">Clear Log</button>
+    </div>
+
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="https://unpkg.com/mediasoup-client@3/dist/mediasoup-client.js"></script>
+    
+    <script>
+        let socket = null;
+        let device = null;
+        let producerTransport = null;
+        let videoProducer = null;
+        let audioProducer = null;
+        let streamId = null;
+        let localStream = null;
+
+        const environment = {
+            socketUrl: 'http://localhost:3000',
+            apiUrl: 'http://localhost:3005/api',
+            streamUrl: 'http://localhost:3000/api'
+        };
+
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('debug-log');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.innerHTML = `[${timestamp}] ${message}`;
+            logEntry.className = type;
+            logDiv.appendChild(logEntry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+
+        function showStatus(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+
+        function clearLog() {
+            document.getElementById('debug-log').innerHTML = '';
+        }
+
+        async function checkEnvironment() {
+            log('=== Checking Environment ===');
+            
+            try {
+                // Check if we're in a secure context
+                if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+                    showStatus('environment-status', '⚠️ WebRTC requires HTTPS (except on localhost)', 'warning');
+                    log('WebRTC requires HTTPS context', 'warning');
+                } else {
+                    showStatus('environment-status', '✅ Environment is secure for WebRTC', 'success');
+                    log('Environment is secure for WebRTC', 'success');
+                }
+
+                // Check browser support
+                if (typeof MediaSoupDevice === 'undefined') {
+                    showStatus('environment-status', '❌ MediaSoup client not loaded', 'error');
+                    log('MediaSoup client not loaded', 'error');
+                } else {
+                    showStatus('environment-status', '✅ MediaSoup client available', 'success');
+                    log('MediaSoup client available', 'success');
+                }
+
+                // Check WebRTC support
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    showStatus('environment-status', '❌ WebRTC not supported', 'error');
+                    log('WebRTC not supported', 'error');
+                } else {
+                    showStatus('environment-status', '✅ WebRTC supported', 'success');
+                    log('WebRTC supported', 'success');
+                }
+
+            } catch (error) {
+                showStatus('environment-status', `❌ Environment check failed: ${error.message}`, 'error');
+                log(`Environment check failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function checkBackendServices() {
+            log('=== Checking Backend Services ===');
+            
+            try {
+                // Check Video-Processing server
+                const streamResponse = await fetch(`${environment.streamUrl}/mediasoup-status`);
+                if (streamResponse.ok) {
+                    const streamData = await streamResponse.json();
+                    showStatus('backend-status', `✅ Video-Processing server: ${JSON.stringify(streamData)}`, 'success');
+                    log(`Video-Processing server status: ${JSON.stringify(streamData)}`, 'success');
+                } else {
+                    showStatus('backend-status', '❌ Video-Processing server not responding', 'error');
+                    log('Video-Processing server not responding', 'error');
+                }
+
+                // Check VOD_BE server
+                const apiResponse = await fetch(`${environment.apiUrl}/health`);
+                if (apiResponse.ok) {
+                    showStatus('backend-status', '✅ VOD_BE server responding', 'success');
+                    log('VOD_BE server responding', 'success');
+                } else {
+                    showStatus('backend-status', '⚠️ VOD_BE server not responding (may be normal)', 'warning');
+                    log('VOD_BE server not responding', 'warning');
+                }
+
+            } catch (error) {
+                showStatus('backend-status', `❌ Backend check failed: ${error.message}`, 'error');
+                log(`Backend check failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function testWebcamAccess() {
+            log('=== Testing Webcam Access ===');
+            
+            try {
+                const videoElement = document.getElementById('localVideo');
+                
+                localStream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        width: { ideal: 1280, min: 640 },
+                        height: { ideal: 720, min: 480 },
+                        frameRate: { ideal: 30, min: 15 }
+                    },
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true
+                    }
+                });
+
+                videoElement.srcObject = localStream;
+                
+                showStatus('webcam-status', '✅ Webcam access successful', 'success');
+                log('Webcam access successful', 'success');
+                log(`Video tracks: ${localStream.getVideoTracks().length}`, 'info');
+                log(`Audio tracks: ${localStream.getAudioTracks().length}`, 'info');
+
+            } catch (error) {
+                showStatus('webcam-status', `❌ Webcam access failed: ${error.message}`, 'error');
+                log(`Webcam access failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function testMediaSoupConnection() {
+            log('=== Testing MediaSoup Connection ===');
+            
+            try {
+                // Connect to socket
+                socket = io(environment.socketUrl, {
+                    transports: ['websocket', 'polling'],
+                    timeout: 10000
+                });
+
+                await new Promise((resolve, reject) => {
+                    const timeout = setTimeout(() => {
+                        reject(new Error('Socket connection timeout'));
+                    }, 10000);
+
+                    socket.on('connect', () => {
+                        clearTimeout(timeout);
+                        log('Socket connected successfully', 'success');
+                        resolve();
+                    });
+
+                    socket.on('connect_error', (error) => {
+                        clearTimeout(timeout);
+                        reject(new Error(`Socket connection error: ${error.message}`));
+                    });
+                });
+
+                showStatus('mediasoup-status', '✅ MediaSoup connection successful', 'success');
+                log('MediaSoup connection successful', 'success');
+
+            } catch (error) {
+                showStatus('mediasoup-status', `❌ MediaSoup connection failed: ${error.message}`, 'error');
+                log(`MediaSoup connection failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function testStreamCreation() {
+            log('=== Testing Stream Creation ===');
+            
+            if (!socket || !socket.connected) {
+                showStatus('stream-creation-status', '❌ Socket not connected', 'error');
+                log('Socket not connected', 'error');
+                return;
+            }
+
+            try {
+                // Generate stream ID
+                streamId = `test${Date.now()}`;
+                log(`Generated stream ID: ${streamId}`, 'info');
+
+                // Get router capabilities
+                const routerCapabilities = await sendRequest(`getRouterRtpCapabilities${streamId}`, {});
+                log('Router capabilities received', 'success');
+
+                // Load device
+                device = new MediaSoupDevice();
+                await device.load({ routerRtpCapabilities: routerCapabilities });
+                log('Device loaded successfully', 'success');
+
+                showStatus('stream-creation-status', '✅ Stream creation successful', 'success');
+                log('Stream creation successful', 'success');
+
+            } catch (error) {
+                showStatus('stream-creation-status', `❌ Stream creation failed: ${error.message}`, 'error');
+                log(`Stream creation failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function testProducerCreation() {
+            log('=== Testing Producer Creation ===');
+            
+            if (!device || !device.loaded || !localStream) {
+                showStatus('producer-status', '❌ Device not loaded or no local stream', 'error');
+                log('Device not loaded or no local stream', 'error');
+                return;
+            }
+
+            try {
+                // Create producer transport
+                const transportParams = await sendRequest(`createProducerTransport${streamId}`, {});
+                log('Producer transport params received', 'success');
+
+                producerTransport = device.createSendTransport(transportParams);
+                log('Producer transport created', 'success');
+
+                // Set up transport handlers
+                producerTransport.on('connect', async ({ dtlsParameters }, callback, errback) => {
+                    try {
+                        await sendRequest(`connectProducerTransport${streamId}`, { dtlsParameters });
+                        callback();
+                        log('Producer transport connected', 'success');
+                    } catch (error) {
+                        errback(error);
+                        log(`Producer transport connection failed: ${error.message}`, 'error');
+                    }
+                });
+
+                producerTransport.on('produce', async ({ kind, rtpParameters }, callback, errback) => {
+                    try {
+                        const response = await sendRequest(`produce${streamId}`, {
+                            kind,
+                            rtpParameters
+                        });
+                        callback({ id: response.id });
+                        log(`${kind} producer created with ID: ${response.id}`, 'success');
+                    } catch (error) {
+                        errback(error);
+                        log(`${kind} producer creation failed: ${error.message}`, 'error');
+                    }
+                });
+
+                // Create video producer
+                const videoTrack = localStream.getVideoTracks()[0];
+                if (videoTrack) {
+                    videoProducer = await producerTransport.produce({ track: videoTrack });
+                    log(`Video producer created: ${videoProducer.id}`, 'success');
+                }
+
+                // Create audio producer
+                const audioTrack = localStream.getAudioTracks()[0];
+                if (audioTrack) {
+                    audioProducer = await producerTransport.produce({ track: audioTrack });
+                    log(`Audio producer created: ${audioProducer.id}`, 'success');
+                }
+
+                showStatus('producer-status', '✅ Producer creation successful', 'success');
+                log('Producer creation successful', 'success');
+
+            } catch (error) {
+                showStatus('producer-status', `❌ Producer creation failed: ${error.message}`, 'error');
+                log(`Producer creation failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function testConsumerCreation() {
+            log('=== Testing Consumer Creation ===');
+            
+            if (!device || !device.loaded || !videoProducer) {
+                showStatus('consumer-status', '❌ Device not loaded or no video producer', 'error');
+                log('Device not loaded or no video producer', 'error');
+                return;
+            }
+
+            try {
+                // Create consumer transport
+                const consumerTransportParams = await sendRequest(`createConsumerTransport${streamId}`, {
+                    userId: 'test-user',
+                    latitude: 0,
+                    longitude: 0,
+                    platform: 'web',
+                    increment: true
+                });
+                log('Consumer transport params received', 'success');
+
+                const consumerTransport = device.createRecvTransport(consumerTransportParams);
+                log('Consumer transport created', 'success');
+
+                // Set up consumer transport handlers
+                consumerTransport.on('connect', async ({ dtlsParameters }, callback, errback) => {
+                    try {
+                        await sendRequest(`connectConsumerTransport${streamId}`, { dtlsParameters });
+                        callback();
+                        log('Consumer transport connected', 'success');
+                    } catch (error) {
+                        errback(error);
+                        log(`Consumer transport connection failed: ${error.message}`, 'error');
+                    }
+                });
+
+                // Consume video
+                const videoConsumer = await consume(consumerTransport, 'video');
+                if (videoConsumer) {
+                    const videoElement = document.getElementById('remoteVideo');
+                    const stream = new MediaStream([videoConsumer.track]);
+                    videoElement.srcObject = stream;
+                    log('Video consumer created and playing', 'success');
+                }
+
+                showStatus('consumer-status', '✅ Consumer creation successful', 'success');
+                log('Consumer creation successful', 'success');
+
+            } catch (error) {
+                showStatus('consumer-status', `❌ Consumer creation failed: ${error.message}`, 'error');
+                log(`Consumer creation failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function sendRequest(type, data) {
+            return new Promise((resolve, reject) => {
+                if (!socket || !socket.connected) {
+                    reject(new Error('Socket not connected'));
+                    return;
+                }
+
+                const timeout = setTimeout(() => {
+                    reject(new Error(`Request timeout for ${type}`));
+                }, 10000);
+
+                socket.emit(type, data, (err, response) => {
+                    clearTimeout(timeout);
+                    if (err) {
+                        reject(new Error(typeof err === 'string' ? err : JSON.stringify(err)));
+                    } else {
+                        resolve(response);
+                    }
+                });
+            });
+        }
+
+        async function consume(transport, kind) {
+            try {
+                const data = await sendRequest(`consume${streamId}`, {
+                    rtpCapabilities: device.rtpCapabilities,
+                    kind
+                });
+
+                if (!data || !data.producerId) {
+                    log(`No ${kind} producer available`, 'warning');
+                    return null;
+                }
+
+                const consumer = await transport.consume({
+                    id: data.id,
+                    producerId: data.producerId,
+                    kind: data.kind,
+                    rtpParameters: data.rtpParameters
+                });
+
+                log(`${kind} consumer created: ${consumer.id}`, 'success');
+                return consumer;
+
+            } catch (error) {
+                log(`Consume ${kind} failed: ${error.message}`, 'error');
+                return null;
+            }
+        }
+
+        // Auto-run environment check on page load
+        window.addEventListener('load', () => {
+            log('Page loaded, starting diagnostics...', 'info');
+            checkEnvironment();
+        });
+    </script>
+</body>
+</html> 

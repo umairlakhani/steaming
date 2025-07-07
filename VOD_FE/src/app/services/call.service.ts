@@ -1,21 +1,12 @@
 import { ElementRef, Injectable } from '@angular/core';
 import { SignalingService } from './signalling.service';
+import { defaultWebRTCConfig } from '../utils/webrtc-config';
 
 @Injectable({
   providedIn: 'root',
 })
 export class CallService {
-  configuration: RTCConfiguration = {
-    iceServers: [
-      {
-        urls: [
-          'stun:stun1.l.google.com:19302',
-          'stun:stun2.l.google.com:19302',
-        ],
-      },
-    ],
-    iceCandidatePoolSize: 10,
-  };
+  configuration: RTCConfiguration = defaultWebRTCConfig;
 
   connection!: RTCPeerConnection;
 

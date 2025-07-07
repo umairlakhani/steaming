@@ -7,7 +7,7 @@ import { ActivatedRoute, Router, RoutesRecognized } from '@angular/router';
   styleUrls: ['./app.component.scss']
 })
 export class AppComponent {
-  title = 'VODandLiveStreamFE';
+  title = 'MediaPilot';
   showFiller = true;
   pageTitle: string = '';
   hideNavigation = false;

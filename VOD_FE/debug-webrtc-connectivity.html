@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebRTC Connectivity Debug Tool</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .warning { background-color: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .log {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background-color: #0056b3; }
+        button:disabled { background-color: #6c757d; cursor: not-allowed; }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .ice-candidate {
+            background-color: #e9ecef;
+            padding: 8px;
+            margin: 5px 0;
+            border-radius: 4px;
+            font-size: 11px;
+        }
+        .server-test {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            margin: 5px 0;
+            border-radius: 4px;
+            background-color: #f8f9fa;
+        }
+        .server-test.success { background-color: #d4edda; }
+        .server-test.error { background-color: #f8d7da; }
+        .server-test.testing { background-color: #fff3cd; }
+    </style>
+</head>
+<body>
+    <h1>WebRTC Connectivity Debug Tool</h1>
+    
+    <div class="container">
+        <h2>STUN Server Connectivity Test</h2>
+        <p>This tool tests connectivity to various STUN servers to help diagnose WebRTC connection issues.</p>
+        <button onclick="testSTUNServers()">Test STUN Servers</button>
+        <button onclick="testWebRTCConnection()">Test WebRTC Connection</button>
+        <button onclick="clearLog()">Clear Log</button>
+        <div id="stun-results"></div>
+    </div>
+
+    <div class="grid">
+        <div class="container">
+            <h2>Connection Status</h2>
+            <div id="connection-status" class="status info">Not tested</div>
+            <div id="ice-state" class="status info">ICE State: Not available</div>
+            <div id="connection-state" class="status info">Connection State: Not available</div>
+            <div id="signaling-state" class="status info">Signaling State: Not available</div>
+        </div>
+
+        <div class="container">
+            <h2>Network Information</h2>
+            <div id="network-info" class="status info">Click "Test WebRTC Connection" to see network information</div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>ICE Candidates</h2>
+        <div id="ice-candidates"></div>
+    </div>
+
+    <div class="container">
+        <h2>Debug Log</h2>
+        <div id="log" class="log"></div>
+    </div>
+
+    <script>
+        const stunServers = [
+            'stun:stun1.l.google.com:19302',
+            'stun:stun2.l.google.com:19302',
+            'stun:stun3.l.google.com:19302',
+            'stun:stun4.l.google.com:19302',
+            'stun:stun.l.google.com:19302',
+            'stun:stun.ekiga.net',
+            'stun:stun.ideasip.com',
+            'stun:stun.rixtelecom.se',
+            'stun:stun.schlund.de',
+            'stun:stun.stunprotocol.org:3478',
+            'stun:stun.openrelay.metered.ca:80',
+            'stun:stun.openrelay.metered.ca:443'
+        ];
+
+        let currentPC = null;
+
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.innerHTML = `<span style="color: #666;">[${timestamp}]</span> <span style="color: ${type === 'error' ? '#dc3545' : type === 'success' ? '#28a745' : type === 'warning' ? '#ffc107' : '#007bff'}">${message}</span>`;
+            logDiv.appendChild(logEntry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(`[${timestamp}] ${message}`);
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+
+        function updateStatus(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = `status ${type}`;
+        }
+
+        async function testSTUNServers() {
+            log('Starting STUN server connectivity test...', 'info');
+            const resultsDiv = document.getElementById('stun-results');
+            resultsDiv.innerHTML = '';
+
+            for (const server of stunServers) {
+                const serverDiv = document.createElement('div');
+                serverDiv.className = 'server-test testing';
+                serverDiv.innerHTML = `
+                    <span>${server}</span>
+                    <span>Testing...</span>
+                `;
+                resultsDiv.appendChild(serverDiv);
+
+                try {
+                    const config = {
+                        iceServers: [{ urls: [server] }],
+                        iceCandidatePoolSize: 1
+                    };
+
+                    const pc = new RTCPeerConnection(config);
+                    const offer = await pc.createOffer();
+                    await pc.setLocalDescription(offer);
+
+                    // Wait for ICE gathering
+                    await new Promise((resolve) => {
+                        const checkState = () => {
+                            if (pc.iceGatheringState === 'complete' || pc.iceGatheringState === 'gathering') {
+                                resolve();
+                            } else {
+                                setTimeout(checkState, 100);
+                            }
+                        };
+                        checkState();
+                    });
+
+                    const success = pc.iceGatheringState === 'complete' || pc.iceGatheringState === 'gathering';
+                    serverDiv.className = `server-test ${success ? 'success' : 'error'}`;
+                    serverDiv.innerHTML = `
+                        <span>${server}</span>
+                        <span>${success ? '✅ Working' : '❌ Failed'}</span>
+                    `;
+
+                    pc.close();
+                    log(`${server}: ${success ? 'Working' : 'Failed'}`, success ? 'success' : 'error');
+
+                } catch (error) {
+                    serverDiv.className = 'server-test error';
+                    serverDiv.innerHTML = `
+                        <span>${server}</span>
+                        <span>❌ Error: ${error.message}</span>
+                    `;
+                    log(`${server}: Error - ${error.message}`, 'error');
+                }
+            }
+
+            log('STUN server test completed', 'info');
+        }
+
+        async function testWebRTCConnection() {
+            log('Starting WebRTC connection test...', 'info');
+            
+            if (currentPC) {
+                currentPC.close();
+            }
+
+            const config = {
+                iceServers: [
+                    {
+                        urls: stunServers
+                    }
+                ],
+                iceCandidatePoolSize: 10,
+                iceTransportPolicy: 'all',
+                bundlePolicy: 'max-bundle',
+                rtcpMuxPolicy: 'require'
+            };
+
+            currentPC = new RTCPeerConnection(config);
+            const candidates = [];
+
+            // Set up event listeners
+            currentPC.onicecandidate = (event) => {
+                if (event.candidate) {
+                    candidates.push(event.candidate);
+                    displayIceCandidate(event.candidate);
+                    log(`ICE Candidate: ${event.candidate.candidate}`, 'info');
+                }
+            };
+
+            currentPC.onicegatheringstatechange = () => {
+                updateStatus('ice-state', `ICE State: ${currentPC.iceGatheringState}`);
+                log(`ICE gathering state changed to: ${currentPC.iceGatheringState}`, 'info');
+            };
+
+            currentPC.onconnectionstatechange = () => {
+                updateStatus('connection-state', `Connection State: ${currentPC.connectionState}`);
+                log(`Connection state changed to: ${currentPC.connectionState}`, 'info');
+            };
+
+            currentPC.onsignalingstatechange = () => {
+                updateStatus('signaling-state', `Signaling State: ${currentPC.signalingState}`);
+                log(`Signaling state changed to: ${currentPC.signalingState}`, 'info');
+            };
+
+            currentPC.oniceconnectionstatechange = () => {
+                log(`ICE connection state changed to: ${currentPC.iceConnectionState}`, 'info');
+            };
+
+            try {
+                // Create a data channel to trigger ICE gathering
+                const dataChannel = currentPC.createDataChannel('test');
+                dataChannel.onopen = () => {
+                    log('Data channel opened', 'success');
+                    dataChannel.send('Hello from debug tool');
+                };
+                dataChannel.onmessage = (event) => {
+                    log(`Received message: ${event.data}`, 'success');
+                };
+
+                const offer = await currentPC.createOffer();
+                await currentPC.setLocalDescription(offer);
+
+                // Wait for ICE gathering to complete
+                await new Promise((resolve) => {
+                    const checkComplete = () => {
+                        if (currentPC.iceGatheringState === 'complete') {
+                            resolve();
+                        } else {
+                            setTimeout(checkComplete, 100);
+                        }
+                    };
+                    checkComplete();
+                });
+
+                // Display network information
+                displayNetworkInfo(candidates);
+
+                log('WebRTC connection test completed', 'success');
+                updateStatus('connection-status', 'WebRTC connection test completed successfully', 'success');
+
+            } catch (error) {
+                log(`WebRTC connection test failed: ${error.message}`, 'error');
+                updateStatus('connection-status', `Test failed: ${error.message}`, 'error');
+            }
+        }
+
+        function displayIceCandidate(candidate) {
+            const candidatesDiv = document.getElementById('ice-candidates');
+            const candidateDiv = document.createElement('div');
+            candidateDiv.className = 'ice-candidate';
+            candidateDiv.innerHTML = `
+                <strong>Type:</strong> ${candidate.type}<br>
+                <strong>Protocol:</strong> ${candidate.protocol}<br>
+                <strong>Address:</strong> ${candidate.address}<br>
+                <strong>Port:</strong> ${candidate.port}<br>
+                <strong>Candidate:</strong> ${candidate.candidate}
+            `;
+            candidatesDiv.appendChild(candidateDiv);
+        }
+
+        function displayNetworkInfo(candidates) {
+            const networkDiv = document.getElementById('network-info');
+            const localCandidates = candidates.filter(c => c.type === 'host');
+            const srflxCandidates = candidates.filter(c => c.type === 'srflx');
+            const relayCandidates = candidates.filter(c => c.type === 'relay');
+
+            networkDiv.innerHTML = `
+                <strong>Total ICE Candidates:</strong> ${candidates.length}<br>
+                <strong>Local (Host) Candidates:</strong> ${localCandidates.length}<br>
+                <strong>STUN (Server Reflexive) Candidates:</strong> ${srflxCandidates.length}<br>
+                <strong>Relay Candidates:</strong> ${relayCandidates.length}<br>
+                <strong>Network Types:</strong> ${getNetworkTypes(candidates).join(', ')}
+            `;
+            networkDiv.className = 'status success';
+        }
+
+        function getNetworkTypes(candidates) {
+            const types = new Set();
+            candidates.forEach(candidate => {
+                if (candidate.address) {
+                    if (candidate.address.includes('192.168.') || candidate.address.includes('10.') || candidate.address.includes('172.')) {
+                        types.add('Private Network');
+                    } else if (candidate.address.includes('127.0.0.1') || candidate.address.includes('::1')) {
+                        types.add('Localhost');
+                    } else {
+                        types.add('Public Internet');
+                    }
+                }
+            });
+            return Array.from(types);
+        }
+
+        // Auto-test on page load
+        window.addEventListener('load', () => {
+            log('WebRTC Connectivity Debug Tool loaded', 'info');
+            log('Click "Test STUN Servers" to check STUN server connectivity', 'info');
+            log('Click "Test WebRTC Connection" to test full WebRTC setup', 'info');
+        });
+    </script>
+</body>
+</html> 

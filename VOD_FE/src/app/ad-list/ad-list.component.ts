@@ -184,16 +184,13 @@ export class EditModal implements OnInit {
     let obj = {
       ad: String(this.ad?.adspeedAdId),
       adVideoId: this.ad?.id,
-      // clickurl:"",
+      // clickurl: "",
       // height: String(payload.height),
       name: payload.name == "" ? this.ad?.adName : payload.name,
       weight: this.editAdForm.value.weight != "" ? this.editAdForm.value.weight : '1',
       // width: String(payload.width),
-      originalName: this.ad?.adName,
       skipAd: this.editAdForm.value.skipAd,
       skippable: this.editAdForm.value.skipAd == false ? 0 : this.editAdForm.value.skipTime
-
-
     }
     console.log(obj, "chek obj sending")
     this.adSpeedService.editAd(obj).subscribe((data) => {

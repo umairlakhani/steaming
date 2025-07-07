@@ -507,96 +507,126 @@ async function ownedListCompleteArchived(req, res, next) {
     };
     const getOwnedChannels = await prisma.video.findMany(query);
 
-    // console.log(getOwnedChannels, "check getOwnedChannels");
-    let modifiedChannels = {};
-    modifiedChannels.movies = getOwnedChannels.map((video) => {
-      let temp = JSON.parse(JSON.stringify(video));
-      let videoJson = {};
-      videoJson.id = temp.id;
-      videoJson.title = temp.Title;
-      let contentObject = {};
-      contentObject.dateAdded = temp.createdAt;
-      contentObject.videos = [
-        {
-          url: temp.url360P,
-          quality: "HD",
-          videoType: "MP4",
-        },
-        {
-          url: temp.url480P,
-          quality: "HD",
-          videoType: "MP4",
-        },
-        {
-          url: temp.url720P,
-          quality: "HD",
-          videoType: "MP4",
-        },
-        {
-          url: temp.url1080P,
-          quality: "HD",
-          videoType: "MP4",
-        }
-      ];
-      contentObject.duration = temp.length;
-      contentObject.adBreaks = [];
-      if (temp.preRoll === true) {
-        contentObject.adBreaks.push("00:00:00");
-      }
-      if (temp.midRoll === true) {
-        function createIntervals(totalLength, intervalType, interval) {
-          const totalSeconds = convertTimeToSeconds(totalLength);
-          let videoInterval = Number(interval);
-          const intervalInSeconds =
-            intervalType === "min" ? videoInterval * 60 : videoInterval;
-
-          const intervals = [];
-          let currentTime = intervalInSeconds;
-
-          while (currentTime < totalSeconds) {
-            intervals.push(formatSecondsToTime(currentTime));
-            currentTime += intervalInSeconds;
-          }
-
-          return intervals;
-        }
-
-        function convertTimeToSeconds(time) {
-          const [hours, minutes, seconds] = time.split(":").map(Number);
+    // Roku Standard Feed Format
+    let rokuFeed = {
+      providerName: "MediaPilot",
+      lastUpdated: new Date().toISOString(),
+      language: "en",
+      movies: getOwnedChannels.map((video) => {
+        let temp = JSON.parse(JSON.stringify(video));
+        
+        // Convert duration from HH:MM:SS to seconds for Roku
+        function durationToSeconds(duration) {
+          const [hours, minutes, seconds] = duration.split(":").map(Number);
           return hours * 3600 + minutes * 60 + seconds;
         }
 
-        function formatSecondsToTime(seconds) {
-          const hours = Math.floor(seconds / 3600);
-          const minutes = Math.floor((seconds % 3600) / 60);
-          const remainingSeconds = seconds % 60;
-
-          const formattedHours = hours.toString().padStart(2, "0");
-          const formattedMinutes = minutes.toString().padStart(2, "0");
-          const formattedSeconds = remainingSeconds.toString().padStart(2, "0");
-
-          return `${formattedHours}:${formattedMinutes}:${formattedSeconds}`;
+        // Helper function to safely get date string
+        function getDateString(dateValue) {
+          if (dateValue instanceof Date) {
+            return dateValue.toISOString().substring(0, 10);
+          } else if (typeof dateValue === 'string') {
+            return dateValue.substring(0, 10);
+          } else {
+            return new Date().toISOString().substring(0, 10);
+          }
         }
 
-        const intervals = createIntervals(
-          temp.length,
-          temp.midRollConfig.intervalType,
-          temp.midRollConfig.interval
-        );
-        // console.log(intervals, "intervals");
-        contentObject.adBreaks.push(...intervals);
-      }
-      if (temp.postRoll === true) {
-        contentObject.adBreaks.push(temp.length);
-      }
-      videoJson.content = contentObject;
+        // Create Roku-standard movie object
+        let rokuMovie = {
+          id: temp.id.toString(),
+          title: temp.Title,
+          shortDescription: temp.description || "",
+          longDescription: temp.description || "",
+          thumbnail: temp.thumbnail,
+          releaseDate: getDateString(temp.createdAt),
+          content: {
+            dateAdded: temp.createdAt,
+            videos: [
+              {
+                url: temp.url360P,
+                quality: "SD",
+                videoType: "MP4",
+              },
+              {
+                url: temp.url480P,
+                quality: "SD",
+                videoType: "MP4",
+              },
+              {
+                url: temp.url720P,
+                quality: "HD",
+                videoType: "MP4",
+              },
+              {
+                url: temp.url1080P,
+                quality: "FHD",
+                videoType: "MP4",
+              }
+            ],
+            duration: durationToSeconds(temp.length),
+            adBreaks: []
+          }
+        };
 
-      videoJson.thumbnail = temp.thumbnail;
-      videoJson.releaseDate = temp.createdAt.substring(0, 10);
-      videoJson.Description = temp.description;
-      return videoJson;
-    });
-    return res.status(200).json({ data: { results: modifiedChannels } });
+        // Handle Pre-roll ads
+        if (temp.preRoll === true) {
+          rokuMovie.content.adBreaks.push({
+            time: 0,
+            type: "preroll"
+          });
+        }
+
+        // Handle Mid-roll ads
+        if (temp.midRoll === true && temp.midRollConfig) {
+          function createIntervals(totalLength, intervalType, interval) {
+            const totalSeconds = durationToSeconds(totalLength);
+            let videoInterval = Number(interval);
+            const intervalInSeconds =
+              intervalType === "min" ? videoInterval * 60 : videoInterval;
+
+            const intervals = [];
+            let currentTime = intervalInSeconds;
+
+            while (currentTime < totalSeconds) {
+              intervals.push({
+                time: currentTime,
+                type: "midroll"
+              });
+              currentTime += intervalInSeconds;
+            }
+
+            return intervals;
+          }
+
+          const intervals = createIntervals(
+            temp.length,
+            temp.midRollConfig.intervalType,
+            temp.midRollConfig.interval
+          );
+          rokuMovie.content.adBreaks.push(...intervals);
+        }
+
+        // Handle Post-roll ads
+        if (temp.postRoll === true) {
+          rokuMovie.content.adBreaks.push({
+            time: durationToSeconds(temp.length),
+            type: "postroll"
+          });
+        }
+
+        // Add Roku-specific fields
+        rokuMovie.genres = ["Entertainment"];
+        rokuMovie.rating = "TV-G";
+        rokuMovie.actors = [];
+        rokuMovie.directors = [];
+        rokuMovie.categories = ["Movies"];
+
+        return rokuMovie;
+      })
+    };
+
+    return res.status(200).json({ data: { results: rokuFeed } });
   } catch (error) {
     console.error(error);
     return next(createHttpError());
@@ -622,96 +652,126 @@ async function ownedListCompletePublished(req, res, next) {
     };
     const getOwnedChannels = await prisma.video.findMany(query);
 
-    let modifiedChannels = {};
-    modifiedChannels.movies = getOwnedChannels.map((video) => {
-      let temp = JSON.parse(JSON.stringify(video));
-      let videoJson = {};
-      videoJson.id = temp.id;
-      videoJson.title = temp.Title;
-      let contentObject = {};
-      contentObject.dateAdded = temp.createdAt;
-      contentObject.videos = [
-        {
-          url: temp.url360P,
-          quality: "HD",
-          videoType: "MP4",
-        },
-        {
-          url: temp.url480P,
-          quality: "HD",
-          videoType: "MP4",
-        },
-        {
-          url: temp.url720P,
-          quality: "HD",
-          videoType: "MP4",
-        },
-        {
-          url: temp.url1080P,
-          quality: "HD",
-          videoType: "MP4",
-        }
-      ];
-      contentObject.duration = temp.length;
-      contentObject.adBreaks = [];
-      if (temp.preRoll === true) {
-        contentObject.adBreaks.push("00:00:00");
-      }
-      if (temp.midRoll === true) {
-        function createIntervals(totalLength, intervalType, interval) {
-          const totalSeconds = convertTimeToSeconds(totalLength);
-          let videoInterval = Number(interval);
-          const intervalInSeconds =
-            intervalType === "min" ? videoInterval * 60 : videoInterval;
-
-          const intervals = [];
-          let currentTime = intervalInSeconds;
-
-          while (currentTime < totalSeconds) {
-            intervals.push(formatSecondsToTime(currentTime));
-            currentTime += intervalInSeconds;
-          }
-
-          return intervals;
-        }
-
-        function convertTimeToSeconds(time) {
-          const [hours, minutes, seconds] = time.split(":").map(Number);
+    // Roku Standard Feed Format
+    let rokuFeed = {
+      providerName: "MediaPilot",
+      lastUpdated: new Date().toISOString(),
+      language: "en",
+      movies: getOwnedChannels.map((video) => {
+        let temp = JSON.parse(JSON.stringify(video));
+        
+        // Convert duration from HH:MM:SS to seconds for Roku
+        function durationToSeconds(duration) {
+          const [hours, minutes, seconds] = duration.split(":").map(Number);
           return hours * 3600 + minutes * 60 + seconds;
         }
 
-        function formatSecondsToTime(seconds) {
-          const hours = Math.floor(seconds / 3600);
-          const minutes = Math.floor((seconds % 3600) / 60);
-          const remainingSeconds = seconds % 60;
-
-          const formattedHours = hours.toString().padStart(2, "0");
-          const formattedMinutes = minutes.toString().padStart(2, "0");
-          const formattedSeconds = remainingSeconds.toString().padStart(2, "0");
-
-          return `${formattedHours}:${formattedMinutes}:${formattedSeconds}`;
+        // Helper function to safely get date string
+        function getDateString(dateValue) {
+          if (dateValue instanceof Date) {
+            return dateValue.toISOString().substring(0, 10);
+          } else if (typeof dateValue === 'string') {
+            return dateValue.substring(0, 10);
+          } else {
+            return new Date().toISOString().substring(0, 10);
+          }
         }
 
-        const intervals = createIntervals(
-          temp.length,
-          temp.midRollConfig.intervalType,
-          temp.midRollConfig.interval
-        );
-        // console.log(intervals, "intervals");
-        contentObject.adBreaks.push(...intervals);
-      }
-      if (temp.postRoll === true) {
-        contentObject.adBreaks.push(temp.length);
-      }
-      videoJson.content = contentObject;
+        // Create Roku-standard movie object
+        let rokuMovie = {
+          id: temp.id.toString(),
+          title: temp.Title,
+          shortDescription: temp.description || "",
+          longDescription: temp.description || "",
+          thumbnail: temp.thumbnail,
+          releaseDate: getDateString(temp.createdAt),
+          content: {
+            dateAdded: temp.createdAt,
+            videos: [
+              {
+                url: temp.url360P,
+                quality: "SD",
+                videoType: "MP4",
+              },
+              {
+                url: temp.url480P,
+                quality: "SD",
+                videoType: "MP4",
+              },
+              {
+                url: temp.url720P,
+                quality: "HD",
+                videoType: "MP4",
+              },
+              {
+                url: temp.url1080P,
+                quality: "FHD",
+                videoType: "MP4",
+              }
+            ],
+            duration: durationToSeconds(temp.length),
+            adBreaks: []
+          }
+        };
 
-      videoJson.thumbnail = temp.thumbnail;
-      videoJson.releaseDate = temp.createdAt.substring(0, 10);
-      videoJson.Description = temp.description;
-      return videoJson;
-    });
+        // Handle Pre-roll ads
+        if (temp.preRoll === true) {
+          rokuMovie.content.adBreaks.push({
+            time: 0,
+            type: "preroll"
+          });
+        }
 
-    return res.status(200).json({ data: { results: modifiedChannels } });
+        // Handle Mid-roll ads
+        if (temp.midRoll === true && temp.midRollConfig) {
+          function createIntervals(totalLength, intervalType, interval) {
+            const totalSeconds = durationToSeconds(totalLength);
+            let videoInterval = Number(interval);
+            const intervalInSeconds =
+              intervalType === "min" ? videoInterval * 60 : videoInterval;
+
+            const intervals = [];
+            let currentTime = intervalInSeconds;
+
+            while (currentTime < totalSeconds) {
+              intervals.push({
+                time: currentTime,
+                type: "midroll"
+              });
+              currentTime += intervalInSeconds;
+            }
+
+            return intervals;
+          }
+
+          const intervals = createIntervals(
+            temp.length,
+            temp.midRollConfig.intervalType,
+            temp.midRollConfig.interval
+          );
+          rokuMovie.content.adBreaks.push(...intervals);
+        }
+
+        // Handle Post-roll ads
+        if (temp.postRoll === true) {
+          rokuMovie.content.adBreaks.push({
+            time: durationToSeconds(temp.length),
+            type: "postroll"
+          });
+        }
+
+        // Add Roku-specific fields
+        rokuMovie.genres = ["Entertainment"];
+        rokuMovie.rating = "TV-G";
+        rokuMovie.actors = [];
+        rokuMovie.directors = [];
+        rokuMovie.categories = ["Movies"];
+
+        return rokuMovie;
+      })
+    };
+
+    return res.status(200).json({ data: { results: rokuFeed } });
   } catch (error) {
     console.error(error);
     return next(createHttpError());
@@ -731,41 +791,73 @@ async function ownedListSinglePublished(req, res, next) {
     const getOwnedChannel = await prisma.video.findUnique(query);
     console.log(getOwnedChannel, "getOwnedChannel");
     let temp = getOwnedChannel;
-    let videoJson = {};
-    videoJson.id = temp.id;
-    videoJson.title = temp.Title;
-    let contentObject = {};
-    contentObject.dateAdded = temp.createdAt;
-    contentObject.videos = [
-      {
-        url: temp.url360P,
-        quality: "HD",
-        videoType: "MP4",
-      },
-      {
-        url: temp.url480P,
-        quality: "HD",
-        videoType: "MP4",
-      },
-      {
-        url: temp.url720P,
-        quality: "HD",
-        videoType: "MP4",
-      },
-      {
-        url: temp.url1080P,
-        quality: "HD",
-        videoType: "MP4",
-      }
-    ];
-    contentObject.duration = temp.length;
-    contentObject.adBreaks = [];
-    if (temp.preRoll === true) {
-      contentObject.adBreaks.push("00:00:00");
+    
+    // Convert duration from HH:MM:SS to seconds for Roku
+    function durationToSeconds(duration) {
+      const [hours, minutes, seconds] = duration.split(":").map(Number);
+      return hours * 3600 + minutes * 60 + seconds;
     }
-    if (temp.midRoll === true) {
+
+    // Helper function to safely get date string
+    function getDateString(dateValue) {
+      if (dateValue instanceof Date) {
+        return dateValue.toISOString().substring(0, 10);
+      } else if (typeof dateValue === 'string') {
+        return dateValue.substring(0, 10);
+      } else {
+        return new Date().toISOString().substring(0, 10);
+      }
+    }
+
+    // Create Roku-standard movie object
+    let rokuMovie = {
+      id: temp.id.toString(),
+      title: temp.Title,
+      shortDescription: temp.description || "",
+      longDescription: temp.description || "",
+      thumbnail: temp.thumbnail,
+      releaseDate: getDateString(temp.createdAt),
+      content: {
+        dateAdded: temp.createdAt,
+        videos: [
+          {
+            url: temp.url360P,
+            quality: "SD",
+            videoType: "MP4",
+          },
+          {
+            url: temp.url480P,
+            quality: "SD",
+            videoType: "MP4",
+          },
+          {
+            url: temp.url720P,
+            quality: "HD",
+            videoType: "MP4",
+          },
+          {
+            url: temp.url1080P,
+            quality: "FHD",
+            videoType: "MP4",
+          }
+        ],
+        duration: durationToSeconds(temp.length),
+        adBreaks: []
+      }
+    };
+
+    // Handle Pre-roll ads
+    if (temp.preRoll === true) {
+      rokuMovie.content.adBreaks.push({
+        time: 0,
+        type: "preroll"
+      });
+    }
+
+    // Handle Mid-roll ads
+    if (temp.midRoll === true && temp.midRollConfig) {
       function createIntervals(totalLength, intervalType, interval) {
-        const totalSeconds = convertTimeToSeconds(totalLength);
+        const totalSeconds = durationToSeconds(totalLength);
         let videoInterval = Number(interval);
         const intervalInSeconds =
           intervalType === "min" ? videoInterval * 60 : videoInterval;
@@ -774,28 +866,14 @@ async function ownedListSinglePublished(req, res, next) {
         let currentTime = intervalInSeconds;
 
         while (currentTime < totalSeconds) {
-          intervals.push(formatSecondsToTime(currentTime));
+          intervals.push({
+            time: currentTime,
+            type: "midroll"
+          });
           currentTime += intervalInSeconds;
         }
 
         return intervals;
-      }
-
-      function convertTimeToSeconds(time) {
-        const [hours, minutes, seconds] = time.split(":").map(Number);
-        return hours * 3600 + minutes * 60 + seconds;
-      }
-
-      function formatSecondsToTime(seconds) {
-        const hours = Math.floor(seconds / 3600);
-        const minutes = Math.floor((seconds % 3600) / 60);
-        const remainingSeconds = seconds % 60;
-
-        const formattedHours = hours.toString().padStart(2, "0");
-        const formattedMinutes = minutes.toString().padStart(2, "0");
-        const formattedSeconds = remainingSeconds.toString().padStart(2, "0");
-
-        return `${formattedHours}:${formattedMinutes}:${formattedSeconds}`;
       }
 
       const intervals = createIntervals(
@@ -803,19 +881,25 @@ async function ownedListSinglePublished(req, res, next) {
         temp.midRollConfig.intervalType,
         temp.midRollConfig.interval
       );
-      // console.log(intervals, "intervals");
-      contentObject.adBreaks.push(...intervals);
+      rokuMovie.content.adBreaks.push(...intervals);
     }
+
+    // Handle Post-roll ads
     if (temp.postRoll === true) {
-      contentObject.adBreaks.push(temp.length);
+      rokuMovie.content.adBreaks.push({
+        time: durationToSeconds(temp.length),
+        type: "postroll"
+      });
     }
-    videoJson.content = contentObject;
 
-    videoJson.thumbnail = temp.thumbnail;
-    videoJson.releaseDate = temp.createdAt.toString().substring(0, 10);
-    videoJson.Description = temp.description;
+    // Add Roku-specific fields
+    rokuMovie.genres = ["Entertainment"];
+    rokuMovie.rating = "TV-G";
+    rokuMovie.actors = [];
+    rokuMovie.directors = [];
+    rokuMovie.categories = ["Movies"];
 
-    return res.status(200).json({ data: { result: videoJson } });
+    return res.status(200).json({ data: { result: rokuMovie } });
   } catch (error) {
     console.error(error);
     return next(createHttpError());
@@ -1710,6 +1794,160 @@ async function getVideoByVideoId(req, res, next) {
   // });
 }
 
+async function generateRokuManifest(req, res, next) {
+  try {
+    const query = {
+      where: {
+        userId: req.tokenData.userId,
+        archived: true,
+        published: true,
+        deleted: false,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+      include: {
+        channel: true,
+      },
+    };
+    const getOwnedChannels = await prisma.video.findMany(query);
+
+    // Roku Channel Manifest Format
+    let rokuManifest = {
+      providerName: "MediaPilot",
+      lastUpdated: new Date().toISOString(),
+      language: "en",
+      categories: [
+        {
+          name: "Movies",
+          query: "movies"
+        }
+      ],
+      movies: getOwnedChannels.map((video) => {
+        let temp = JSON.parse(JSON.stringify(video));
+        
+        function durationToSeconds(duration) {
+          const [hours, minutes, seconds] = duration.split(":").map(Number);
+          return hours * 3600 + minutes * 60 + seconds;
+        }
+
+        // Helper function to safely get date string
+        function getDateString(dateValue) {
+          if (dateValue instanceof Date) {
+            return dateValue.toISOString().substring(0, 10);
+          } else if (typeof dateValue === 'string') {
+            return dateValue.substring(0, 10);
+          } else {
+            return new Date().toISOString().substring(0, 10);
+          }
+        }
+
+        let rokuMovie = {
+          id: temp.id.toString(),
+          title: temp.Title,
+          shortDescription: temp.description || "",
+          longDescription: temp.description || "",
+          thumbnail: temp.thumbnail,
+          releaseDate: getDateString(temp.createdAt),
+          content: {
+            dateAdded: temp.createdAt,
+            videos: [
+              {
+                url: temp.url360P,
+                quality: "SD",
+                videoType: "MP4",
+              },
+              {
+                url: temp.url480P,
+                quality: "SD",
+                videoType: "MP4",
+              },
+              {
+                url: temp.url720P,
+                quality: "HD",
+                videoType: "MP4",
+              },
+              {
+                url: temp.url1080P,
+                quality: "FHD",
+                videoType: "MP4",
+              }
+            ],
+            duration: durationToSeconds(temp.length),
+            adBreaks: []
+          }
+        };
+
+        // Handle ads with Roku-compatible format
+        if (temp.preRoll === true) {
+          rokuMovie.content.adBreaks.push({
+            time: 0,
+            type: "preroll",
+            adUrl: "/api/ads/preroll" // Placeholder for ad server URL
+          });
+        }
+
+        if (temp.midRoll === true && temp.midRollConfig) {
+          function createIntervals(totalLength, intervalType, interval) {
+            const totalSeconds = durationToSeconds(totalLength);
+            let videoInterval = Number(interval);
+            const intervalInSeconds =
+              intervalType === "min" ? videoInterval * 60 : videoInterval;
+
+            const intervals = [];
+            let currentTime = intervalInSeconds;
+
+            while (currentTime < totalSeconds) {
+              intervals.push({
+                time: currentTime,
+                type: "midroll",
+                adUrl: "/api/ads/midroll" // Placeholder for ad server URL
+              });
+              currentTime += intervalInSeconds;
+            }
+
+            return intervals;
+          }
+
+          const intervals = createIntervals(
+            temp.length,
+            temp.midRollConfig.intervalType,
+            temp.midRollConfig.interval
+          );
+          rokuMovie.content.adBreaks.push(...intervals);
+        }
+
+        if (temp.postRoll === true) {
+          rokuMovie.content.adBreaks.push({
+            time: durationToSeconds(temp.length),
+            type: "postroll",
+            adUrl: "/api/ads/postroll" // Placeholder for ad server URL
+          });
+        }
+
+        // Roku-specific metadata
+        rokuMovie.genres = ["Entertainment"];
+        rokuMovie.rating = "TV-G";
+        rokuMovie.actors = [];
+        rokuMovie.directors = [];
+        rokuMovie.categories = ["Movies"];
+        rokuMovie.tags = ["MediaPilot", "Streaming"];
+
+        return rokuMovie;
+      })
+    };
+
+    // Set response headers for Roku manifest
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Cache-Control', 'no-cache');
+    
+    return res.status(200).json(rokuManifest);
+  } catch (error) {
+    console.error(error);
+    return next(createHttpError());
+  }
+}
+
 module.exports = {
   create,
   update,
@@ -1732,4 +1970,5 @@ module.exports = {
   getVideoByVideoId,
   liveStreamingVideos,
   getLiveStreamingOnAir,
+  generateRokuManifest,
 };

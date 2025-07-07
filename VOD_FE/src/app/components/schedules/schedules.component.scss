@@ -38,6 +38,30 @@ div {
 
       .header-back-btn-content {
         text-align: end;
+        
+        .calendar-icon-btn {
+          background: none;
+          border: none;
+          padding: 0;
+          cursor: pointer;
+          transition: transform 0.2s ease, opacity 0.2s ease;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          
+          &:hover {
+            transform: scale(1.05);
+            opacity: 0.8;
+          }
+          
+          &:active {
+            transform: scale(0.95);
+          }
+          
+          .calender-svg {
+            pointer-events: none;
+          }
+        }
       }
 
       .header-title {

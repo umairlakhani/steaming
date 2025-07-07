@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Playback Issue Debug Tool</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .warning { background-color: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .log {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background-color: #0056b3; }
+        button:disabled { background-color: #6c757d; cursor: not-allowed; }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .video-info {
+            background-color: #e9ecef;
+            padding: 8px;
+            margin: 5px 0;
+            border-radius: 4px;
+            font-size: 11px;
+        }
+        .fix-attempt {
+            background-color: #f8f9fa;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            border-left: 4px solid #007bff;
+        }
+        .fix-attempt.success { border-left-color: #28a745; }
+        .fix-attempt.error { border-left-color: #dc3545; }
+        .fix-attempt.warning { border-left-color: #ffc107; }
+        #videoElement {
+            width: 100%;
+            max-width: 640px;
+            height: auto;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Video Playback Issue Debug Tool</h1>
+    <p>This tool helps diagnose and fix video playback issues with readyState: 0 and networkState: 2</p>
+    
+    <div class="container">
+        <h2>Video Element Status</h2>
+        <video id="videoElement" autoplay muted playsinline></video>
+        <div id="video-status" class="status info">Video element created</div>
+        <button onclick="diagnoseVideoElement()">Diagnose Video Element</button>
+        <button onclick="testWebRTCStream()">Test WebRTC Stream</button>
+        <button onclick="applyFixes()">Apply All Fixes</button>
+        <button onclick="clearLog()">Clear Log</button>
+    </div>
+
+    <div class="grid">
+        <div class="container">
+            <h2>Video Element Properties</h2>
+            <div id="video-properties"></div>
+        </div>
+
+        <div class="container">
+            <h2>MediaStream Status</h2>
+            <div id="stream-status"></div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>Fix Attempts</h2>
+        <div id="fix-attempts"></div>
+    </div>
+
+    <div class="container">
+        <h2>Debug Log</h2>
+        <div id="log" class="log"></div>
+    </div>
+
+    <script>
+        let currentStream = null;
+        let fixAttempts = [];
+
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.innerHTML = `<span style="color: #666;">[${timestamp}]</span> <span style="color: ${type === 'error' ? '#dc3545' : type === 'success' ? '#28a745' : type === 'warning' ? '#ffc107' : '#007bff'}">${message}</span>`;
+            logDiv.appendChild(logEntry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(`[${timestamp}] ${message}`);
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+            fixAttempts = [];
+            document.getElementById('fix-attempts').innerHTML = '';
+        }
+
+        function updateStatus(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = `status ${type}`;
+        }
+
+        function addFixAttempt(message, type = 'info') {
+            const attemptsDiv = document.getElementById('fix-attempts');
+            const attemptDiv = document.createElement('div');
+            attemptDiv.className = `fix-attempt ${type}`;
+            attemptDiv.innerHTML = `<strong>${type.toUpperCase()}:</strong> ${message}`;
+            attemptsDiv.appendChild(attemptDiv);
+            fixAttempts.push({ message, type, timestamp: new Date() });
+        }
+
+        function getVideoProperties() {
+            const video = document.getElementById('videoElement');
+            return {
+                readyState: video.readyState,
+                networkState: video.networkState,
+                currentTime: video.currentTime,
+                duration: video.duration,
+                videoWidth: video.videoWidth,
+                videoHeight: video.videoHeight,
+                paused: video.paused,
+                ended: video.ended,
+                error: video.error,
+                src: video.src,
+                srcObject: !!video.srcObject,
+                autoplay: video.autoplay,
+                muted: video.muted,
+                playsInline: video.playsInline,
+                controls: video.controls
+            };
+        }
+
+        function displayVideoProperties() {
+            const props = getVideoProperties();
+            const propsDiv = document.getElementById('video-properties');
+            
+            let html = '<div class="video-info">';
+            for (const [key, value] of Object.entries(props)) {
+                const statusClass = key === 'readyState' && value === 0 ? 'error' : 
+                                  key === 'networkState' && value === 2 ? 'error' : 'info';
+                html += `<div><strong>${key}:</strong> <span class="${statusClass}">${value}</span></div>`;
+            }
+            html += '</div>';
+            
+            propsDiv.innerHTML = html;
+        }
+
+        function displayStreamStatus() {
+            const streamDiv = document.getElementById('stream-status');
+            const video = document.getElementById('videoElement');
+            
+            if (!video.srcObject) {
+                streamDiv.innerHTML = '<div class="video-info error">No MediaStream attached</div>';
+                return;
+            }
+
+            const stream = video.srcObject;
+            const tracks = stream.getTracks();
+            const videoTracks = stream.getVideoTracks();
+            const audioTracks = stream.getAudioTracks();
+            
+            let html = '<div class="video-info">';
+            html += `<div><strong>Stream Active:</strong> ${stream.active}</div>`;
+            html += `<div><strong>Total Tracks:</strong> ${tracks.length}</div>`;
+            html += `<div><strong>Video Tracks:</strong> ${videoTracks.length}</div>`;
+            html += `<div><strong>Audio Tracks:</strong> ${audioTracks.length}</div>`;
+            
+            if (videoTracks.length > 0) {
+                const videoTrack = videoTracks[0];
+                html += `<div><strong>Video Track State:</strong> ${videoTrack.readyState}</div>`;
+                html += `<div><strong>Video Track Enabled:</strong> ${videoTrack.enabled}</div>`;
+            }
+            
+            if (audioTracks.length > 0) {
+                const audioTrack = audioTracks[0];
+                html += `<div><strong>Audio Track State:</strong> ${audioTrack.readyState}</div>`;
+                html += `<div><strong>Audio Track Enabled:</strong> ${audioTrack.enabled}</div>`;
+            }
+            
+            html += '</div>';
+            streamDiv.innerHTML = html;
+        }
+
+        function diagnoseVideoElement() {
+            log('🔍 Starting video element diagnosis...', 'info');
+            
+            const video = document.getElementById('videoElement');
+            const props = getVideoProperties();
+            
+            log(`Video readyState: ${props.readyState}`, props.readyState === 0 ? 'error' : 'info');
+            log(`Video networkState: ${props.networkState}`, props.networkState === 2 ? 'error' : 'info');
+            log(`Video srcObject: ${props.srcObject}`, props.srcObject ? 'success' : 'error');
+            log(`Video src: ${props.src}`, props.src ? 'info' : 'warning');
+            
+            // Identify the issue
+            if (props.readyState === 0 && props.networkState === 2) {
+                if (!props.srcObject && !props.src) {
+                    log('❌ ISSUE: Video element has no source (srcObject or src)', 'error');
+                    addFixAttempt('Video element has no source - need to attach MediaStream or set src', 'error');
+                } else if (props.srcObject && !props.src) {
+                    log('❌ ISSUE: Video element has srcObject but readyState is 0', 'error');
+                    addFixAttempt('MediaStream attached but video not ready - possible stream issue', 'error');
+                } else if (props.src && !props.srcObject) {
+                    log('❌ ISSUE: Video element has src but readyState is 0', 'error');
+                    addFixAttempt('Video src set but not loading - possible network issue', 'error');
+                }
+            }
+            
+            displayVideoProperties();
+            displayStreamStatus();
+        }
+
+        async function testWebRTCStream() {
+            log('🎥 Testing WebRTC stream creation...', 'info');
+            
+            try {
+                // Create a test MediaStream
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: true,
+                    audio: true
+                });
+                
+                currentStream = stream;
+                const video = document.getElementById('videoElement');
+                
+                log('✅ Test MediaStream created successfully', 'success');
+                addFixAttempt('Test MediaStream created with video and audio tracks', 'success');
+                
+                // Set up video element
+                video.srcObject = stream;
+                video.autoplay = true;
+                video.muted = true;
+                video.playsInline = true;
+                
+                log('✅ Video element configured with test stream', 'success');
+                addFixAttempt('Video element configured with autoplay, muted, and playsInline', 'success');
+                
+                // Wait for video to be ready
+                await new Promise((resolve) => {
+                    const checkReady = () => {
+                        if (video.readyState >= 1) {
+                            log('✅ Video is ready!', 'success');
+                            addFixAttempt('Video readyState improved to ' + video.readyState, 'success');
+                            resolve();
+                        } else {
+                            setTimeout(checkReady, 100);
+                        }
+                    };
+                    checkReady();
+                });
+                
+                // Try to play
+                try {
+                    await video.play();
+                    log('✅ Video playing successfully!', 'success');
+                    addFixAttempt('Video play() successful', 'success');
+                } catch (error) {
+                    log(`❌ Video play failed: ${error.message}`, 'error');
+                    addFixAttempt(`Video play() failed: ${error.message}`, 'error');
+                }
+                
+                displayVideoProperties();
+                displayStreamStatus();
+                
+            } catch (error) {
+                log(`❌ Failed to create test stream: ${error.message}`, 'error');
+                addFixAttempt(`Failed to create test MediaStream: ${error.message}`, 'error');
+            }
+        }
+
+        async function applyFixes() {
+            log('🔧 Applying comprehensive video fixes...', 'info');
+            
+            const video = document.getElementById('videoElement');
+            
+            // Fix 1: Reset video element completely
+            log('Fix 1: Resetting video element...', 'info');
+            video.pause();
+            video.src = '';
+            video.srcObject = null;
+            video.load();
+            addFixAttempt('Video element completely reset', 'info');
+            
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            // Fix 2: Configure video element properly
+            log('Fix 2: Configuring video element...', 'info');
+            video.autoplay = true;
+            video.muted = true;
+            video.playsInline = true;
+            video.controls = false;
+            addFixAttempt('Video element configured with autoplay, muted, playsInline', 'info');
+            
+            // Fix 3: If we have a test stream, apply it
+            if (currentStream) {
+                log('Fix 3: Applying test stream...', 'info');
+                video.srcObject = currentStream;
+                addFixAttempt('Test MediaStream applied to video element', 'info');
+                
+                await new Promise(resolve => setTimeout(resolve, 200));
+                
+                // Fix 4: Force video to load
+                log('Fix 4: Forcing video load...', 'info');
+                video.load();
+                addFixAttempt('Video load() called to force processing', 'info');
+                
+                await new Promise(resolve => setTimeout(resolve, 500));
+                
+                // Fix 5: Try to play
+                log('Fix 5: Attempting to play...', 'info');
+                try {
+                    await video.play();
+                    log('✅ Fix successful - video is playing!', 'success');
+                    addFixAttempt('Video play() successful after fixes', 'success');
+                } catch (error) {
+                    log(`❌ Play failed after fixes: ${error.message}`, 'error');
+                    addFixAttempt(`Video play() failed after fixes: ${error.message}`, 'error');
+                }
+            } else {
+                log('⚠️ No test stream available for fixes', 'warning');
+                addFixAttempt('No MediaStream available for fixes - run test first', 'warning');
+            }
+            
+            displayVideoProperties();
+            displayStreamStatus();
+        }
+
+        // Set up video event listeners for monitoring
+        function setupVideoMonitoring() {
+            const video = document.getElementById('videoElement');
+            const events = ['loadstart', 'durationchange', 'loadedmetadata', 'loadeddata', 
+                           'progress', 'canplay', 'canplaythrough', 'playing', 'waiting',
+                           'seeking', 'seeked', 'ended', 'error', 'timeupdate', 'play', 'pause'];
+            
+            events.forEach(eventName => {
+                video.addEventListener(eventName, (event) => {
+                    const props = getVideoProperties();
+                    log(`📺 Video Event: ${eventName} (readyState: ${props.readyState}, networkState: ${props.networkState})`, 'info');
+                });
+            });
+        }
+
+        // Initialize on page load
+        window.addEventListener('load', () => {
+            log('Video Playback Issue Debug Tool loaded', 'info');
+            log('Click "Diagnose Video Element" to check current state', 'info');
+            log('Click "Test WebRTC Stream" to create a test stream', 'info');
+            log('Click "Apply All Fixes" to attempt automatic fixes', 'info');
+            
+            setupVideoMonitoring();
+            diagnoseVideoElement();
+        });
+    </script>
+</body>
+</html> 

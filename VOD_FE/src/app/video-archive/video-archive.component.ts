@@ -259,7 +259,7 @@ export class VideoArchiveComponent implements OnInit {
       });
       const downloadLink = document.createElement("a");
       downloadLink.href = URL.createObjectURL(blob);
-      downloadLink.download = "video-data-archived.json";
+      downloadLink.download = "roku-channel-feed-archived.json";
       downloadLink.click();
     });
   }
@@ -268,8 +268,48 @@ export class VideoArchiveComponent implements OnInit {
   //     return length > 3599 ? new Date(length * 1000).toISOString().slice(11, 19) : new Date(length * 1000).toISOString().slice(14, 19);
   // }
   downloadVideo(url: any, title: any) {
-    // this.downloadFile(url, title)
-    console.log(url, "check url ");
+    if (!url) {
+      this.toasterService.error('Download URL not available');
+      return;
+    }
+    
+    // Clean the title for use as filename
+    const cleanTitle = title ? title.replace(/[^a-z0-9]/gi, '_').toLowerCase() : 'video';
+    const fileName = `${cleanTitle}.mp4`;
+    
+    try {
+      // For direct video URLs, try to download directly
+      if (url.startsWith('http')) {
+        // Create a temporary link element to trigger download
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName;
+        link.target = '_blank';
+        
+        // Append to body, click, and remove
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        this.toasterService.success('Download started');
+      } else {
+        // For relative URLs or other formats, try to construct full URL
+        const fullUrl = url.startsWith('/') ? `${this.baseUrl}${url}` : url;
+        const link = document.createElement('a');
+        link.href = fullUrl;
+        link.download = fileName;
+        link.target = '_blank';
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        this.toasterService.success('Download started');
+      }
+    } catch (error) {
+      console.error('Download error:', error);
+      this.toasterService.error('Failed to start download. Please try again.');
+    }
   }
   downloadFile(url: string, fileName: string): void {
     // Send a GET request to the file URL

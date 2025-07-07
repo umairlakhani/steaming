@@ -5,6 +5,8 @@ const prisma = new PrismaClient();
 const { userUsage } = require("../../utils/recording");
 const spawn = require("child_process").spawn;
 const config = require("../config/default");
+const { S3Client } = require("@aws-sdk/client-s3");
+const { Upload } = require("@aws-sdk/lib-storage");
 // const cmd = config.rtmp_server.trans.ffmpeg;
 
 const generateStreamThumbnail = async (stream_key) => {
@@ -26,51 +28,42 @@ const generateStreamThumbnail = async (stream_key) => {
   processCheck.on("close", async (code) => {
     if (code === 0) {
       let { bucketId } = await userUsage(stream_key);
-      AWS.config.update({
-        accessKeyId: process.env.DIGITAL_OCEAN_ACCESS_KEY,
-        secretAccessKey: process.env.DIGITAL_OCEAN_SECRET_KEY,
-        endpoint: `https://${bucketId}.${process.env.USER_BUCKET_URL}`,
-        s3ForcePathStyle: true,
-      });
-      const spaces = new AWS.S3({
-        signatureVersion: "v4",
-        params: {
-          acl: "public-read",
+      const s3Client = new S3Client({
+        region: process.env.DO_BUCKET_REGION,
+        endpoint: `https://${process.env.DO_BUCKET_NAME}.${process.env.DO_BUCKET_REGION}.digitaloceanspaces.com`,
+        credentials: {
+          accessKeyId: process.env.DIGITAL_OCEAN_ACCESS_KEY,
+          secretAccessKey: process.env.DIGITAL_OCEAN_SECRET_KEY,
         },
+        forcePathStyle: true,
       });
       console.log(bucketId, "check bucketId");
       console.log("Thumbnail generated successfully");
-      spaces.upload(
-        {
-          // Bucket: 'hls-video-storage',
-          Bucket: bucketId,
-          Key: `thumbnail/${stream_key}.jpg`,
+      const upload = new Upload({
+        client: s3Client,
+        params: {
+          Bucket: process.env.DO_BUCKET_NAME,
+          Key: `users/${bucketId}/thumbnail/${stream_key}.jpg`,
           Body: fs.createReadStream(`./thumbnail/${stream_key}.jpg`),
           ACL: "public-read",
         },
-        async function (err, data) {
-          console.log(data, "check data");
-          if (err) {
-            console.log("Error", err);
-          } else {
-            console.log(data.Location, "check thumbnail data.Location");
-            console.log(stream_key, "check video id ");
-            const updated = await prisma.liveStreaming.updateMany({
-              where: {
-                streamKey: stream_key,
-              },
-              data: {
-                thumbnail: data.Location,
-                // videoUrl: data.Location,
-                // processing: false,
-              },
-            });
-            console.log(updated, "updated");
-            // console which video is uploaded
-            console.log("thumbnail uploaded");
-          }
-        }
-      );
+      });
+      const result = await upload.done();
+      console.log(result, "check thumbnail data.Location");
+      console.log(stream_key, "check video id ");
+      const updated = await prisma.liveStreaming.updateMany({
+        where: {
+          streamKey: stream_key,
+        },
+        data: {
+          thumbnail: result.Location,
+          // videoUrl: result.Location,
+          // processing: false,
+        },
+      });
+      console.log(updated, "updated");
+      // console which video is uploaded
+      console.log("thumbnail uploaded");
     } else {
       console.error("Thumbnail generation failed");
     }

@@ -141,6 +141,11 @@ export class NewScheduleComponent implements OnInit {
         // console.log(id,"id")
     }
 
+    openScheduleModalFromIcon() {
+        // Navigate to the schedule-date component
+        this.router.navigate(['/schedule-date']);
+    }
+
     openCreateSchedule() {
         const dialogRef = this.dialog.open(ScheduleModal, {
             width: '600px',

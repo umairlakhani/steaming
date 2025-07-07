@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consumer Debug Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .warning { background-color: #fff3cd; color: #856404; }
+        .info { background-color: #d1ecf1; color: #0c5460; }
+        
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #6c757d; cursor: not-allowed; }
+        
+        video {
+            width: 100%;
+            max-width: 640px;
+            height: auto;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+        }
+        
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 10px 0;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Consumer Debug Test</h1>
+        <p>Testing consumer creation for stream ID: <strong id="streamId">31751823844437</strong></p>
+        
+        <div class="status info" id="status">Ready to test</div>
+        
+        <button onclick="testConsumerCreation()">Test Consumer Creation</button>
+        <button onclick="testStreamStatus()">Test Stream Status</button>
+        <button onclick="testSocketConnection()">Test Socket Connection</button>
+        <button onclick="clearLog()">Clear Log</button>
+        
+        <video id="testVideo" autoplay muted playsinline controls></video>
+        
+        <div class="log" id="log"></div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script>
+        let socket = null;
+        let device = null;
+        let consumerTransport = null;
+        let videoConsumer = null;
+        let audioConsumer = null;
+        
+        const streamId = '31751824560387';
+        const socketUrl = 'http://localhost:3000';
+        
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.innerHTML = `<span style="color: #666;">[${timestamp}]</span> ${message}`;
+            logDiv.appendChild(logEntry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+        
+        function updateStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+        }
+        
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+        
+        async function testStreamStatus() {
+            log('🔍 Testing stream status...');
+            try {
+                const response = await fetch(`http://localhost:3000/api/livestream/stream-status/${streamId}`);
+                const data = await response.json();
+                log(`✅ Stream status response: ${JSON.stringify(data, null, 2)}`);
+                
+                if (data.active) {
+                    updateStatus('Stream is active', 'success');
+                } else {
+                    updateStatus('Stream is not active', 'error');
+                }
+            } catch (error) {
+                log(`❌ Stream status error: ${error.message}`, 'error');
+                updateStatus('Failed to get stream status', 'error');
+            }
+        }
+        
+        async function testSocketConnection() {
+            log('🔌 Testing socket connection...');
+            try {
+                socket = io(socketUrl);
+                
+                socket.on('connect', () => {
+                    log('✅ Socket connected successfully');
+                    updateStatus('Socket connected', 'success');
+                });
+                
+                socket.on('disconnect', () => {
+                    log('❌ Socket disconnected');
+                    updateStatus('Socket disconnected', 'error');
+                });
+                
+                socket.on('connect_error', (error) => {
+                    log(`❌ Socket connection error: ${error.message}`);
+                    updateStatus('Socket connection failed', 'error');
+                });
+                
+                // Wait for connection
+                await new Promise((resolve) => {
+                    if (socket.connected) {
+                        resolve();
+                    } else {
+                        socket.once('connect', resolve);
+                        setTimeout(() => resolve(), 5000);
+                    }
+                });
+                
+            } catch (error) {
+                log(`❌ Socket setup error: ${error.message}`);
+                updateStatus('Socket setup failed', 'error');
+            }
+        }
+        
+        async function testConsumerCreation() {
+            log('🎯 Testing consumer creation...');
+            
+            if (!socket || !socket.connected) {
+                log('❌ Socket not connected, connecting first...');
+                await testSocketConnection();
+            }
+            
+            try {
+                // Step 1: Get router RTP capabilities
+                log('📡 Getting router RTP capabilities...');
+                const routerRtpCapabilities = await sendRequest('getRouterRtpCapabilities', {});
+                log(`✅ Router RTP capabilities: ${JSON.stringify(routerRtpCapabilities, null, 2)}`);
+                
+                // Step 2: Load device
+                log('📱 Loading MediaSoup device...');
+                const { default: Device } = await import('https://cdn.jsdelivr.net/npm/mediasoup-client@3/dist/mediasoup-client.js');
+                device = new Device();
+                await device.load({ routerRtpCapabilities });
+                log('✅ Device loaded successfully');
+                
+                // Step 3: Create consumer transport
+                log('🚚 Creating consumer transport...');
+                const transportOptions = await sendRequest('createConsumerTransport', {});
+                log(`✅ Transport options: ${JSON.stringify(transportOptions, null, 2)}`);
+                
+                consumerTransport = device.createRecvTransport(transportOptions);
+                
+                consumerTransport.on('connect', async ({ dtlsParameters }, callback, errback) => {
+                    log('🔗 Transport connect event');
+                    try {
+                        await sendRequest('connectConsumerTransport', { dtlsParameters });
+                        callback();
+                        log('✅ Transport connected');
+                    } catch (error) {
+                        log(`❌ Transport connect error: ${error.message}`);
+                        errback(error);
+                    }
+                });
+                
+                consumerTransport.on('consume', async ({ parameters }, callback, errback) => {
+                    log('📹 Transport consume event');
+                    try {
+                        const { id, producerId, kind, rtpParameters } = parameters;
+                        log(`✅ Consuming: ${kind} track (ID: ${id})`);
+                        callback({ rtpParameters });
+                    } catch (error) {
+                        log(`❌ Transport consume error: ${error.message}`);
+                        errback(error);
+                    }
+                });
+                
+                // Step 4: Consume video
+                log('🎥 Consuming video track...');
+                const videoData = await sendRequest(`consume${streamId}`, {
+                    rtpCapabilities: device.rtpCapabilities,
+                    kind: 'video'
+                });
+                
+                if (!videoData || !videoData.producerId) {
+                    log('❌ No video producer available');
+                    return;
+                }
+                
+                log(`✅ Video consume data: ${JSON.stringify(videoData, null, 2)}`);
+                
+                videoConsumer = await consumerTransport.consume({
+                    id: videoData.id,
+                    producerId: videoData.producerId,
+                    kind: videoData.kind,
+                    rtpParameters: videoData.rtpParameters
+                });
+                
+                log(`✅ Video consumer created: ${videoConsumer.id}`);
+                log(`📹 Video track details: ${JSON.stringify({
+                    id: videoConsumer.track.id,
+                    kind: videoConsumer.track.kind,
+                    enabled: videoConsumer.track.enabled,
+                    readyState: videoConsumer.track.readyState
+                }, null, 2)}`);
+                
+                // Step 5: Set up video element
+                const videoElement = document.getElementById('testVideo');
+                const stream = new MediaStream([videoConsumer.track]);
+                videoElement.srcObject = stream;
+                
+                log('📺 Video element set up with MediaSoup track');
+                
+                // Monitor video element state
+                let attempts = 0;
+                const checkVideo = () => {
+                    attempts++;
+                    log(`🔍 Video check ${attempts}: readyState=${videoElement.readyState}, videoWidth=${videoElement.videoWidth}, videoHeight=${videoElement.videoHeight}`);
+                    
+                    if (videoElement.readyState >= 1 || videoElement.videoWidth > 0) {
+                        log('✅ Video is ready and playing!');
+                        updateStatus('Video consumer working!', 'success');
+                        return;
+                    }
+                    
+                    if (attempts < 50) {
+                        setTimeout(checkVideo, 200);
+                    } else {
+                        log('⏰ Video never got ready');
+                        updateStatus('Video consumer failed', 'error');
+                    }
+                };
+                
+                checkVideo();
+                
+            } catch (error) {
+                log(`❌ Consumer creation error: ${error.message}`);
+                updateStatus('Consumer creation failed', 'error');
+            }
+        }
+        
+        async function sendRequest(type, data) {
+            return new Promise((resolve, reject) => {
+                if (!socket) {
+                    reject(new Error('Socket not connected'));
+                    return;
+                }
+                
+                log(`📤 Sending ${type}: ${JSON.stringify(data)}`);
+                
+                socket.emit(type, data, (response) => {
+                    log(`📥 Response for ${type}: ${JSON.stringify(response)}`);
+                    
+                    if (response && response.error) {
+                        reject(new Error(response.error));
+                    } else {
+                        resolve(response);
+                    }
+                });
+                
+                // Timeout after 10 seconds
+                setTimeout(() => {
+                    reject(new Error(`Request timeout for ${type}`));
+                }, 10000);
+            });
+        }
+        
+        // Auto-test on load
+        window.onload = async () => {
+            log('🚀 Starting auto-test...');
+            await testStreamStatus();
+            await testSocketConnection();
+        };
+    </script>
+</body>
+</html> 

@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Player Test</title>
+    <link href="https://vjs.zencdn.net/7.20.3/video-js.css" rel="stylesheet" />
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .video-container {
+            width: 100%;
+            max-width: 800px;
+            margin: 20px 0;
+        }
+        .controls {
+            margin: 20px 0;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        input[type="text"] {
+            width: 300px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎥 Video Player Test</h1>
+    
+    <div class="test-container">
+        <h2>Stream Configuration</h2>
+        <div>
+            <label for="streamUrl">Stream URL:</label><br>
+            <input type="text" id="streamUrl" value="http://localhost:8000/live/8f1SGyR84J/index.m3u8" placeholder="Enter HLS stream URL">
+            <button onclick="testStream()">Test Stream</button>
+            <button onclick="loadStream()">Load Stream</button>
+        </div>
+        <div id="streamStatus" class="status info">Ready to test stream</div>
+    </div>
+
+    <div class="test-container">
+        <h2>Video Player</h2>
+        <div class="video-container">
+            <video
+                id="test-video"
+                class="video-js vjs-default-skin"
+                controls
+                preload="metadata"
+                width="100%"
+                height="400"
+                data-setup="{}"
+            >
+                <p class="vjs-no-js">
+                    To view this video please enable JavaScript, and consider upgrading to a
+                    web browser that supports HTML5 video.
+                </p>
+            </video>
+        </div>
+        <div class="controls">
+            <button onclick="playVideo()">Play</button>
+            <button onclick="pauseVideo()">Pause</button>
+            <button onclick="reloadVideo()">Reload</button>
+            <button onclick="checkVideoState()">Check State</button>
+        </div>
+        <div id="videoStatus" class="status info">Video player ready</div>
+    </div>
+
+    <div class="test-container">
+        <h2>Debug Information</h2>
+        <div id="debugInfo" class="status info">No debug info yet</div>
+        <button onclick="runDebugTests()">Run Debug Tests</button>
+    </div>
+
+    <script src="https://vjs.zencdn.net/7.20.3/video.min.js"></script>
+    <script>
+        let player;
+        let currentStreamUrl = '';
+
+        // Initialize video player
+        document.addEventListener('DOMContentLoaded', function() {
+            player = videojs('test-video', {
+                fluid: true,
+                aspectRatio: '16:9',
+                autoplay: false,
+                muted: true,
+                controls: true
+            });
+
+            // Add event listeners
+            player.on('loadstart', () => updateStatus('Video loading started', 'info'));
+            player.on('loadedmetadata', () => updateStatus('Video metadata loaded', 'success'));
+            player.on('canplay', () => updateStatus('Video can start playing', 'success'));
+            player.on('playing', () => updateStatus('Video is playing', 'success'));
+            player.on('waiting', () => updateStatus('Video is buffering', 'info'));
+            player.on('error', (error) => {
+                console.error('Video error:', error);
+                updateStatus('Video error: ' + (error.message || 'Unknown error'), 'error');
+            });
+
+            updateStatus('Video player initialized', 'success');
+        });
+
+        function updateStatus(message, type) {
+            const statusElement = document.getElementById('videoStatus');
+            statusElement.textContent = message;
+            statusElement.className = `status ${type}`;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        function updateStreamStatus(message, type) {
+            const statusElement = document.getElementById('streamStatus');
+            statusElement.textContent = message;
+            statusElement.className = `status ${type}`;
+            console.log(`[STREAM ${type.toUpperCase()}] ${message}`);
+        }
+
+        async function testStream() {
+            const streamUrl = document.getElementById('streamUrl').value;
+            if (!streamUrl) {
+                updateStreamStatus('Please enter a stream URL', 'error');
+                return;
+            }
+
+            updateStreamStatus('Testing stream availability...', 'info');
+
+            try {
+                const response = await fetch(streamUrl);
+                if (response.ok) {
+                    const content = await response.text();
+                    updateStreamStatus(`Stream is available! Content length: ${content.length} characters`, 'success');
+                    console.log('Stream content preview:', content.substring(0, 200));
+                } else {
+                    updateStreamStatus(`Stream not available (HTTP ${response.status})`, 'error');
+                }
+            } catch (error) {
+                updateStreamStatus(`Stream test failed: ${error.message}`, 'error');
+            }
+        }
+
+        function loadStream() {
+            const streamUrl = document.getElementById('streamUrl').value;
+            if (!streamUrl) {
+                updateStatus('Please enter a stream URL', 'error');
+                return;
+            }
+
+            currentStreamUrl = streamUrl;
+            updateStatus('Loading stream...', 'info');
+
+            player.src({
+                src: streamUrl,
+                type: 'application/x-mpegURL'
+            });
+
+            player.load();
+        }
+
+        function playVideo() {
+            if (player) {
+                player.play().then(() => {
+                    updateStatus('Play command successful', 'success');
+                }).catch(error => {
+                    updateStatus('Play failed: ' + error.message, 'error');
+                });
+            }
+        }
+
+        function pauseVideo() {
+            if (player) {
+                player.pause();
+                updateStatus('Video paused', 'info');
+            }
+        }
+
+        function reloadVideo() {
+            if (currentStreamUrl) {
+                loadStream();
+            } else {
+                updateStatus('No stream loaded to reload', 'error');
+            }
+        }
+
+        function checkVideoState() {
+            if (!player) {
+                updateStatus('Player not initialized', 'error');
+                return;
+            }
+
+            const state = {
+                readyState: player.readyState(),
+                networkState: player.networkState(),
+                paused: player.paused(),
+                ended: player.ended(),
+                currentTime: player.currentTime(),
+                duration: player.duration(),
+                src: player.currentSrc(),
+                error: player.error()
+            };
+
+            console.log('Video state:', state);
+            updateStatus(`State: readyState=${state.readyState}, networkState=${state.networkState}, paused=${state.paused}`, 'info');
+        }
+
+        async function runDebugTests() {
+            const debugInfo = document.getElementById('debugInfo');
+            debugInfo.textContent = 'Running debug tests...';
+            debugInfo.className = 'status info';
+
+            const tests = [];
+
+            // Test 1: Check if VideoJS is loaded
+            tests.push({
+                name: 'VideoJS Loaded',
+                test: () => typeof videojs !== 'undefined',
+                message: 'VideoJS library is available'
+            });
+
+            // Test 2: Check if player is initialized
+            tests.push({
+                name: 'Player Initialized',
+                test: () => player && typeof player.readyState === 'function',
+                message: 'Video player is properly initialized'
+            });
+
+            // Test 3: Check HLS support
+            tests.push({
+                name: 'HLS Support',
+                test: () => {
+                    const video = document.createElement('video');
+                    return video.canPlayType('application/vnd.apple.mpegurl') !== '' ||
+                           video.canPlayType('application/x-mpegURL') !== '';
+                },
+                message: 'Browser supports HLS playback'
+            });
+
+            // Test 4: Check network connectivity
+            tests.push({
+                name: 'Network Connectivity',
+                test: async () => {
+                    try {
+                        const response = await fetch('http://localhost:8000/live');
+                        return response.status < 500;
+                    } catch {
+                        return false;
+                    }
+                },
+                message: 'Can reach streaming server'
+            });
+
+            let results = [];
+            for (const test of tests) {
+                try {
+                    const passed = await test.test();
+                    results.push(`${passed ? '✅' : '❌'} ${test.name}: ${test.message}`);
+                } catch (error) {
+                    results.push(`❌ ${test.name}: Error - ${error.message}`);
+                }
+            }
+
+            debugInfo.innerHTML = results.join('<br>');
+            debugInfo.className = 'status info';
+        }
+    </script>
+</body>
+</html> 

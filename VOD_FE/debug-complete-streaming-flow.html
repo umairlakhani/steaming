@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete Streaming Flow Debug Tool</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .warning { background-color: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .log {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background-color: #0056b3; }
+        button:disabled { background-color: #6c757d; cursor: not-allowed; }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        .test-section {
+            background-color: #e9ecef;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .test-result.success { background-color: #d4edda; }
+        .test-result.error { background-color: #f8d7da; }
+        .test-result.warning { background-color: #fff3cd; }
+        .test-result.info { background-color: #d1ecf1; }
+        #videoElement {
+            width: 100%;
+            max-width: 640px;
+            height: auto;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background-color: #007bff;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <h1>Complete Streaming Flow Debug Tool</h1>
+    <p>This tool tests the entire streaming flow from backend to frontend to identify where the issue is occurring.</p>
+    
+    <div class="container">
+        <h2>Backend Connectivity Tests</h2>
+        <button onclick="testBackendHealth()">Test Backend Health</button>
+        <button onclick="testMediaSoupStatus()">Test MediaSoup Status</button>
+        <button onclick="testInternalVideoExpose()">Test Internal Video Expose</button>
+        <button onclick="testStreamStatus()">Test Stream Status</button>
+        <div id="backend-results"></div>
+    </div>
+
+    <div class="container">
+        <h2>Frontend WebRTC Tests</h2>
+        <button onclick="testWebRTCConnection()">Test WebRTC Connection</button>
+        <button onclick="testMediaSoupClient()">Test MediaSoup Client</button>
+        <button onclick="testVideoElement()">Test Video Element</button>
+        <div id="frontend-results"></div>
+    </div>
+
+    <div class="grid">
+        <div class="container">
+            <h2>Video Element Status</h2>
+            <video id="videoElement" autoplay muted playsinline></video>
+            <div id="video-status" class="status info">Video element created</div>
+            <div id="video-properties"></div>
+        </div>
+
+        <div class="container">
+            <h2>Stream Information</h2>
+            <div id="stream-info"></div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>Complete Flow Test</h2>
+        <button onclick="runCompleteFlowTest()">Run Complete Flow Test</button>
+        <div class="progress-bar">
+            <div id="progress-fill" class="progress-fill" style="width: 0%"></div>
+        </div>
+        <div id="flow-results"></div>
+    </div>
+
+    <div class="container">
+        <h2>Debug Log</h2>
+        <div id="log" class="log"></div>
+    </div>
+
+    <script>
+        const BACKEND_URL = 'http://localhost:3000';
+        let currentStreamId = null;
+        let testResults = {};
+
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.innerHTML = `<span style="color: #666;">[${timestamp}]</span> <span style="color: ${type === 'error' ? '#dc3545' : type === 'success' ? '#28a745' : type === 'warning' ? '#ffc107' : '#007bff'}">${message}</span>`;
+            logDiv.appendChild(logEntry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(`[${timestamp}] ${message}`);
+        }
+
+        function updateProgress(percent) {
+            document.getElementById('progress-fill').style.width = percent + '%';
+        }
+
+        function addTestResult(containerId, title, result, type = 'info') {
+            const container = document.getElementById(containerId);
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result ${type}`;
+            resultDiv.innerHTML = `<strong>${title}:</strong> ${result}`;
+            container.appendChild(resultDiv);
+        }
+
+        async function testBackendHealth() {
+            log('🔍 Testing backend health...', 'info');
+            addTestResult('backend-results', 'Backend Health', 'Testing...', 'info');
+            
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/health`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    log('✅ Backend health check successful', 'success');
+                    addTestResult('backend-results', 'Backend Health', '✅ Connected', 'success');
+                    testResults.backendHealth = true;
+                } else {
+                    log('❌ Backend health check failed', 'error');
+                    addTestResult('backend-results', 'Backend Health', '❌ Failed', 'error');
+                    testResults.backendHealth = false;
+                }
+            } catch (error) {
+                log(`❌ Backend health check error: ${error.message}`, 'error');
+                addTestResult('backend-results', 'Backend Health', `❌ Error: ${error.message}`, 'error');
+                testResults.backendHealth = false;
+            }
+        }
+
+        async function testMediaSoupStatus() {
+            log('🔍 Testing MediaSoup status...', 'info');
+            addTestResult('backend-results', 'MediaSoup Status', 'Testing...', 'info');
+            
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/mediasoup-status`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    log('✅ MediaSoup status check successful', 'success');
+                    log(`MediaSoup details: ${JSON.stringify(data)}`, 'info');
+                    
+                    const status = data.workerReady && data.hasWorker && data.hasRouter ? '✅ Ready' : '⚠️ Not Ready';
+                    addTestResult('backend-results', 'MediaSoup Status', status, data.workerReady ? 'success' : 'warning');
+                    addTestResult('backend-results', 'MediaSoup Details', `Worker: ${data.workerReady}, Router: ${data.hasRouter}`, 'info');
+                    
+                    testResults.mediaSoupStatus = data;
+                } else {
+                    log('❌ MediaSoup status check failed', 'error');
+                    addTestResult('backend-results', 'MediaSoup Status', '❌ Failed', 'error');
+                    testResults.mediaSoupStatus = false;
+                }
+            } catch (error) {
+                log(`❌ MediaSoup status check error: ${error.message}`, 'error');
+                addTestResult('backend-results', 'MediaSoup Status', `❌ Error: ${error.message}`, 'error');
+                testResults.mediaSoupStatus = false;
+            }
+        }
+
+        async function testInternalVideoExpose() {
+            log('🔍 Testing internal video expose...', 'info');
+            addTestResult('backend-results', 'Internal Video Expose', 'Testing...', 'info');
+            
+            try {
+                const response = await fetch(`${BACKEND_URL}/internal/videoExpose`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    log('✅ Internal video expose check successful', 'success');
+                    log(`Video expose details: ${JSON.stringify(data)}`, 'info');
+                    
+                    const status = data.status === 'active' ? '✅ Active' : '⚠️ Not Active';
+                    addTestResult('backend-results', 'Internal Video Expose', status, data.status === 'active' ? 'success' : 'warning');
+                    addTestResult('backend-results', 'Stream Info', `Type: ${data.streamType}, Video: ${data.hasVideo}, Audio: ${data.hasAudio}`, 'info');
+                    
+                    if (data.streamId) {
+                        currentStreamId = data.streamId;
+                        testResults.internalVideoExpose = data;
+                    }
+                } else {
+                    log('❌ Internal video expose check failed', 'error');
+                    addTestResult('backend-results', 'Internal Video Expose', `❌ Failed: ${data.message || 'Unknown error'}`, 'error');
+                    testResults.internalVideoExpose = false;
+                }
+            } catch (error) {
+                log(`❌ Internal video expose check error: ${error.message}`, 'error');
+                addTestResult('backend-results', 'Internal Video Expose', `❌ Error: ${error.message}`, 'error');
+                testResults.internalVideoExpose = false;
+            }
+        }
+
+        async function testStreamStatus() {
+            if (!currentStreamId) {
+                log('⚠️ No stream ID available for status test', 'warning');
+                addTestResult('backend-results', 'Stream Status', '⚠️ No stream ID', 'warning');
+                return;
+            }
+            
+            log(`🔍 Testing stream status for ${currentStreamId}...`, 'info');
+            addTestResult('backend-results', 'Stream Status', 'Testing...', 'info');
+            
+            try {
+                const response = await fetch(`${BACKEND_URL}/internal/stream-status/${currentStreamId}`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    log('✅ Stream status check successful', 'success');
+                    log(`Stream status details: ${JSON.stringify(data)}`, 'info');
+                    
+                    const status = data.status === 'ON_AIR' ? '✅ On Air' : '⚠️ Not On Air';
+                    addTestResult('backend-results', 'Stream Status', status, data.status === 'ON_AIR' ? 'success' : 'warning');
+                    
+                    if (data.mediaSoupStatus) {
+                        const msStatus = data.mediaSoupStatus.hasVideo || data.mediaSoupStatus.hasAudio ? '✅ Active' : '❌ Inactive';
+                        addTestResult('backend-results', 'MediaSoup Producers', msStatus, data.mediaSoupStatus.hasVideo ? 'success' : 'error');
+                    }
+                    
+                    testResults.streamStatus = data;
+                } else {
+                    log('❌ Stream status check failed', 'error');
+                    addTestResult('backend-results', 'Stream Status', '❌ Failed', 'error');
+                    testResults.streamStatus = false;
+                }
+            } catch (error) {
+                log(`❌ Stream status check error: ${error.message}`, 'error');
+                addTestResult('backend-results', 'Stream Status', `❌ Error: ${error.message}`, 'error');
+                testResults.streamStatus = false;
+            }
+        }
+
+        async function testWebRTCConnection() {
+            log('🔍 Testing WebRTC connection...', 'info');
+            addTestResult('frontend-results', 'WebRTC Connection', 'Testing...', 'info');
+            
+            try {
+                // Test if WebRTC is supported
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    throw new Error('WebRTC not supported');
+                }
+                
+                // Test getting user media
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                
+                log('✅ WebRTC connection test successful', 'success');
+                addTestResult('frontend-results', 'WebRTC Connection', '✅ Supported', 'success');
+                addTestResult('frontend-results', 'Media Devices', `Video: ${stream.getVideoTracks().length}, Audio: ${stream.getAudioTracks().length}`, 'success');
+                
+                // Stop the test stream
+                stream.getTracks().forEach(track => track.stop());
+                
+                testResults.webRTCConnection = true;
+            } catch (error) {
+                log(`❌ WebRTC connection test failed: ${error.message}`, 'error');
+                addTestResult('frontend-results', 'WebRTC Connection', `❌ Failed: ${error.message}`, 'error');
+                testResults.webRTCConnection = false;
+            }
+        }
+
+        async function testMediaSoupClient() {
+            log('🔍 Testing MediaSoup client...', 'info');
+            addTestResult('frontend-results', 'MediaSoup Client', 'Testing...', 'info');
+            
+            try {
+                // Test if we can create a MediaSoup device
+                if (typeof mediasoup === 'undefined') {
+                    throw new Error('MediaSoup client library not loaded');
+                }
+                
+                log('✅ MediaSoup client test successful', 'success');
+                addTestResult('frontend-results', 'MediaSoup Client', '✅ Available', 'success');
+                
+                testResults.mediaSoupClient = true;
+            } catch (error) {
+                log(`❌ MediaSoup client test failed: ${error.message}`, 'error');
+                addTestResult('frontend-results', 'MediaSoup Client', `❌ Failed: ${error.message}`, 'error');
+                testResults.mediaSoupClient = false;
+            }
+        }
+
+        async function testVideoElement() {
+            log('🔍 Testing video element...', 'info');
+            addTestResult('frontend-results', 'Video Element', 'Testing...', 'info');
+            
+            const video = document.getElementById('videoElement');
+            
+            try {
+                // Test creating a simple video stream
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                video.srcObject = stream;
+                
+                // Wait for video to be ready
+                await new Promise((resolve) => {
+                    const onReady = () => {
+                        video.removeEventListener('loadedmetadata', onReady);
+                        video.removeEventListener('canplay', onReady);
+                        resolve();
+                    };
+                    video.addEventListener('loadedmetadata', onReady);
+                    video.addEventListener('canplay', onReady);
+                    setTimeout(resolve, 5000); // Timeout after 5 seconds
+                });
+                
+                // Check video state
+                const state = {
+                    readyState: video.readyState,
+                    networkState: video.networkState,
+                    videoWidth: video.videoWidth,
+                    videoHeight: video.videoHeight,
+                    srcObject: !!video.srcObject
+                };
+                
+                log('✅ Video element test successful', 'success');
+                addTestResult('frontend-results', 'Video Element', '✅ Working', 'success');
+                addTestResult('frontend-results', 'Video State', `Ready: ${state.readyState}, Network: ${state.networkState}, Size: ${state.videoWidth}x${state.videoHeight}`, 'info');
+                
+                // Stop the test stream
+                stream.getTracks().forEach(track => track.stop());
+                
+                testResults.videoElement = state;
+            } catch (error) {
+                log(`❌ Video element test failed: ${error.message}`, 'error');
+                addTestResult('frontend-results', 'Video Element', `❌ Failed: ${error.message}`, 'error');
+                testResults.videoElement = false;
+            }
+        }
+
+        async function runCompleteFlowTest() {
+            log('🚀 Starting complete flow test...', 'info');
+            updateProgress(0);
+            
+            // Clear previous results
+            document.getElementById('backend-results').innerHTML = '';
+            document.getElementById('frontend-results').innerHTML = '';
+            document.getElementById('flow-results').innerHTML = '';
+            
+            const steps = [
+                { name: 'Backend Health', func: testBackendHealth, progress: 10 },
+                { name: 'MediaSoup Status', func: testMediaSoupStatus, progress: 20 },
+                { name: 'Internal Video Expose', func: testInternalVideoExpose, progress: 30 },
+                { name: 'Stream Status', func: testStreamStatus, progress: 40 },
+                { name: 'WebRTC Connection', func: testWebRTCConnection, progress: 50 },
+                { name: 'MediaSoup Client', func: testMediaSoupClient, progress: 60 },
+                { name: 'Video Element', func: testVideoElement, progress: 70 }
+            ];
+            
+            for (let i = 0; i < steps.length; i++) {
+                const step = steps[i];
+                log(`📋 Step ${i + 1}/${steps.length}: ${step.name}`, 'info');
+                
+                try {
+                    await step.func();
+                    updateProgress(step.progress);
+                    await new Promise(resolve => setTimeout(resolve, 1000)); // Wait between steps
+                } catch (error) {
+                    log(`❌ Step ${step.name} failed: ${error.message}`, 'error');
+                }
+            }
+            
+            // Analyze results
+            updateProgress(100);
+            analyzeResults();
+        }
+
+        function analyzeResults() {
+            log('📊 Analyzing test results...', 'info');
+            
+            const analysis = [];
+            
+            // Check backend connectivity
+            if (testResults.backendHealth) {
+                analysis.push('✅ Backend is reachable');
+            } else {
+                analysis.push('❌ Backend is not reachable - check if server is running');
+            }
+            
+            // Check MediaSoup
+            if (testResults.mediaSoupStatus && testResults.mediaSoupStatus.workerReady) {
+                analysis.push('✅ MediaSoup worker is ready');
+            } else {
+                analysis.push('❌ MediaSoup worker is not ready - check MediaSoup configuration');
+            }
+            
+            // Check video expose
+            if (testResults.internalVideoExpose && testResults.internalVideoExpose.status === 'active') {
+                analysis.push('✅ Internal video expose is working');
+            } else {
+                analysis.push('❌ Internal video expose is not working - check stream status');
+            }
+            
+            // Check WebRTC
+            if (testResults.webRTCConnection) {
+                analysis.push('✅ WebRTC is supported and working');
+            } else {
+                analysis.push('❌ WebRTC is not working - check browser support');
+            }
+            
+            // Check video element
+            if (testResults.videoElement && testResults.videoElement.readyState > 0) {
+                analysis.push('✅ Video element is working');
+            } else {
+                analysis.push('❌ Video element is not working - check video playback');
+            }
+            
+            // Determine the main issue
+            let mainIssue = 'Unknown issue';
+            if (!testResults.backendHealth) {
+                mainIssue = 'Backend server is not running or not accessible';
+            } else if (!testResults.mediaSoupStatus?.workerReady) {
+                mainIssue = 'MediaSoup worker is not ready';
+            } else if (!testResults.internalVideoExpose?.status === 'active') {
+                mainIssue = 'No active stream available for processing';
+            } else if (!testResults.webRTCConnection) {
+                mainIssue = 'WebRTC is not supported in this browser';
+            } else if (!testResults.videoElement?.readyState > 0) {
+                mainIssue = 'Video element cannot play the stream';
+            } else {
+                mainIssue = 'All components are working - issue may be in application logic';
+            }
+            
+            // Display results
+            const flowResults = document.getElementById('flow-results');
+            flowResults.innerHTML = `
+                <h3>Analysis Results:</h3>
+                <div class="test-section">
+                    ${analysis.map(item => `<div class="test-result ${item.startsWith('✅') ? 'success' : 'error'}">${item}</div>`).join('')}
+                </div>
+                <h3>Main Issue:</h3>
+                <div class="test-result warning">${mainIssue}</div>
+                <h3>Recommendations:</h3>
+                <div class="test-section">
+                    ${getRecommendations(mainIssue)}
+                </div>
+            `;
+            
+            log('📊 Analysis complete', 'success');
+        }
+
+        function getRecommendations(issue) {
+            const recommendations = {
+                'Backend server is not running or not accessible': [
+                    'Start the backend server: npm start or node app.js',
+                    'Check if the server is running on port 3000',
+                    'Verify firewall settings',
+                    'Check server logs for errors'
+                ],
+                'MediaSoup worker is not ready': [
+                    'Check MediaSoup configuration in Video-Processing/controller/liveStreamingController.js',
+                    'Verify STUN server configuration',
+                    'Check if MediaSoup dependencies are installed',
+                    'Restart the MediaSoup worker'
+                ],
+                'No active stream available for processing': [
+                    'Start a live stream first',
+                    'Check if the stream is properly created',
+                    'Verify stream status in database',
+                    'Check MediaSoup producers'
+                ],
+                'WebRTC is not supported in this browser': [
+                    'Use a modern browser (Chrome, Firefox, Safari, Edge)',
+                    'Enable WebRTC in browser settings',
+                    'Check if HTTPS is required for WebRTC',
+                    'Try a different browser'
+                ],
+                'Video element cannot play the stream': [
+                    'Check video element configuration',
+                    'Verify MediaStream is properly attached',
+                    'Check browser autoplay policies',
+                    'Ensure video tracks are enabled'
+                ],
+                'All components are working - issue may be in application logic': [
+                    'Check frontend application logs',
+                    'Verify WebRTC connection establishment',
+                    'Check MediaSoup consumer creation',
+                    'Review video playback logic in viewer component'
+                ]
+            };
+            
+            const recs = recommendations[issue] || ['Check all components systematically'];
+            return recs.map(rec => `<div class="test-result info">• ${rec}</div>`).join('');
+        }
+
+        // Initialize on page load
+        window.addEventListener('load', () => {
+            log('Complete Streaming Flow Debug Tool loaded', 'info');
+            log('Click "Run Complete Flow Test" to diagnose the entire streaming pipeline', 'info');
+        });
+    </script>
+</body>
+</html> 

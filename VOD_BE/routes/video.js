@@ -38,6 +38,7 @@ router.get('/owned/publishedById/:id',authorization, videoController.ownedListSi
 router.get('/owned/complete-archived',authorization, videoController.ownedListCompleteArchived);
 router.get('/owned/published',authorization, videoController.ownedListPublished);
 router.get('/owned/published/processed',authorization, videoController.ownedListPublishedProcessed);
+router.get('/roku/manifest',authorization, videoController.generateRokuManifest);
 router.get('/livestreaming-videos',authorization, videoController.liveStreamingVideos);
 router.get('/livestreaming/user',authorization, videoController.getLiveStreamingOnAir);
 router.get('/public/:id', videoController.getUserPublicVideos);

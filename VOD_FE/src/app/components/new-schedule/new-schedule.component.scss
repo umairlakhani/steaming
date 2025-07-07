@@ -57,6 +57,30 @@ p,h1,h2,h3,h4,h5,small,p,label,h6,button,textarea,div,span,b{
 .header-title-content {
   display: flex;
   align-items: center;
+  
+  .calendar-icon-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    &:hover {
+      transform: scale(1.05);
+      opacity: 0.8;
+    }
+    
+    &:active {
+      transform: scale(0.95);
+    }
+    
+    svg {
+      pointer-events: none;
+    }
+  }
 }
 .header-container img {
   max-width: 100%; /* Set the maximum width to 100% in mobile view */

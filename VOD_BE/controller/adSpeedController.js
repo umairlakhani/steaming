@@ -901,7 +901,7 @@ async function editAd(req, res, next) {
     name: Joi.string().required(),
     weight: Joi.string().required(),
     // width: Joi.string().allow(""),
-    originalName: Joi.string().required(),
+    // originalName: Joi.string().required(),
     skipAd: Joi.boolean().required(),
     skippable: Joi.optional(),
   });
@@ -1204,9 +1204,8 @@ async function videoUpload(req, res, next) {
 
         console.log(newFilename, "newFilename");
         const uploadParams = {
-          // Bucket: 'wrapper-files',
-          Bucket: `${bucketId}`,
-          Key: `${bucketId}/ads/${newFilename}`,
+          Bucket: 'media-buckets',
+          Key: `media-buckets/users/${bucketId}/videoPublish/${newFilename}`,
           Body: fs.createReadStream(videoPath),
         };
 
@@ -1220,51 +1219,19 @@ async function videoUpload(req, res, next) {
 
         console.log(uploadResult.Location, "Location upload");
         let checkvideoUrl = (videoUrl) => {
-          // if (!videoUrl.startsWith(`https://${bucketId}.`)) {
-          //   videoUrl = `https://${bucketId}.` + videoUrl;
-          // }
-          // also check if/wrapper-files/wrapper-files/ remove  one /wrapper-files/
-          if (videoUrl.includes(`${bucketId}/${bucketId}/`)) {
-            videoUrl = videoUrl.replace(
-              `${bucketId}/${bucketId}/`,
-              `${bucketId}/`
-            );
+          // Ensure the URL is in the correct format for public access
+          // DigitalOcean Spaces public URL: https://media-buckets.REGION.digitaloceanspaces.com/users/{bucketId}/videoAds/{filename}
+          // If Location is not in this format, fix it
+          if (!videoUrl.startsWith(`https://media-buckets.`)) {
+            // Try to construct the correct URL
+            const region = process.env.REGION || 'nyc3';
+            return `https://media-buckets.${region}.digitaloceanspaces.com/media-buckets/users/${bucketId}/videoPublish/${newFilename}`;
           }
-
-          if (
-            videoUrl.includes(
-              `https://${process.env.REGION}.digitaloceanspaces.com/`
-            )
-          ) {
-            videoUrl = videoUrl.replace(
-              `https://${process.env.REGION}.digitaloceanspaces.com/`,
-              `https://${bucketId}.${process.env.REGION}.digitaloceanspaces.com/`
-            );
-          }
-
-          if (!videoUrl.includes(`https://${bucketId}`)) {
-            videoUrl = `https://${bucketId}.${videoUrl}`;
-          }
-
-          //   // check string nyc3 and replace with nyc3.cdn
-          //   if (videoUrl.includes('nyc3')) {
-          //     videoUrl = videoUrl.replace('nyc3', 'sfo3');
-          //   }
-          // }
-          // if (videoUrl.includes(`temp-video/${bucketId}/`)) {
-          //   videoUrl = videoUrl.replace(
-          //     `temp-video/${bucketId}/`,
-          //     `${bucketId}/`,
-          //   );
-          // }
-
-          // return `https://${bucketId}.${videoUrl}`;
           return videoUrl;
         };
 
         let videoUrl = checkvideoUrl(uploadResult.Location);
         console.log(videoUrl, "final videoUrl");
-        // const videoUrl = `https://${bucketId}.${uploadResult.Location}`;
 
         await prisma.videoData.create({
           data: {
@@ -1275,10 +1242,6 @@ async function videoUpload(req, res, next) {
         // send the video to the queue for processing
         console.log(videoUrl, "check videourl while uplloadin");
 
-        // await adsVideoQueue.add('videojob', {
-        //   videoId: newFilename,
-        //   videoUrl: videoUrl,
-        // });
         let storageUsed = await getBucketCurrentStorage(bucketId);
         console.log(storageUsed, "storageUsed");
 

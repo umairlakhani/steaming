@@ -45,78 +45,68 @@ export class ViewerComponent implements OnDestroy {
   isRTMPStream: boolean = false; // Add this line
   player: any;
   userData: any = this.userService.getTokenData();
-  // constructor(
-  //   private route: ActivatedRoute,
-  //   private router: Router,
-  //   private videoService: VideoService,
-  //   private userService: UserService,
-  //   private toasterService: ToastrService,
-  //   private spinnerService: SpinnerService,
-  //   private rendered: Renderer2
-  // ) {
-  //   this.route.params.subscribe((res) => {
-  //     this.liveStreamId = (res as any).id.split("_")[0];
-  //     this.liveStreamKey = (res as any).id.split("_")[1];
-  //     this.liveStreamKeyUrl = `${environment.RTMP_URL}/${this.liveStreamKey}/index.m3u8`;
-  //     console.log((res as any).id, "chec params");
-  //   });
-  // }
 
-constructor(
-  private route: ActivatedRoute,
-  private router: Router,
-  private videoService: VideoService,
-  private userService: UserService,
-  private toasterService: ToastrService,
-  private spinnerService: SpinnerService,
-  private rendered: Renderer2
-) {
-  this.route.params.subscribe((res) => {
-    console.log("=== ROUTE DEBUG ===");
-    console.log("Route param received:", (res as any).id);
-    
-    const routeParam = (res as any).id;
-
-    
-    // Check if the ID contains an underscore (old format) or not
-    if (routeParam.includes('_')) {
-      // Format: streamId_streamKey
-      this.liveStreamId = routeParam.split("_")[0];
-      this.liveStreamKey = routeParam.split("_")[1];
-      this.isRTMPStream = true;
-    } else {
-      // Single parameter - need to determine if it's a stream ID or stream key
-      this.liveStreamId = routeParam;
+  constructor(
+    private route: ActivatedRoute,
+    private router: Router,
+    private videoService: VideoService,
+    private userService: UserService,
+    private toasterService: ToastrService,
+    private spinnerService: SpinnerService,
+    private rendered: Renderer2
+  ) {
+    this.route.params.subscribe((res) => {
+      console.log("=== ROUTE DEBUG ===");
+      console.log("Route param received:", (res as any).id);
       
-      // Check if it looks like a stream key (shorter, alphanumeric) vs stream ID (longer, numeric)
-      if (routeParam.length <= 12 && /^[a-zA-Z0-9]+$/.test(routeParam)) {
-        // Looks like a stream key (e.g., "8f1SGyR84J")
-        this.liveStreamKey = routeParam;
+      const routeParam = (res as any).id;
+      
+      // Detect stream type based on parameter format
+      if (routeParam.includes('_')) {
+        // Format: streamId_streamKey (OBS/RTMP stream)
+        this.liveStreamId = routeParam.split("_")[0];
+        this.liveStreamKey = routeParam.split("_")[1];
         this.isRTMPStream = true;
-        console.log("Detected RTMP stream key:", this.liveStreamKey);
+        this.liveStreamKeyUrl = `${environment.RTMP_URL}/${this.liveStreamKey}/index.m3u8`;
+        console.log("OBS/RTMP Stream detected:", this.liveStreamKeyUrl);
       } else {
-        // Looks like a stream ID (e.g., "31751583506054")
-        this.liveStreamKey = null;
-        this.isRTMPStream = false;
-        console.log("Detected WebRTC stream ID:", this.liveStreamId);
+        // Single parameter - could be either Webcam/WebRTC or OBS stream
+        this.liveStreamId = routeParam;
+        
+        // **NEW**: Check if this is an OBS stream by testing the URL
+        const testOBSUrl = `${environment.RTMP_URL}/${routeParam}/index.m3u8`;
+        console.log("Testing OBS URL:", testOBSUrl);
+        
+        // Test if OBS stream exists
+        fetch(testOBSUrl)
+          .then(response => {
+            if (response.ok) {
+              // This is an OBS stream
+              this.liveStreamKey = routeParam;
+              this.isRTMPStream = true;
+              this.liveStreamKeyUrl = testOBSUrl;
+              console.log("✅ OBS/RTMP Stream detected:", this.liveStreamKeyUrl);
+              
+              // Re-trigger stream setup
+              this.streamLive();
+            } else {
+              // This is a Webcam/WebRTC stream
+              this.liveStreamKey = null;
+              this.isRTMPStream = false;
+              this.liveStreamKeyUrl = null;
+              console.log("Webcam/WebRTC Stream detected:", this.liveStreamId);
+            }
+          })
+          .catch(error => {
+            // This is a Webcam/WebRTC stream
+            this.liveStreamKey = null;
+            this.isRTMPStream = false;
+            this.liveStreamKeyUrl = null;
+            console.log("Webcam/WebRTC Stream detected:", this.liveStreamId);
+          });
       }
-    }
-    
-    console.log("Parsed liveStreamId:", this.liveStreamId);
-    console.log("Parsed liveStreamKey:", this.liveStreamKey);
-    console.log("Is RTMP stream:", this.isRTMPStream);
-    
-    // Only set the RTMP URL if this is an RTMP stream
-          // this.liveStreamKeyUrl = `${environment.RTMP_URL}/8f1SGyR84J/index.m3u8`;
-    if (this.isRTMPStream && this.liveStreamKey) {
-      this.liveStreamKeyUrl = `${environment.RTMP_URL}/${this.liveStreamKey}/index.m3u8`;
-      console.log("RTMP URL:", this.liveStreamKeyUrl);
-    } else {
-      console.log("WebRTC stream - no RTMP URL needed");
-      this.liveStreamKeyUrl = null;
-    }
-  });
-}
+    });
+  }
 
   private audioTrack: MediaStreamTrack | null = null;
   private videoTrack: MediaStreamTrack | null = null;
@@ -185,410 +175,73 @@ constructor(
     // Expose component to window for debugging
     (window as any).viewerComponent = this;
   }
-  // async streamLive(): Promise<void> {
-  //   // this.spinnerService.setLoading(true)
-  //   if (this.userData.premiumUser) {
-  //     this.videoService.getLiveStreamingRecord(this.liveStreamId).subscribe((res:any) => {
-  //       console.log(res,"streamres");
-  //       this.startTime=res.body.startTime
-  //       console.log(this.startTime);
-        
-        
-  //     })
-  //     this.videoService.getUserZoneTag(this.liveStreamId).subscribe((res) => {
-  //       console.log((res as any).body.data.tagUrl, "check res");
-  //       this.zoneTag = (res as any).body.data.tagUrl;
-  //       this.updateButtons();
-  //       // this.subscribe()
-  //       // let adTagUrl = 'https://g.adspeed.net/ad.php?do=vast&zid=124405&oid=28121&wd=-1&ht=-1&vastver=3&cb=1696931387378 https://g.adspeed.net/ad.php?do=vast&zid=124405&oid=28121&wd=-1&ht=-1&vastver=3&cb=1696931387378'
-  //       console.log(this.zoneTag, "this.zoneTagthis.zoneTag");
-  //       let adTagUrl = (res as any).body.data.tagUrl;
-  //       // let adTagUrl = ''
-  //       const imaOptions = {
-  //         id: "vid",
-  //         adTagUrl: adTagUrl,
-  //         adsPreroll: true,
-  //         adsMidroll: true,
-  //         adsPostroll: true,
-  //       };
-  //       this.player = videojs(
-  //         this.target.nativeElement,
-  //         {
-  //           fluid: true,
-  //           aspectRatio: "16:9",
-  //           autoplay: true,
-  //           sources: [
-  //             {
-  //               // src: "https://ed8c9b64-2079-4d32-bea7-af4167e08d5a.nyc3.digitaloceanspaces.com/ed8c9b64-2079-4d32-bea7-af4167e08d5a/videos/360p/07172baded933a8c0f5314602.m3u8?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=DO00KPNX4XJ26QDZXVTL%2F20231012%2Fnyc3%2Fs3%2Faws4_request&X-Amz-Date=20231012T093243Z&X-Amz-Expires=3600&X-Amz-Signature=076d07c0ab1a0295f86a5e492811bec5beedf6d1b22294aee59cbe3c439f5f05&X-Amz-SignedHeaders=host&x-id=GetObject",
-  //               src: `${this.liveStreamKeyUrl}`,
-  //               type: "application/x-mpegURL",
-  //             },
-  //           ],
-  //         },
-  //         () => {
-  //           console.log("Player ready");
-  //           this.player.ready(() => {
-  //             const customTimeDisplay = document.createElement('div');
-  //             customTimeDisplay.className = 'custom-time-display vjs-time-control vjs-control';
-        
-  //             const controlBar = this.player.controlBar.el();
-  //             controlBar.appendChild(customTimeDisplay);
-        
-  //             // Update total duration every second
-  //             setInterval(() => {
-  //               this.updateTotalDuration(this.player, customTimeDisplay);
-  //             }, 1000);
-  //           });
-          
-        
-  //           if (adTagUrl != "" || this.liveStreamKey) {
-  //             this.player.ima(imaOptions);
-  //           } else {
-  //             this.player.options_.sources = [];
-  //             let ele = document.querySelector(".vjs-error-display");
-  //             this.rendered.setStyle(ele, "display", "none");
-  //             !this.liveStreamKey ? this.subscribe() : null;
-  //           }
-  //         }
-  //       );
-
-  //       const retryOnError = () => {
-  //         console.log("Error occurred. Retrying...");
-  //         if (this.liveStreamKey) {
-  //           setTimeout(() => {
-  //             this.player.src({
-  //               src: this.player.src(), // Used the same source as before
-  //               type: "application/x-mpegURL",
-  //             });
-  //             this.player.play();
-  //           }, 5000);
-  //         }
-  //       };
-  //       if (this.liveStreamKey) {
-  //         this.player.on("error", retryOnError);
-  //       }
-
-  //       if (adTagUrl != "") {
-  //         this.player.on("error", retryOnError);
-  //         this.player.one("loadedmetadata", () => {
-  //           console.log(this.player, "check this.player");
-  //           console.log("meta data loaded");
-  //           // this.player.ima.requestAds();
-  //           // this.player.play()
-  //         });
-
-  //         this.player.on("ads-manager", (event: any) => {
-  //           console.log("ads-manager event:", event);
-
-  //           const adsManager = event.adsManager;
-
-  //           if (adsManager) {
-  //             const googleNamespace: any = (window as any)["google"];
-
-  //             if (googleNamespace && googleNamespace.ima) {
-  //               adsManager.addEventListener(
-  //                 googleNamespace.ima.AdEvent.Type.STARTED,
-  //                 () => {
-  //                   console.log("Ad started");
-  //                 }
-  //               );
-
-  //               adsManager.addEventListener(
-  //                 googleNamespace.ima.AdEvent.Type.COMPLETE,
-  //                 () => {
-  //                   !this.liveStreamKey ? this.subscribe() : null;
-  //                   let ele = document.querySelector(".vjs-error-display");
-  //                   this.rendered.setStyle(ele, "display", "none");
-  //                   console.log("Ad has completed");
-  //                 }
-  //               );
-
-  //               adsManager.addEventListener(
-  //                 googleNamespace.ima.AdEvent.Type.SKIPPED,
-  //                 () => {
-  //                   console.log("Ad was skipped");
-  //                   console.log(this.player, "check player this.");
-  //                   this.player.options_.sources = [];
-
-  //                   !this.liveStreamKey ? this.subscribe() : null;
-  //                   let ele = document.querySelector(".vjs-error-display");
-  //                   this.rendered.setStyle(ele, "display", "none");
-  //                 }
-  //               );
-  //             } else {
-  //               console.error(
-  //                 "Google namespace or IMA SDK not found. Ensure the IMA SDK is loaded correctly."
-  //               );
-  //             }
-  //           }
-  //         });
-  //       }
-  //       console.log("=== ready ===");
-  //       console.log(this.isSocketConnected(), "this.isSocketConnected(");
-  //     });
-  //   } else {
-  //     this.router.navigate(["/dashboard"]);
-  //   }
-  // }
-// async streamLive(): Promise<void> {
-//   if (this.userData.premiumUser) {
-//     this.videoService.getLiveStreamingRecord(this.liveStreamId).subscribe((res: any) => {
-//       console.log(res, "streamres");
-//       this.startTime = res.body.startTime;
-//       console.log(this.startTime);
-//     });
-
-//     this.videoService.getUserZoneTag(this.liveStreamId).subscribe((res) => {
-//       console.log((res as any).body.data.tagUrl, "check res");
-//       this.zoneTag = (res as any).body.data.tagUrl;
-//       this.updateButtons();
-
-//       let adTagUrl = (res as any).body.data.tagUrl;
-//       const imaOptions = {
-//         id: "vid",
-//         adTagUrl: adTagUrl,
-//         adsPreroll: true,
-//         adsMidroll: true,
-//         adsPostroll: true,
-//       };
-
-//       // Determine video sources based on stream type
-//       const videoSources = [];
-      
-//       if (this.isRTMPStream && this.liveStreamKeyUrl) {
-//         console.log("Setting up RTMP/HLS player with URL:", this.liveStreamKeyUrl);
-//         videoSources.push({
-//           src: this.liveStreamKeyUrl,
-//           type: "application/x-mpegURL",
-//         });
-//       } else {
-//         console.log("Setting up WebRTC player (no video sources for VideoJS)");
-//         // For WebRTC, we'll use MediaSoup, not VideoJS sources
-//                 videoSources.push({
-//           src: this.liveStreamKeyUrl,
-//           type: "application/x-mpegURL",
-//         });
-//       }
-
-//       this.player = videojs(
-//         this.target.nativeElement,
-//         {
-//           fluid: true,
-//           aspectRatio: "16:9",
-//           autoplay: true,
-//           sources: videoSources,
-//         },
-//         () => {
-//           console.log("Player ready");
-//           this.player.ready(() => {
-//             const customTimeDisplay = document.createElement('div');
-//             customTimeDisplay.className = 'custom-time-display vjs-time-control vjs-control';
-
-//             const controlBar = this.player.controlBar.el();
-//             controlBar.appendChild(customTimeDisplay);
-
-//             setInterval(() => {
-//               this.updateTotalDuration(this.player, customTimeDisplay);
-//             }, 1000);
-//           });
-
-//           // Handle different stream types
-//           if (this.isRTMPStream && this.liveStreamKeyUrl) {
-//             // RTMP/HLS stream - VideoJS will handle it
-//             console.log("RTMP stream - VideoJS will handle playback");
-//             if (adTagUrl != "") {
-//               this.player.ima(imaOptions);
-//             }
-//           } else {
-//             // WebRTC stream - use MediaSoup
-//             console.log("WebRTC stream - using MediaSoup");
-//             this.player.options_.sources = [];
-//             let ele = document.querySelector(".vjs-error-display");
-//             this.rendered.setStyle(ele, "display", "none");
-//             this.subscribe(); // Start WebRTC subscription
-//           }
-//         }
-//       );
-
-//       // Error handling for RTMP streams
-//       if (this.isRTMPStream && this.liveStreamKeyUrl) {
-//         const retryOnError = () => {
-//           console.log("RTMP stream error. Retrying...");
-//           setTimeout(() => {
-//             this.player.src({
-//               src: this.liveStreamKeyUrl,
-//               type: "application/x-mpegURL",
-//             });
-//             this.player.play();
-//           }, 5000);
-//         };
-
-//         this.player.on("error", retryOnError);
-//       }
-
-//       // Ad handling (existing code)
-//       if (adTagUrl != "") {
-//         this.player.on("ads-manager", (event: any) => {
-//           console.log("ads-manager event:", event);
-//           const adsManager = event.adsManager;
-
-//           if (adsManager) {
-//             const googleNamespace: any = (window as any)["google"];
-//             if (googleNamespace && googleNamespace.ima) {
-//               adsManager.addEventListener(
-//                 googleNamespace.ima.AdEvent.Type.COMPLETE,
-//                 () => {
-//                   if (!this.isRTMPStream) {
-//                     this.subscribe(); // Only for WebRTC streams
-//                   }
-//                   let ele = document.querySelector(".vjs-error-display");
-//                   this.rendered.setStyle(ele, "display", "none");
-//                   console.log("Ad has completed");
-//                 }
-//               );
-
-//               adsManager.addEventListener(
-//                 googleNamespace.ima.AdEvent.Type.SKIPPED,
-//                 () => {
-//                   console.log("Ad was skipped");
-//                   if (!this.isRTMPStream) {
-//                     this.player.options_.sources = [];
-//                     this.subscribe(); // Only for WebRTC streams
-//                   }
-//                   let ele = document.querySelector(".vjs-error-display");
-//                   this.rendered.setStyle(ele, "display", "none");
-//                 }
-//               );
-//             }
-//           }
-//         });
-//       }
-
-//       console.log("=== ready ===");
-//     });
-//   } else {
-//     this.router.navigate(["/dashboard"]);
-//   }
-// }
 
 async streamLive(): Promise<void> {
   if (this.userData.premiumUser) {
-    this.videoService.getLiveStreamingRecord(this.liveStreamId).subscribe((res: any) => {
-      console.log(res, "streamres");
-      this.startTime = res.body.startTime;
-      console.log(this.startTime);
-    });
+    try {
+      // Get stream information
+      this.videoService.getLiveStreamingRecord(this.liveStreamId).subscribe((res: any) => {
+        console.log("Stream record:", res);
+        this.startTime = res.body.startTime;
+      });
 
-    this.videoService.getUserZoneTag(this.liveStreamId).subscribe((res) => {
-      console.log((res as any).body.data.tagUrl, "check res");
-      this.zoneTag = (res as any).body.data.tagUrl;
-      this.updateButtons();
+      this.videoService.getUserZoneTag(this.liveStreamId).subscribe((res) => {
+        console.log("Zone tag response:", res);
+        this.zoneTag = (res as any).body.data.tagUrl;
+        this.updateButtons();
 
-      let adTagUrl = (res as any).body.data.tagUrl;
-      const imaOptions = {
-        id: "vid",
-        adTagUrl: adTagUrl,
-        adsPreroll: true,
-        adsMidroll: true,
-        adsPostroll: true,
-      };
+        let adTagUrl = (res as any).body.data.tagUrl;
+        const imaOptions = {
+          id: "vid",
+          adTagUrl: adTagUrl,
+          adsPreroll: true,
+          adsMidroll: true,
+          adsPostroll: true,
+        };
 
-      console.log("=== STREAM TYPE DETECTION ===");
-      console.log("Is RTMP Stream:", this.isRTMPStream);
-      console.log("Stream Key:", this.liveStreamKey);
-      console.log("Stream ID:", this.liveStreamId);
-      console.log("HLS URL:", this.liveStreamKeyUrl);
+        console.log("=== STREAM SETUP ===");
+        console.log("Is RTMP Stream:", this.isRTMPStream);
+        console.log("Stream Key:", this.liveStreamKey);
+        console.log("Stream ID:", this.liveStreamId);
+        console.log("HLS URL:", this.liveStreamKeyUrl);
 
-      // **CRITICAL: Handle different stream types differently**
-      if (this.isRTMPStream && this.liveStreamKeyUrl) {
-        console.log("🎥 Setting up RTMP/HLS player");
-        this.setupRTMPPlayer(adTagUrl, imaOptions);
-      } else {
-        console.log("🌐 Setting up WebRTC player");
-        this.setupWebRTCPlayer(adTagUrl, imaOptions);
-      }
-    });
+        // Handle different stream types
+        if (this.isRTMPStream && this.liveStreamKeyUrl) {
+          console.log("🎥 Setting up OBS/RTMP player");
+          this.setupRTMPPlayer(adTagUrl, imaOptions);
+        } else {
+          console.log("🌐 Setting up Webcam/WebRTC player");
+          this.setupWebRTCPlayer(adTagUrl, imaOptions);
+        }
+      });
+    } catch (error) {
+      console.error("Error in streamLive:", error);
+      this.toasterService.error("Failed to load stream information");
+    }
   } else {
     this.router.navigate(["/dashboard"]);
   }
 }
 
-private handleVideoAutoplay() {
-  console.log("🎯 Handling video autoplay");
-  
-  // Check if we have a VideoJS player or native video element
-  if (this.player && typeof this.player.play === 'function') {
-    console.log("🎬 Using VideoJS player for autoplay");
-    this.handleVideoJSAutoplay();
-  } else {
-    console.log("🎬 Using native video element for autoplay");
-    this.handleNativeVideoAutoplay();
-  }
-}
-
-private handleVideoJSAutoplay() {
-  const player = this.player;
-  
-  // Check if video is already playing
-  if (!player.paused()) {
-    console.log("✅ VideoJS player is already playing");
-    this.showUnmuteNotification();
-    return;
-  }
-  
-  // Try to play muted first
-  player.muted(true);
-  this.isVideoMuted = true;
-  
-  player.play().then(() => {
-    console.log("✅ VideoJS player started playing (muted)");
-    this.showUnmuteNotification();
-  }).catch((error: any) => {
-    console.warn("⚠️ VideoJS autoplay failed:", error);
-    if (error.name === 'NotAllowedError') {
-      console.log("🔇 VideoJS autoplay blocked by browser policy");
-      this.showPlayButton(player.el());
-    }
-  });
-}
-
-private handleNativeVideoAutoplay() {
-  const videoElement = this.target.nativeElement;
-  
-  // Check if video is already playing
-  if (!videoElement.paused) {
-    console.log("✅ Native video is already playing");
-    this.showUnmuteNotification();
-    return;
-  }
-  
-  // Try to play muted first
-  videoElement.muted = true;
-  this.isVideoMuted = true;
-  
-  videoElement.play().then(() => {
-    console.log("✅ Native video started playing (muted)");
-    this.showUnmuteNotification();
-  }).catch((error: any) => {
-    console.warn("⚠️ Native video autoplay failed:", error);
-    if (error.name === 'NotAllowedError') {
-      console.log("🔇 Native video autoplay blocked by browser policy");
-      this.showPlayButton(videoElement);
-    }
-  });
-}
-
-private showUnmuteNotification() {
-  this.toasterService.info(
-    "Video is playing with muted audio. Click 'Enable Audio' to unmute.",
-    "Audio Muted",
-    { timeOut: 4000 }
-  );
-}
-
 private setupRTMPPlayer(adTagUrl: string, imaOptions: any) {
-  console.log("Setting up VideoJS for RTMP/HLS stream");
+  console.log("🎥 Setting up RTMP/HLS player with URL:", this.liveStreamKeyUrl);
   
+  // Test if the HLS stream is available first
+  fetch(this.liveStreamKeyUrl)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`HLS stream not available (${response.status})`);
+      }
+      console.log("✅ HLS stream is available");
+      this.initializeRTMPPlayer(adTagUrl, imaOptions);
+    })
+    .catch(error => {
+      console.error("❌ HLS stream not available:", error);
+      this.toasterService.error("Stream is not currently broadcasting. Please try again later.");
+    });
+}
+
+private initializeRTMPPlayer(adTagUrl: string, imaOptions: any) {
   const videoSources = [{
     src: this.liveStreamKeyUrl,
     type: "application/x-mpegURL",
@@ -599,30 +252,36 @@ private setupRTMPPlayer(adTagUrl: string, imaOptions: any) {
     {
       fluid: true,
       aspectRatio: "16:9",
-      autoplay: 'muted', // Changed from true to 'muted'
-      muted: true, // Start muted
+      autoplay: 'muted',
+      muted: true,
       sources: videoSources,
+      controls: true,
     },
     () => {
-      console.log("RTMP Player ready");
+      console.log("✅ RTMP Player ready");
       this.setupPlayerEventHandlers();
       
-      // Handle autoplay issues
       this.player.ready(() => {
         this.player.on('loadedmetadata', () => {
+          console.log("✅ Video metadata loaded");
           this.handleVideoAutoplay();
+        });
+        
+        this.player.on('error', (error: any) => {
+          console.error("❌ Video player error:", error);
+          this.toasterService.error("Video playback error. Please refresh the page.");
         });
       });
       
-      if (adTagUrl != "") {
+      if (adTagUrl && adTagUrl !== "") {
         this.player.ima(imaOptions);
       }
     }
   );
 
-  // Error handling for RTMP streams
+  // Error handling with retry
   this.player.on("error", () => {
-    console.log("RTMP stream error. Retrying...");
+    console.log("🔄 RTMP stream error. Retrying in 5 seconds...");
     setTimeout(() => {
       this.player.src({
         src: this.liveStreamKeyUrl,
@@ -635,53 +294,59 @@ private setupRTMPPlayer(adTagUrl: string, imaOptions: any) {
     }, 5000);
   });
 }
-// **NEW: WebRTC Player Setup**
+
 private setupWebRTCPlayer(adTagUrl: string, imaOptions: any) {
-  console.log("🌐 Setting up WebRTC player");
+  console.log("🌐 Setting up Webcam/WebRTC player");
   
-  // **IMPORTANT**: For WebRTC, use the native video element directly
+  // Clean up any existing VideoJS player
+  if (this.player) {
+    console.log("🗑️ Disposing of existing VideoJS player");
+    this.player.dispose();
+    this.player = null;
+  }
+  
+  // Configure native video element for WebRTC
   const videoElement = this.target.nativeElement;
   
-      // **CRITICAL**: Remove any VideoJS interference
-    if (this.player) {
-      console.log("🗑️ Disposing of existing VideoJS player...");
-      this.player.dispose();
-      this.player = null;
-    }
-    
-        // **CRITICAL**: Also check if VideoJS is attached to the video element itself
-    const currentVideoElement = this.target.nativeElement;
-    if ((currentVideoElement as any).player) {
-      console.log("🗑️ Disposing of VideoJS attached to video element...");
-      (currentVideoElement as any).player.dispose();
-      (currentVideoElement as any).player = null;
-    }
-    
-    // **CRITICAL**: Remove VideoJS classes that might interfere
-    currentVideoElement.classList.remove('video-js', 'vjs-default-skin', 'vjs-tech');
-    
-    // **CRITICAL**: Clear any VideoJS data attributes
-    const videoJSDataAttrs = ['data-setup', 'data-vjs-setup'];
-    videoJSDataAttrs.forEach(attr => {
-      currentVideoElement.removeAttribute(attr);
-    });
-    
-        // **IMPORTANT**: Configure video element for WebRTC
-    currentVideoElement.autoplay = true;
-    currentVideoElement.playsInline = true;
-    currentVideoElement.muted = true;
-    currentVideoElement.controls = true; // **CHANGED**: Enable controls for WebRTC
-    currentVideoElement.preload = 'metadata';
-    this.isVideoMuted = true;
-    
-    // **CRITICAL**: Clear any existing sources
-    currentVideoElement.src = '';
-    currentVideoElement.srcObject = null;
-    currentVideoElement.removeAttribute('src');
-    currentVideoElement.load();
+  // **CRITICAL**: Completely reset the video element
+  console.log("🔄 Resetting video element for WebRTC...");
+  
+  // Remove VideoJS classes and attributes
+  videoElement.classList.remove('video-js', 'vjs-default-skin', 'vjs-tech');
+  videoElement.removeAttribute('data-setup');
+  videoElement.removeAttribute('data-vjs-setup');
+  
+  // **IMPORTANT**: Clear all sources and properties
+  videoElement.pause();
+  videoElement.src = '';
+  videoElement.srcObject = null;
+  videoElement.removeAttribute('src');
+  videoElement.load();
+  
+  // **CRITICAL**: Set proper WebRTC properties
+  videoElement.autoplay = true;
+  videoElement.playsInline = true;
+  videoElement.muted = true;
+  videoElement.controls = true;
+  videoElement.preload = 'metadata';
+  
+  // **NEW**: Set additional WebRTC-specific properties
+  videoElement.setAttribute('playsinline', 'true');
+  videoElement.setAttribute('webkit-playsinline', 'true');
+  videoElement.setAttribute('x5-playsinline', 'true');
+  
+  console.log("✅ Video element reset and configured for WebRTC");
   
   console.log("✅ Native video element configured for WebRTC");
-  console.log("Starting WebRTC subscription...");
+  console.log("Video element state:", {
+    autoplay: videoElement.autoplay,
+    playsInline: videoElement.playsInline,
+    muted: videoElement.muted,
+    controls: videoElement.controls,
+    preload: videoElement.preload,
+    readyState: videoElement.readyState,
+    networkState: videoElement.networkState
+  });
   
   // Start WebRTC connection
   this.subscribe().catch((error: any) => {
@@ -690,50 +355,120 @@ private setupWebRTCPlayer(adTagUrl: string, imaOptions: any) {
   });
 }
 
-// **NEW: Common Player Event Handlers**
-private setupPlayerEventHandlers() {
-  this.player.ready(() => {
-    const customTimeDisplay = document.createElement('div');
-    customTimeDisplay.className = 'custom-time-display vjs-time-control vjs-control';
-
-    const controlBar = this.player.controlBar.el();
-    controlBar.appendChild(customTimeDisplay);
-
-    setInterval(() => {
-      this.updateTotalDuration(this.player, customTimeDisplay);
-    }, 1000);
-  });
-}
-
-// **NEW: Handle ads for WebRTC streams**
-private handleWebRTCAds(adTagUrl: string, imaOptions: any) {
-  this.player.on("ads-manager", (event: any) => {
-    console.log("ads-manager event for WebRTC:", event);
-    const adsManager = event.adsManager;
-
-    if (adsManager) {
-      const googleNamespace: any = (window as any)["google"];
-      if (googleNamespace && googleNamespace.ima) {
-        adsManager.addEventListener(
-          googleNamespace.ima.AdEvent.Type.COMPLETE,
-          () => {
-            console.log("Ad completed - WebRTC stream should continue");
-            // WebRTC stream continues automatically
-          }
-        );
-
-        adsManager.addEventListener(
-          googleNamespace.ima.AdEvent.Type.SKIPPED,
-          () => {
-            console.log("Ad skipped - WebRTC stream should continue");
-            // WebRTC stream continues automatically
-          }
-        );
-      }
+  private handleVideoAutoplay() {
+    console.log("🎯 Handling video autoplay");
+    
+    // Check if we have a VideoJS player or native video element
+    if (this.player && typeof this.player.play === 'function') {
+      console.log("🎬 Using VideoJS player for autoplay");
+      this.handleVideoJSAutoplay();
+    } else {
+      console.log("�� Using native video element for autoplay");
+      this.handleNativeVideoAutoplay();
     }
-  });
-}
+  }
 
+  private handleVideoJSAutoplay() {
+    const player = this.player;
+    
+    // Check if video is already playing
+    if (!player.paused()) {
+      console.log("✅ VideoJS player is already playing");
+      this.showUnmuteNotification();
+      return;
+    }
+    
+    // Try to play muted first
+    player.muted(true);
+    this.isVideoMuted = true;
+    
+    player.play().then(() => {
+      console.log("✅ VideoJS player started playing (muted)");
+      this.showUnmuteNotification();
+    }).catch((error: any) => {
+      console.warn("⚠️ VideoJS autoplay failed:", error);
+      if (error.name === 'NotAllowedError') {
+        console.log("🔇 VideoJS autoplay blocked by browser policy");
+        this.showPlayButton(player.el());
+      }
+    });
+  }
+
+  private handleNativeVideoAutoplay() {
+    const videoElement = this.target.nativeElement;
+    
+    // Check if video is already playing
+    if (!videoElement.paused) {
+      console.log("✅ Native video is already playing");
+      this.showUnmuteNotification();
+      return;
+    }
+    
+    // Try to play muted first
+    videoElement.muted = true;
+    this.isVideoMuted = true;
+    
+    videoElement.play().then(() => {
+      console.log("✅ Native video started playing (muted)");
+      this.showUnmuteNotification();
+    }).catch((error: any) => {
+      console.warn("⚠️ Native video autoplay failed:", error);
+      if (error.name === 'NotAllowedError') {
+        console.log("🔇 Native video autoplay blocked by browser policy");
+        this.showPlayButton(videoElement);
+      }
+    });
+  }
+
+  private showUnmuteNotification() {
+    this.toasterService.info(
+      "Video is playing with muted audio. Click 'Enable Audio' to unmute.",
+      "Audio Muted",
+      { timeOut: 4000 }
+    );
+  }
+
+  private setupPlayerEventHandlers() {
+    this.player.ready(() => {
+      const customTimeDisplay = document.createElement('div');
+      customTimeDisplay.className = 'custom-time-display vjs-time-control vjs-control';
+
+      const controlBar = this.player.controlBar.el();
+      controlBar.appendChild(customTimeDisplay);
+
+      setInterval(() => {
+        this.updateTotalDuration(this.player, customTimeDisplay);
+      }, 1000);
+    });
+  }
+
+  private handleWebRTCAds(adTagUrl: string, imaOptions: any) {
+    this.player.on("ads-manager", (event: any) => {
+      console.log("ads-manager event for WebRTC:", event);
+      const adsManager = event.adsManager;
+
+      if (adsManager) {
+        const googleNamespace: any = (window as any)["google"];
+        if (googleNamespace && googleNamespace.ima) {
+          adsManager.addEventListener(
+            googleNamespace.ima.AdEvent.Type.COMPLETE,
+            () => {
+              console.log("Ad completed - WebRTC stream should continue");
+              // WebRTC stream continues automatically
+            }
+          );
+
+          adsManager.addEventListener(
+            googleNamespace.ima.AdEvent.Type.SKIPPED,
+            () => {
+              console.log("Ad skipped - WebRTC stream should continue");
+              // WebRTC stream continues automatically
+            }
+          );
+        }
+      }
+    });
+  }
 
   updateTotalDuration(player:any, customTimeDisplay:any): void {
    // Calculate elapsed time since the stream started
@@ -751,94 +486,6 @@ private handleWebRTCAds(adTagUrl: string, imaOptions: any) {
    // Update custom time display
    customTimeDisplay.innerHTML = elapsedDuration;
   }
-  // return Promise
-  // connectSocket() {
-  //   // Close the existing socket if it exists
-  //   if (this.socket) {
-  //     this.socket.close();
-  //     this.socket = null;
-  //     this.clientId = null;
-  //   }
-
-  //   // Function to attempt socket connection
-  //   const tryConnect = (attemptsLeft: number) => {
-  //     return new Promise<void>((resolve, reject) => {
-  //       // Create a new socket instance
-  //       this.socket = io(environment.socketUrl, {
-  //         autoConnect: true,
-  //         transports: ["websocket", "polling"],
-  //       }).connect();
-
-  //       let messageReceived = false;
-
-  //       // Set a timeout for 2 seconds
-
-  //       let timeoutId = setTimeout(() => {
-  //         if (!messageReceived) {
-  //           // If no message received within 2 seconds, disconnect and attempt reconnect
-  //           console.log(
-  //             `No message received within 2 seconds. Reconnecting... Attempts left: ${attemptsLeft}`
-  //           );
-  //           this.socket.disconnect();
-  //           tryConnect(attemptsLeft - 1)
-  //             .then(resolve)
-  //             .catch(reject);
-  //         }
-  //       }, 2000);
-
-  //       this.socket.on("connect", function (evt: any) {
-  //         console.log("socket.io connected()");
-  //       });
-
-  //       this.socket.on(`error${this.liveStreamId}`, function (err: any) {
-  //         console.error("socket.io ERROR:", err);
-  //         // Clear the timeout as an error occurred or disconnect happened
-  //         clearTimeout(timeoutId);
-  //         reject(err);
-  //       });
-
-  //       this.socket.on(`disconnect${this.liveStreamId}`, function (evt: any) {
-  //         console.log("socket.io disconnect:", evt);
-  //         // Clear the timeout on disconnect
-  //         clearTimeout(timeoutId);
-  //         tryConnect(attemptsLeft - 1)
-  //           .then(resolve)
-  //           .catch(reject);
-  //       });
-  //       if (attemptsLeft == 0) {
-  //         clearTimeout(timeoutId);
-  //         console.log("attempt finished");
-  //       }
-  //       this.socket.on(`message${this.liveStreamId}`, (message: any) => {
-  //         // Set the flag to true when a message is received
-  //         messageReceived = true;
-  //         console.log(
-  //           `message${this.liveStreamId}`,
-  //           "`message${this.liveStreamId}`"
-  //         );
-  //         console.log("socket.io message:", message);
-  //         if (message.type === "welcome") {
-  //           if (this.socket.id !== message.id) {
-  //             console.warn(
-  //               "WARN: something wrong with clientID",
-  //               this.socket.io,
-  //               message.id
-  //             );
-  //           }
-
-  //           this.clientId = message.id;
-  //           console.log("connected to server. clientId=" + this.clientId);
-  //           resolve();
-  //         } else {
-  //           console.error("UNKNOWN message from server:", message);
-  //         }
-  //       });
-  //     });
-  //   };
-
-  //   // Start the initial connection attempt with a maximum of 5 retries
-  //   return tryConnect(5);
-  // }
 
   connectSocket() {
   // Close existing socket
@@ -971,24 +618,6 @@ private handleWebRTCAds(adTagUrl: string, imaOptions: any) {
     }
   }
 
-  // sendRequest(type: any, data: any) {
-  //   return new Promise((resolve, reject) => {
-  //     this.socket.emit(type, data, (err: any, response: any) => {
-  //       if (!err) {
-  //         // Success response, so pass the mediasoup response to the local Room.
-  //         resolve(response);
-  //       } else {
-  //         reject(err);
-  //       }
-  //       this.socket.on(`consumerAdded${this.liveStreamId}`, (data: any) => {
-  //         console.log(data, "check connected users")
-  //       })
-  //       this.socket.on(`consumerLeft${this.liveStreamId}`, (count: any) => {
-  //         console.log(count, "chekc connected users after leave in viewr")
-  //       })
-  //     });
-  //   });
-  // }
   sendRequest(type: any, data: any, maxRetries: number = 3) {
     return new Promise((resolve, reject) => {
       const attemptRequest = (attempt: number) => {
@@ -2121,8 +1750,6 @@ private showPlayButton(element: any) {
     element.srcObject = null;
   }
 
-// In VOD_FE/src/app/viewer/viewer.component.ts
-
 async addRemoteTrack(id: any, track: any) {
   console.log("🎯 === ADD REMOTE TRACK DEBUG ===");
   console.log("Track kind:", track.kind);
@@ -2227,8 +1854,8 @@ private async setupVideoStreamImmediate() {
     // **CRITICAL**: Wait a moment for the stream to stabilize
     await new Promise(resolve => setTimeout(resolve, 100));
     
-    // **NEW**: Set up video element with comprehensive debugging
-    await this.setupVideoElementWithDebug(videoElement, mediaStream);
+    // **SIMPLIFIED**: Direct video element setup
+    await this.setupVideoElementDirect(videoElement, mediaStream);
     
   } catch (error) {
     console.error("❌ Error creating MediaStream:", error);
@@ -2416,6 +2043,334 @@ private async setupVideoElementWithDebug(videoElement: HTMLVideoElement, stream:
   }
 }
 
+private async setupVideoElementDirect(videoElement: HTMLVideoElement, stream: MediaStream) {
+  console.log("🎬 === SETUP VIDEO ELEMENT DIRECT ===");
+  
+  try {
+    // **STEP 1**: Ensure video element is clean
+    console.log("🧹 Cleaning video element...");
+    videoElement.pause();
+    videoElement.removeAttribute('src');
+    videoElement.src = '';
+    videoElement.srcObject = null;
+    videoElement.load();
+    
+    // **STEP 2**: Configure video element properties
+    console.log("⚙️ Configuring video element properties...");
+    videoElement.autoplay = true;
+    videoElement.playsInline = true;
+    videoElement.muted = true;
+    videoElement.controls = true;
+    videoElement.preload = 'metadata';
+    this.isVideoMuted = true;
+    
+    console.log("✅ Video element configured:", {
+      autoplay: videoElement.autoplay,
+      playsInline: videoElement.playsInline,
+      muted: videoElement.muted,
+      controls: videoElement.controls,
+      preload: videoElement.preload
+    });
+    
+    // **STEP 3**: Set up event listeners BEFORE setting MediaStream
+    console.log("📡 Setting up video event listeners...");
+    this.setupVideoEventListeners(videoElement);
+    
+    // **STEP 4**: Set the MediaStream with enhanced handling
+    console.log("📹 Setting MediaStream to video element...");
+    
+    // **CRITICAL**: Complete reset of video element
+    console.log("🔄 Complete reset of video element...");
+    videoElement.pause();
+    videoElement.src = '';
+    videoElement.srcObject = null;
+    videoElement.removeAttribute('src');
+    videoElement.load();
+    
+    // **NEW**: Wait a moment for reset to complete
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    // **CRITICAL**: Set MediaStream with error handling
+    try {
+      console.log("📹 Setting srcObject to video element...");
+      
+      // **NEW**: Ensure video element is in a clean state
+      if (videoElement.readyState !== 0) {
+        console.log("🔄 Video element not in clean state, forcing reset...");
+        videoElement.pause();
+        videoElement.src = '';
+        videoElement.srcObject = null;
+        videoElement.removeAttribute('src');
+        videoElement.load();
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      
+      // Set the MediaStream
+      videoElement.srcObject = stream;
+      
+      // **NEW**: Verify MediaStream was set
+      if (videoElement.srcObject === stream) {
+        console.log("✅ MediaStream successfully set to video element");
+      } else {
+        console.error("❌ MediaStream was not set properly");
+        throw new Error("MediaStream not set");
+      }
+      
+      // **CRITICAL**: Force the video element to process the stream
+      console.log("🔄 Forcing video element to process stream...");
+      videoElement.load();
+      
+      // **NEW**: Wait for the load to complete
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
+      // **NEW**: Add comprehensive event listeners
+      const events = ['loadstart', 'loadedmetadata', 'loadeddata', 'canplay', 'canplaythrough'];
+      events.forEach(event => {
+        videoElement.addEventListener(event, () => {
+          console.log(`✅ Video event: ${event}`, {
+            readyState: videoElement.readyState,
+            networkState: videoElement.networkState,
+            videoWidth: videoElement.videoWidth,
+            videoHeight: videoElement.videoHeight
+          });
+        }, { once: true });
+      });
+      
+    } catch (error) {
+      console.error("❌ Error setting MediaStream:", error);
+      throw error;
+    }
+    
+    // **STEP 5**: Wait for video to be ready with aggressive detection
+    console.log("⏳ Waiting for video to be ready...");
+    let ready = false;
+    let attempts = 0;
+    const maxAttempts = 150; // 15 seconds
+    
+    while (!ready && attempts < maxAttempts) {
+      attempts++;
+      console.log(`🔍 Video ready check ${attempts}/${maxAttempts}:`, {
+        readyState: videoElement.readyState,
+        networkState: videoElement.networkState,
+        videoWidth: videoElement.videoWidth,
+        videoHeight: videoElement.videoHeight,
+        srcObject: !!videoElement.srcObject
+      });
+      
+      // **AGGRESSIVE**: Check for any sign of video readiness
+      if (videoElement.readyState >= 1 || 
+          videoElement.videoWidth > 0 || 
+          videoElement.videoHeight > 0 ||
+          (videoElement.srcObject && videoElement.srcObject.active) ||
+          videoElement.networkState === 1) { // NETWORK_LOADING
+        ready = true;
+        console.log("✅ Video is ready!");
+        break;
+      }
+      
+      // **NEW**: Handle networkState 3 (NETWORK_NO_SOURCE) - this might be a false positive
+      if (videoElement.networkState === 3 && videoElement.srcObject && videoElement.srcObject.active) {
+        console.log("🔄 NetworkState 3 detected but MediaStream is active, forcing ready state...");
+        ready = true;
+        break;
+      }
+      
+      // **NEW**: Check if MediaStream is active and has live tracks
+      if (videoElement.srcObject) {
+        const stream = videoElement.srcObject as MediaStream;
+        console.log("📊 MediaStream status:", {
+          active: stream.active,
+          trackCount: stream.getTracks().length,
+          videoTracks: stream.getVideoTracks().length,
+          audioTracks: stream.getAudioTracks().length
+        });
+        
+        // Check if any video track is live
+        const videoTracks = stream.getVideoTracks();
+        const hasLiveVideo = videoTracks.some(track => track.readyState === 'live');
+        
+        if (hasLiveVideo) {
+          console.log("✅ Video track is live, forcing ready state");
+          ready = true;
+          break;
+        }
+        
+        // **NEW**: If we have a live track but video isn't ready, try to force it
+        if (stream.active && videoTracks.length > 0) {
+          console.log("🔄 Forcing video ready state with active stream...");
+          // Try to trigger video processing
+          videoElement.load();
+          await new Promise(resolve => setTimeout(resolve, 200));
+        }
+      }
+      
+      // Wait 100ms before next check
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    
+    if (!ready) {
+      console.warn("⚠️ Video not ready after 15 seconds, proceeding anyway...");
+    }
+    
+    console.log("📊 Video element state after ready:", {
+      readyState: videoElement.readyState,
+      networkState: videoElement.networkState,
+      srcObject: !!videoElement.srcObject,
+      videoWidth: videoElement.videoWidth,
+      videoHeight: videoElement.videoHeight
+    });
+    
+    // **STEP 6**: Try to play the video with multiple attempts
+    console.log("🎬 Attempting to play video...");
+    
+    // **NEW**: Try multiple play strategies
+    const playStrategies = [
+      { name: "Normal play", muted: false },
+      { name: "Muted play", muted: true },
+      { name: "Force play with timeout", muted: true, force: true },
+      { name: "Aggressive play", muted: true, aggressive: true }
+    ];
+    
+    for (const strategy of playStrategies) {
+      try {
+        console.log(`🎬 Trying ${strategy.name}...`);
+        
+        if (strategy.muted) {
+          videoElement.muted = true;
+        }
+        
+        if (strategy.force) {
+          // Force play with timeout
+          const playPromise = videoElement.play();
+          await Promise.race([
+            playPromise,
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Play timeout')), 3000))
+          ]);
+        } else if (strategy.aggressive) {
+          // **NEW**: Aggressive play strategy
+          console.log("🎬 Using aggressive play strategy...");
+          
+          // Force video to be ready
+          videoElement.load();
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          // **NEW**: Try to force networkState to change
+          if (videoElement.networkState === 3) {
+            console.log("🔄 Attempting to fix networkState 3...");
+            videoElement.srcObject = null;
+            await new Promise(resolve => setTimeout(resolve, 100));
+            videoElement.srcObject = stream;
+            videoElement.load();
+            await new Promise(resolve => setTimeout(resolve, 200));
+          }
+          
+          // Try to play multiple times
+          for (let i = 0; i < 3; i++) {
+            try {
+              console.log(`🎬 Aggressive play attempt ${i + 1}/3`);
+              await videoElement.play();
+              console.log("✅ Aggressive play successful!");
+              break;
+            } catch (error) {
+              console.warn(`⚠️ Aggressive play attempt ${i + 1} failed:`, error);
+              if (i === 2) throw error; // Throw on last attempt
+              await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+          }
+        } else {
+          await videoElement.play();
+        }
+        
+        console.log(`✅ ${strategy.name} successful!`);
+        this.toasterService.success("Webcam stream connected successfully!");
+        return; // Success, exit the loop
+        
+      } catch (playError) {
+        console.warn(`⚠️ ${strategy.name} failed:`, playError);
+        
+        // If this is the last strategy, try fallback
+        if (strategy === playStrategies[playStrategies.length - 1]) {
+          console.error("❌ All play strategies failed");
+          
+          // **FALLBACK**: Try creating a fresh video element
+          console.log("🔄 Trying fallback with fresh video element...");
+          await this.tryFallbackVideoElement(stream);
+        }
+      }
+    }
+    
+  } catch (error) {
+    console.error("❌ Error setting up video element:", error);
+    this.toasterService.error("Failed to set up video player: " + (error as Error).message);
+  }
+}
+
+private async tryFallbackVideoElement(stream: MediaStream): Promise<void> {
+  console.log("🔄 === FALLBACK VIDEO ELEMENT ===");
+  
+  try {
+    // Create a completely new video element
+    const newVideo = document.createElement('video');
+    newVideo.style.position = 'fixed';
+    newVideo.style.top = '50%';
+    newVideo.style.left = '50%';
+    newVideo.style.transform = 'translate(-50%, -50%)';
+    newVideo.style.width = '80%';
+    newVideo.style.maxWidth = '800px';
+    newVideo.style.height = 'auto';
+    newVideo.style.zIndex = '9999';
+    newVideo.style.backgroundColor = 'black';
+    newVideo.style.borderRadius = '8px';
+    newVideo.style.boxShadow = '0 4px 20px rgba(0,0,0,0.3)';
+    
+    // Configure the new video element
+    newVideo.autoplay = true;
+    newVideo.playsInline = true;
+    newVideo.muted = true;
+    newVideo.controls = true;
+    
+    // Add to DOM
+    document.body.appendChild(newVideo);
+    
+    // Set the stream
+    newVideo.srcObject = stream;
+    
+    // Try to play
+    try {
+      await newVideo.play();
+      console.log("✅ Fallback video playing successfully!");
+      this.toasterService.success("Webcam stream connected via fallback!");
+      
+      // Add a close button
+      const closeButton = document.createElement('button');
+      closeButton.textContent = '✕';
+      closeButton.style.position = 'absolute';
+      closeButton.style.top = '10px';
+      closeButton.style.right = '10px';
+      closeButton.style.background = 'rgba(0,0,0,0.7)';
+      closeButton.style.color = 'white';
+      closeButton.style.border = 'none';
+      closeButton.style.borderRadius = '50%';
+      closeButton.style.width = '30px';
+      closeButton.style.height = '30px';
+      closeButton.style.cursor = 'pointer';
+      closeButton.onclick = () => {
+        document.body.removeChild(newVideo);
+      };
+      newVideo.appendChild(closeButton);
+      
+    } catch (playError) {
+      console.error("❌ Fallback video play failed:", playError);
+      document.body.removeChild(newVideo);
+      this.toasterService.error("Failed to play video. Please try refreshing the page.");
+    }
+    
+  } catch (error) {
+    console.error("❌ Fallback video element failed:", error);
+    this.toasterService.error("Failed to create fallback video player.");
+  }
+}
+
 private setupVideoEventListeners(videoElement: HTMLVideoElement) {
   const events = [
     'loadstart', 'durationchange', 'loadedmetadata', 'loadeddata',
@@ -2501,12 +2456,25 @@ private async attemptVideoPlay(videoElement: HTMLVideoElement): Promise<void> {
   console.log("▶️ === ATTEMPT VIDEO PLAY ===");
   
   try {
+    // **CRITICAL FIX**: Check if video element has valid source
+    if (!videoElement.srcObject && !videoElement.src) {
+      console.error("❌ Video element has no source - cannot play");
+      throw new Error("Video element has no source (srcObject or src)");
+    }
+    
+    // **CRITICAL FIX**: Handle readyState 0 and networkState 2 issue
+    if (videoElement.readyState === 0 && videoElement.networkState === 2) {
+      console.log("🔧 Detected readyState 0 / networkState 2 - applying fixes...");
+      await this.fixVideoElementState(videoElement);
+    }
+    
     // Ensure video is muted for autoplay
     videoElement.muted = true;
     this.isVideoMuted = true;
     
     console.log("Video state before play:", {
       readyState: videoElement.readyState,
+      networkState: videoElement.networkState,
       paused: videoElement.paused,
       srcObject: !!videoElement.srcObject,
       videoWidth: videoElement.videoWidth,
@@ -2514,6 +2482,12 @@ private async attemptVideoPlay(videoElement: HTMLVideoElement): Promise<void> {
       duration: videoElement.duration,
       error: videoElement.error
     });
+    
+    // **IMPROVED**: Wait for video to be ready if needed
+    if (videoElement.readyState < 1) {
+      console.log("⏳ Waiting for video to be ready...");
+      await this.waitForVideoReady(videoElement);
+    }
     
     if (videoElement.paused) {
       console.log("🎬 Starting video playback...");
@@ -2539,8 +2513,101 @@ private async attemptVideoPlay(videoElement: HTMLVideoElement): Promise<void> {
     } else {
       console.error("❌ Other play error:", error);
       // Try a different approach
-      this.tryAlternativePlayMethod(videoElement);
+      await this.tryAlternativePlayMethod(videoElement);
     }
+  }
+}
+
+private async fixVideoElementState(videoElement: HTMLVideoElement): Promise<void> {
+  console.log("🔧 === FIXING VIDEO ELEMENT STATE ===");
+  
+  try {
+    // **FIX 1**: Complete video element reset
+    console.log("Fix 1: Resetting video element...");
+    videoElement.pause();
+    const currentSrcObject = videoElement.srcObject;
+    const currentSrc = videoElement.src;
+    
+    videoElement.src = '';
+    videoElement.srcObject = null;
+    videoElement.load();
+    
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    // **FIX 2**: Reconfigure video element
+    console.log("Fix 2: Reconfiguring video element...");
+    videoElement.autoplay = true;
+    videoElement.muted = true;
+    videoElement.playsInline = true;
+    videoElement.controls = false;
+    
+    // **FIX 3**: Restore source
+    console.log("Fix 3: Restoring video source...");
+    if (currentSrcObject) {
+      videoElement.srcObject = currentSrcObject;
+    } else if (currentSrc) {
+      videoElement.src = currentSrc;
+    }
+    
+    // **FIX 4**: Force load
+    console.log("Fix 4: Forcing video load...");
+    videoElement.load();
+    
+    await new Promise(resolve => setTimeout(resolve, 200));
+    
+    // **FIX 5**: Check if MediaStream is active
+    if (videoElement.srcObject) {
+      const stream = videoElement.srcObject as MediaStream;
+      console.log("Fix 5: Checking MediaStream status...");
+      console.log("Stream active:", stream.active);
+      console.log("Stream tracks:", stream.getTracks().length);
+      
+      const videoTracks = stream.getVideoTracks();
+      const audioTracks = stream.getAudioTracks();
+      
+      console.log("Video tracks:", videoTracks.length);
+      console.log("Audio tracks:", audioTracks.length);
+      
+      if (videoTracks.length > 0) {
+        const videoTrack = videoTracks[0];
+        console.log("Video track state:", videoTrack.readyState);
+        console.log("Video track enabled:", videoTrack.enabled);
+        
+        // **FIX 6**: Enable video track if disabled
+        if (!videoTrack.enabled) {
+          console.log("Fix 6: Enabling video track...");
+          videoTrack.enabled = true;
+        }
+      }
+      
+      if (audioTracks.length > 0) {
+        const audioTrack = audioTracks[0];
+        console.log("Audio track state:", audioTrack.readyState);
+        console.log("Audio track enabled:", audioTrack.enabled);
+        
+        // **FIX 7**: Enable audio track if disabled
+        if (!audioTrack.enabled) {
+          console.log("Fix 7: Enabling audio track...");
+          audioTrack.enabled = true;
+        }
+      }
+    }
+    
+    // **FIX 8**: Wait for video to be ready
+    console.log("Fix 8: Waiting for video to be ready...");
+    await this.waitForVideoReady(videoElement);
+    
+    console.log("✅ Video element state fix completed");
+    console.log("Final state:", {
+      readyState: videoElement.readyState,
+      networkState: videoElement.networkState,
+      videoWidth: videoElement.videoWidth,
+      videoHeight: videoElement.videoHeight
+    });
+    
+  } catch (error) {
+    console.error("❌ Video element state fix failed:", error);
+    throw error;
   }
 }
 
@@ -2548,31 +2615,95 @@ private async tryAlternativePlayMethod(videoElement: HTMLVideoElement) {
   console.log("🔄 Trying alternative play method...");
   
   try {
-    // Method 1: Reset and try again
-    console.log("Method 1: Reset and retry...");
+    // **METHOD 1**: Complete reset and retry
+    console.log("Method 1: Complete reset and retry...");
     const currentSrcObject = videoElement.srcObject;
+    const currentSrc = videoElement.src;
+    
+    videoElement.pause();
     videoElement.srcObject = null;
+    videoElement.src = '';
     videoElement.load();
     
     await new Promise(resolve => setTimeout(resolve, 100));
     
-    videoElement.srcObject = currentSrcObject;
-    videoElement.load();
+    // Restore source
+    if (currentSrcObject) {
+      videoElement.srcObject = currentSrcObject;
+    } else if (currentSrc) {
+      videoElement.src = currentSrc;
+    }
     
+    videoElement.load();
     await new Promise(resolve => setTimeout(resolve, 200));
     
     await videoElement.play();
     console.log("✅ Alternative method 1 successful!");
+    return;
     
   } catch (error) {
-    console.error("❌ Alternative method failed:", error);
+    console.error("❌ Alternative method 1 failed:", error);
     
-    // Show play button as last resort
+    try {
+      // **METHOD 2**: Force MediaStream refresh
+      console.log("Method 2: Force MediaStream refresh...");
+      if (videoElement.srcObject) {
+        const stream = videoElement.srcObject as MediaStream;
+        
+        // Check if stream is active
+        if (stream.active) {
+          // Force video element to reload the stream
+          videoElement.srcObject = null;
+          await new Promise(resolve => setTimeout(resolve, 50));
+          videoElement.srcObject = stream;
+          videoElement.load();
+          await new Promise(resolve => setTimeout(resolve, 200));
+          
+          await videoElement.play();
+          console.log("✅ Alternative method 2 successful!");
+          return;
+        } else {
+          console.error("❌ MediaStream is not active");
+        }
+      }
+    } catch (error2) {
+      console.error("❌ Alternative method 2 failed:", error2);
+    }
+    
+    try {
+      // **METHOD 3**: Create new video element
+      console.log("Method 3: Creating new video element...");
+      const newVideo = document.createElement('video');
+      newVideo.autoplay = true;
+      newVideo.muted = true;
+      newVideo.playsInline = true;
+      newVideo.controls = false;
+      
+      if (videoElement.srcObject) {
+        newVideo.srcObject = videoElement.srcObject;
+      } else if (videoElement.src) {
+        newVideo.src = videoElement.src;
+      }
+      
+      // Replace the old video element
+      videoElement.parentNode?.replaceChild(newVideo, videoElement);
+      
+      // Wait for new video to be ready
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      await newVideo.play();
+      console.log("✅ Alternative method 3 successful!");
+      return;
+      
+    } catch (error3) {
+      console.error("❌ Alternative method 3 failed:", error3);
+    }
+    
+    // **LAST RESORT**: Show play button
+    console.log("❌ All alternative methods failed, showing play button");
     this.showPlayButton(videoElement);
   }
 }
-
-// **ALSO ADD**: Enhanced debugging to the consume method
 
 private async setupVideoElementForWebRTC(videoElement: HTMLVideoElement, stream: MediaStream) {
   console.log("🎬 Setting up video element for WebRTC");
@@ -2776,142 +2907,6 @@ private async playWebRTCVideo(videoElement: HTMLVideoElement): Promise<void> {
       });
   }
   async addUserToRoom() {}
-  // async subscribe() {
-  //   if (!this.isSocketConnected()) {
-  //     let toast = this.toasterService.info(
-  //       "You have subscribed the video. Please wait..."
-  //     );
-  //     setTimeout(() => {
-  //       this.toasterService.remove(toast.toastId);
-  //     }, 2000);
-  //     try {
-  //       await this.connectSocket();
-  //       // --- get capabilities --
-  //       const data = await this.sendRequest(
-  //         `getRouterRtpCapabilities${this.liveStreamId}`,
-  //         {}
-  //       );
-  //       console.log("getRouterRtpCapabilities:", data);
-  //       await this.loadDevice(data);
-  //       this.updateButtons();
-  //       // --- prepare transport ---
-  //       console.log("--- createConsumerTransport --");
-  //       const params = await this.sendRequest(
-  //         `createConsumerTransport${this.liveStreamId}`,
-  //         {
-  //           userId: this.userId,
-  //           latitude: this.latitude,
-  //           longitude: this.longitude,
-  //           platform: this.platform,
-  //         }
-  //       );
-  //       console.log(params, "params");
-
-  //       this.socket.on("bandwidthUsed", (data: any) => {
-  //         let toast = this.toasterService.warning(
-  //           `${data.bandwidthUsed.toFixed(2)} mb used`
-  //         );
-  //         setTimeout(() => {
-  //           this.toasterService.remove(toast.toastId);
-  //         }, 1000);
-  //       });
-  //       this.socket.on("endBandwidth", (data: any) => {
-  //         let toast = this.toasterService.error(`${data.message}`);
-  //         setTimeout(() => {
-  //           this.toasterService.remove(toast.toastId);
-  //         }, 5000);
-  //       });
-  //       console.log("transport params:", params);
-  //       this.consumerTransport = (this.device as any).createRecvTransport(
-  //         params
-  //       );
-  //       console.log("createConsumerTransport:", this.consumerTransport);
-
-  //       // --- NG ---
-  //       //sendRequest('connectConsumerTransport', { dtlsParameters: dtlsParameters })
-  //       //  .then(callback)
-  //       //  .catch(errback);
-
-  //       // --- try --- not well
-  //       //sendRequest('connectConsumerTransport', { dtlsParameters: params.dtlsParameters })
-  //       //  .then(() => console.log('connectConsumerTransport OK'))
-  //       //  .catch(err => console.error('connectConsumerTransport ERROR:', err));
-
-  //       // --- join & start publish --
-  //       (this.consumerTransport as any).on(
-  //         "connect",
-  //         async ({ dtlsParameters }: any, callback: any, errback: any) => {
-  //           console.log("--consumer trasnport connect");
-  //           let obj = {
-  //             connected: true,
-  //             tabs: 1,
-  //           };
-  //           let exists = localStorage.getItem("connected");
-  //           if (!exists) {
-  //             localStorage.setItem("connected", JSON.stringify(obj));
-  //             this.sendRequest(`connectConsumerTransport${this.liveStreamId}`, {
-  //               dtlsParameters: dtlsParameters,
-  //               increment: true,
-  //             })
-  //               .then()
-  //               .then(callback)
-  //               .catch(errback);
-  //           } else {
-  //             let parsedObj = JSON.parse(exists);
-  //             parsedObj.tabs += 1;
-  //             localStorage.setItem("connected", JSON.stringify(parsedObj));
-  //             this.sendRequest(`connectConsumerTransport${this.liveStreamId}`, {
-  //               dtlsParameters: dtlsParameters,
-  //               increment: false,
-  //             })
-  //               .then()
-  //               .then(callback)
-  //               .catch(errback);
-  //           }
-
-  //           //consumer = await consumeAndResume(consumerTransport);
-  //         }
-  //       );
-
-  //       (this.consumerTransport as any).on(
-  //         "connectionstatechange",
-  //         (state: any) => {
-  //           switch (state) {
-  //             case "connecting":
-  //               console.log("subscribing...");
-  //               break;
-
-  //             case "connected":
-  //               this.videoRendered = true;
-  //               this.spinnerService.setLoading(false);
-  //               console.log("subscribed");
-  //               break;
-
-  //             case "failed":
-  //               console.log("failed");
-  //               (this.consumerTransport as any).close();
-  //               break;
-
-  //             default:
-  //               break;
-  //           }
-  //         }
-  //       );
-
-  //       (this.videoConsumer as any) = await this.consumeAndResume(
-  //         this.consumerTransport,
-  //         "video"
-  //       );
-  //       (this.audioConsumer as any) = await this.consumeAndResume(
-  //         this.consumerTransport,
-  //         "audio"
-  //       );
-
-  //       this.updateButtons();
-  //     } catch (error) {}
-  //   }
-  // }
-// In viewer.component.ts, update the subscribe method:
 
 private async checkStreamStatus() {
   try {
@@ -2944,10 +2939,11 @@ private async checkStreamStatus() {
 
 async subscribe() {
   console.log("🌐 Starting WebRTC subscription process...");
+  console.log("Stream ID:", this.liveStreamId);
   
   if (!this.isSocketConnected()) {
     try {
-      // **1. Check stream status from VOD_BE (port 3005)**
+      // 1. Check stream status first
       console.log("📡 Checking stream status...");
       await this.checkStreamStatus();
       console.log("✅ Stream is active, proceeding with connection...");
@@ -2957,12 +2953,12 @@ async subscribe() {
         this.toasterService.remove(toast.toastId);
       }, 2000);
       
-      // **2. Connect to Video-Processing server (port 3000) for WebRTC**
+      // 2. Connect to correct socket server
       console.log("🔌 Connecting to Video-Processing server...");
       await this.connectSocket();
 
-      // **3. Get router capabilities from Video-Processing server**
-      console.log("Getting router capabilities...");
+      // 3. Get router capabilities
+      console.log("📡 Getting router capabilities...");
       const data = await this.sendRequest(
         `getRouterRtpCapabilities${this.liveStreamId}`,
         {}
@@ -2972,26 +2968,12 @@ async subscribe() {
         throw new Error("Failed to get router capabilities");
       }
       
-      console.log("Router capabilities received");
+      console.log("✅ Router capabilities received:", data);
       await this.loadDevice(data);
       this.updateButtons();
       
-      // **4. Continue with MediaSoup connection...**
-      console.log("Creating consumer transport...");
-      // const params = await this.sendRequest(
-      //   `createConsumerTransport${this.liveStreamId}`,
-      //   {
-      //     userId: this.userId,
-      //     latitude: this.latitude,
-      //     longitude: this.longitude,
-      //     platform: this.platform,
-      //     increment: true,
-      //   }
-      // );
-      
-      // if (!params || Object.keys(params).length === 0) {
-      //   throw new Error("Failed to create consumer transport");
-      // }
+      // 4. Create consumer transport
+      console.log("🚚 Creating consumer transport...");
       const params = await this.sendRequest(
         `createConsumerTransport${this.liveStreamId}`,
         {
@@ -3003,70 +2985,70 @@ async subscribe() {
         }
       );
 
-      console.log("=== SERVER RESPONSE ===");
+      console.log("=== CONSUMER TRANSPORT RESPONSE ===");
       console.log("Raw response:", params);
       
-      // **IMPROVED ERROR HANDLING**
+      // Enhanced error handling
       if (!params) {
-        throw new Error("Server returned null/undefined response");
+        throw new Error("Server returned null/undefined response for consumer transport");
       }
       
-      if (params && typeof params === 'object' && 'error' in params && (params as any).error === "STREAM_NOT_ACTIVE") {
-        throw new Error("Stream is not currently broadcasting. Please try again later.");
+      if (params && typeof params === 'object' && 'error' in params) {
+        if (params.error === "STREAM_NOT_ACTIVE") {
+          throw new Error("Stream is not currently broadcasting. Please try again later.");
+        }
+        throw new Error(`Consumer transport error: ${params.error}`);
       }
       
       if (Object.keys(params).length === 0) {
         throw new Error("Unable to connect to stream. This may be due to bandwidth limitations or the stream may have ended.");
       }
       
+      console.log("✅ Transport params received:", params);
       
-      console.log("Transport params received");
-      
-      // **5. Create consumer transport**
+      // 5. Create consumer transport
       this.consumerTransport = (this.device as any).createRecvTransport(params);
+      console.log("✅ Consumer transport created:", this.consumerTransport);
       
-      (this.consumerTransport as any).on("connect", ({ dtlsParameters }: any, callback: any, errback: any) => {
-        console.log("--consumer transport connect");
-        this.sendRequest(`connectConsumerTransport${this.liveStreamId}`, {
-          dtlsParameters,
-        })
-          .then(callback)
-          .catch(errback);
+      // 6. Set up transport handlers
+      (this.consumerTransport as any).on("connect", async ({ dtlsParameters }: any, callback: any, errback: any) => {
+        console.log("🔗 Consumer transport connect event");
+        try {
+          await this.sendRequest(`connectConsumerTransport${this.liveStreamId}`, {
+            dtlsParameters,
+          });
+          console.log("✅ Consumer transport connected");
+          callback();
+        } catch (error) {
+          console.error("❌ Consumer transport connect error:", error);
+          errback(error);
+        }
       });
 
-      (this.consumerTransport as any).on("consume", ({ rtpCapabilities }: any, callback: any, errback: any) => {
-        console.log("--consumer transport consume");
-        this.sendRequest(`consume${this.liveStreamId}`, {
-          rtpCapabilities,
-        })
-          .then(callback)
-          .catch(errback);
-      });
-
-      // **6. Consume video and audio tracks**
-      console.log("Consuming video track...");
+      // 7. Try to consume video and audio
+      console.log("🎥 Consuming video track...");
       this.videoConsumer = await this.consumeAndResume(this.consumerTransport, "video");
       
-      console.log("Consuming audio track...");
+      if (!this.videoConsumer) {
+        console.error("❌ Video consumer creation failed");
+        throw new Error("Failed to create video consumer");
+      }
+      
+      console.log("✅ Video consumer created:", this.videoConsumer);
+      
+      console.log("🎵 Consuming audio track...");
       this.audioConsumer = await this.consumeAndResume(this.consumerTransport, "audio");
+      
+      if (!this.audioConsumer) {
+        console.warn("⚠️ Audio consumer creation failed, but continuing...");
+      } else {
+        console.log("✅ Audio consumer created:", this.audioConsumer);
+      }
       
       console.log("✅ WebRTC connection established successfully");
       
-      // **7. Set up event listeners for new consumers**
-      this.socket.on(`newConsumer${this.liveStreamId}`, async (data: any) => {
-        console.log("New consumer event:", data);
-        const { kind } = data;
-        
-        if (kind === "video" && !this.videoConsumer) {
-          this.videoConsumer = await this.consumeAndResume(this.consumerTransport, "video");
-        } else if (kind === "audio" && !this.audioConsumer) {
-          this.audioConsumer = await this.consumeAndResume(this.consumerTransport, "audio");
-        }
-      });
-      
     } catch (error: any) {
-      console.error("Error in subscribe:", error);
-            // **BETTER ERROR MESSAGES**
+      console.error("❌ Error in subscribe:", error);
       let errorMessage = "Failed to connect to stream";
       if (error.message.includes("bandwidth")) {
         errorMessage = "Bandwidth limit reached. Please upgrade your subscription.";
@@ -3074,10 +3056,11 @@ async subscribe() {
         errorMessage = "Stream is not currently broadcasting. Please try again later.";
       } else if (error.message.includes("empty object")) {
         errorMessage = "Unable to connect. The stream may have ended or you may have reached your bandwidth limit.";
+      } else if (error.message.includes("consumer")) {
+        errorMessage = "Failed to connect to stream: " + error.message;
       }
       
       this.toasterService.error(errorMessage);
-      this.toasterService.error("Failed to connect to stream: " + error.message);
     }
   }
 }
@@ -3091,11 +3074,27 @@ async subscribe() {
         console.log("-- resume kind=" + kind);
         this.sendRequest(`resume${this.liveStreamId}`, { kind: kind })
           .then(() => {
-            console.log("resume OK");
+            console.log("resume OK (frontend): Video consumer resume request succeeded");
+            if (consumer) {
+              console.log("Video consumer state after resume:", {
+                id: consumer.id,
+                paused: consumer.paused,
+                closed: consumer.closed,
+                producerPaused: consumer.producerPaused
+              });
+            }
             return consumer;
           })
           .catch((err) => {
-            console.error("resume ERROR:", err);
+            console.error("resume ERROR (frontend):", err);
+            if (consumer) {
+              console.log("Video consumer state after failed resume:", {
+                id: consumer.id,
+                paused: consumer.paused,
+                closed: consumer.closed,
+                producerPaused: consumer.producerPaused
+              });
+            }
             return consumer;
           });
       } else {
@@ -3146,6 +3145,7 @@ async consume(transport: any, trackKind: any) {
   console.log("🎯 === CONSUME DEBUG ===");
   console.log("Track kind:", trackKind);
   console.log("Stream ID:", this.liveStreamId);
+  console.log("Transport:", transport);
 
   if (!this.device) {
     console.error("❌ MediaSoup device not initialized");
@@ -3153,8 +3153,10 @@ async consume(transport: any, trackKind: any) {
   }
 
   const { rtpCapabilities }: any = this.device;
+  console.log("RTP Capabilities:", rtpCapabilities);
   
   try {
+    console.log(`📤 Sending consume request for ${trackKind}...`);
     const data = await this.sendRequest(`consume${this.liveStreamId}`, {
       rtpCapabilities: rtpCapabilities,
       kind: trackKind,
@@ -3169,15 +3171,22 @@ async consume(transport: any, trackKind: any) {
       !('producerId' in data)
     ) {
       console.warn("⚠️ No producer available for kind:", trackKind);
+      console.log("Response data:", data);
       return null;
     }
     
     const { producerId, id, kind, rtpParameters }: any = data;
     
+    if (!producerId) {
+      console.error("❌ No producer ID in response for kind:", trackKind);
+      return null;
+    }
+    
     console.log(`✅ Creating consumer for ${kind}:`, {
       producerId,
       consumerId: id,
-      kind
+      kind,
+      hasRtpParameters: !!rtpParameters
     });
     
     let codecOptions = {};
@@ -3238,13 +3247,45 @@ async consume(transport: any, trackKind: any) {
       });
     }
     
-    // Add the track
+    // **NEW**: Store the track for later use
+    if (kind === 'video' && consumer.track) {
+      this.videoTrack = consumer.track;
+      console.log("📹 Video track stored:", {
+        id: this.videoTrack?.id,
+        kind: this.videoTrack?.kind,
+        enabled: this.videoTrack?.enabled,
+        readyState: this.videoTrack?.readyState
+      });
+      
+      // **CRITICAL**: Create MediaStream and set to video element immediately
+      if (this.videoTrack) {
+        console.log("🎥 Setting up video element with MediaSoup track...");
+        await this.setupVideoElementWithMediaSoupTrack(this.videoTrack);
+      }
+    } else if (kind === 'audio' && consumer.track) {
+      this.audioTrack = consumer.track;
+      console.log("🔊 Audio track stored:", {
+        id: this.audioTrack?.id,
+        kind: this.audioTrack?.kind,
+        enabled: this.audioTrack?.enabled,
+        readyState: this.audioTrack?.readyState
+      });
+    }
+    
+    // Add the track (legacy method)
+    console.log("➕ Adding remote track...");
     await this.addRemoteTrack(this.clientId, consumer.track);
     
+    console.log(`✅ ${trackKind} consumer created successfully`);
     return consumer;
     
   } catch (error: any) {
     console.error("❌ Consume error:", error);
+    console.error("Error details:", {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
     return null;
   }
 }
@@ -3274,6 +3315,159 @@ async consume(transport: any, trackKind: any) {
   disableElement(element: any) {
     if (element) {
       element.setAttribute("disable", "1");
+    }
+  }
+
+  // **NEW**: Setup video element with MediaSoup track
+  private async setupVideoElementWithMediaSoupTrack(track: MediaStreamTrack): Promise<void> {
+    console.log("🎥 === SETTING UP VIDEO ELEMENT WITH MEDIASOUP TRACK ===");
+    
+    if (!track) {
+      console.error("❌ No track provided");
+      return;
+    }
+    
+    console.log("📹 MediaSoup track details:", {
+      id: track.id,
+      kind: track.kind,
+      enabled: track.enabled,
+      readyState: track.readyState,
+      muted: track.muted
+    });
+    
+    // Create a MediaStream with the track
+    const stream = new MediaStream([track]);
+    console.log("✅ MediaStream created:", {
+      id: stream.id,
+      active: stream.active,
+      tracks: stream.getTracks().map(t => ({
+        id: t.id,
+        kind: t.kind,
+        enabled: t.enabled,
+        readyState: t.readyState
+      }))
+    });
+    
+    // Get the video element
+    const videoElement = this.videoElement?.nativeElement || document.querySelector('video');
+    if (!videoElement) {
+      console.error("❌ No video element found");
+      return;
+    }
+    
+    console.log("📺 Video element found:", {
+      id: videoElement.id,
+      className: videoElement.className,
+      readyState: videoElement.readyState,
+      networkState: videoElement.networkState
+    });
+    
+    // **CRITICAL**: Complete reset of video element
+    console.log("🔄 Complete reset of video element...");
+    videoElement.pause();
+    videoElement.src = '';
+    videoElement.srcObject = null;
+    videoElement.removeAttribute('src');
+    videoElement.load();
+    
+    // Wait for reset to complete
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    // Set the MediaStream
+    console.log("📹 Setting MediaSoup stream to video element...");
+    videoElement.srcObject = stream;
+    
+    // Verify MediaStream was set
+    if (videoElement.srcObject === stream) {
+      console.log("✅ MediaSoup stream successfully set to video element");
+    } else {
+      console.error("❌ MediaSoup stream was not set properly");
+      return;
+    }
+    
+    // Force the video element to process the stream
+    console.log("🔄 Forcing video element to process MediaSoup stream...");
+    videoElement.load();
+    
+    // Wait for the load to complete
+    await new Promise(resolve => setTimeout(resolve, 200));
+    
+    // Add comprehensive event listeners
+    this.setupVideoEventListeners(videoElement);
+    
+    // Wait for video to be ready
+    console.log("⏳ Waiting for video to be ready...");
+    let ready = false;
+    let attempts = 0;
+    const maxAttempts = 150; // 30 seconds
+    
+    while (!ready && attempts < maxAttempts) {
+      attempts++;
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
+      console.log(`🔍 Video ready check ${attempts}/${maxAttempts}:`, {
+        readyState: videoElement.readyState,
+        networkState: videoElement.networkState,
+        videoWidth: videoElement.videoWidth,
+        videoHeight: videoElement.videoHeight,
+        srcObject: !!videoElement.srcObject
+      });
+      
+      // Check for any sign of video readiness
+      if (videoElement.readyState >= 1 || 
+          videoElement.videoWidth > 0 || 
+          videoElement.videoHeight > 0 ||
+          (videoElement.srcObject && (videoElement.srcObject as MediaStream).active) ||
+          videoElement.networkState === 1) { // NETWORK_LOADING
+        ready = true;
+        console.log("✅ Video is ready!");
+        break;
+      }
+      
+      // Handle networkState 3 (NETWORK_NO_SOURCE) - this might be a false positive
+      if (videoElement.networkState === 3 && videoElement.srcObject && (videoElement.srcObject as MediaStream).active) {
+        console.log("🔄 NetworkState 3 detected but MediaSoup stream is active, forcing ready state...");
+        ready = true;
+        break;
+      }
+      
+      // Check if MediaSoup stream is active and has live tracks
+      if (videoElement.srcObject) {
+        const mediaStream = videoElement.srcObject as MediaStream;
+        const tracks = mediaStream.getTracks();
+        const liveTracks = tracks.filter(t => t.readyState === 'live');
+        
+        if (liveTracks.length > 0) {
+          console.log("🔄 MediaSoup tracks are live, forcing ready state...");
+          ready = true;
+          break;
+        }
+      }
+    }
+    
+    if (!ready) {
+      console.warn("⚠️ Video never got ready, but continuing...");
+    }
+    
+    // Log final video element state
+    console.log("📊 Video element state after ready:", {
+      readyState: videoElement.readyState,
+      networkState: videoElement.networkState,
+      srcObject: !!videoElement.srcObject,
+      videoWidth: videoElement.videoWidth,
+      videoHeight: videoElement.videoHeight
+    });
+    
+    // Attempt to play the video
+    console.log("🎬 Attempting to play video...");
+    try {
+      await videoElement.play();
+      console.log("✅ Video playing successfully!");
+    } catch (error) {
+      console.error("❌ Video play failed:", error);
+      
+      // Try alternative play methods
+      await this.tryAlternativePlayMethod(videoElement);
     }
   }
 
@@ -4096,6 +4290,38 @@ async consume(transport: any, trackKind: any) {
     
     checkTestVideo();
   }
+
+  public debugStreamConnection(): void {
+  console.log("🔍 === COMPLETE STREAM DEBUG ===");
+  console.log("Stream ID:", this.liveStreamId);
+  console.log("Is RTMP Stream:", this.isRTMPStream);
+  console.log("Stream Key:", this.liveStreamKey);
+  
+  // Check socket connection
+  console.log("Socket connected:", this.isSocketConnected());
+  console.log("Socket ID:", this.socket?.id);
+  
+  // Check MediaSoup status
+  console.log("Device loaded:", !!(this.device as any)?.loaded);
+  console.log("Consumer transport:", !!this.consumerTransport);
+  console.log("Transport state:", (this.consumerTransport as any)?.connectionState);
+  
+  // Check consumers
+  console.log("Video consumer:", !!this.videoConsumer);
+  console.log("Audio consumer:", !!this.audioConsumer);
+  
+  // Check video element
+  const videoElement = this.target.nativeElement;
+  console.log("Video element:", {
+    exists: !!videoElement,
+    srcObject: !!videoElement?.srcObject,
+    readyState: videoElement?.readyState,
+    videoWidth: videoElement?.videoWidth,
+    videoHeight: videoElement?.videoHeight
+  });
+  
+  console.log("🔍 === END DEBUG ===");
+}
 
   // **NEW**: Create a test producer for debugging
   public async createTestProducer(): Promise<void> {

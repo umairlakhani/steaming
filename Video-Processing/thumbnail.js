@@ -44,51 +44,59 @@ const generateLiveStreamThumbnail = (streamingId) => {
     if (code === 0) {
       const userId = getLiveStreamingUser(streamingId);
       let { bucketId } = await userBucket(userId);
-      AWS.config.update({
-        accessKeyId: process.env.DIGITAL_OCEAN_ACCESS_KEY,
-        secretAccessKey: process.env.DIGITAL_OCEAN_SECRET_KEY,
-        endpoint: `https://${bucketId}.${process.env.USER_BUCKET_URL}`,
-        s3ForcePathStyle: true,
-      });
-      const spaces = new AWS.S3({
-        signatureVersion: "v4",
-        params: {
-          acl: "public-read",
+      
+      // **FIXED**: Use the exact same S3 configuration as videoProcessorServer.js
+      const { S3Client } = require("@aws-sdk/client-s3");
+      const { Upload } = require("@aws-sdk/lib-storage");
+      
+      const s3Client = new S3Client({
+        region: process.env.DO_BUCKET_REGION,
+        endpoint: `https://${process.env.DO_BUCKET_NAME}.${process.env.DO_BUCKET_REGION}.digitaloceanspaces.com`,
+        credentials: {
+          accessKeyId: process.env.DIGITAL_OCEAN_ACCESS_KEY,
+          secretAccessKey: process.env.DIGITAL_OCEAN_SECRET_KEY,
         },
+        forcePathStyle: true,
       });
       
-      
-      spaces.upload(
-        {
-          // Bucket: 'hls-video-storage',
-          Bucket: bucketId,
-          Key: `thumbnail/${streamingId}.jpg`,
+      const upload = new Upload({
+        client: s3Client,
+        params: {
+          Bucket: process.env.DO_BUCKET_NAME,
+          Key: `users/${bucketId}/thumbnail/${streamingId}.jpg`,
           Body: fs.createReadStream(`./thumbnail/${streamingId}.jpg`),
           ACL: "public-read",
         },
-        async function (err, data) {
-          
-          if (err) {
-            
-          } else {
-            
-            
-            const updated = await prisma.liveStreaming.update({
-              where: {
-                streamingId: streamingId,
-              },
-              data: {
-                thumbnail: data.Location,
-                // videoUrl: data.Location,
-                // processing: false,
-              },
-            });
-            
-            // console which video is uploaded
-            
-          }
-        }
+      });
+      
+      const result = await upload.done();
+      
+      // Convert to CDN URL (same as videoProcessorServer.js)
+      const cdnUrl = result.Location?.replace(
+        `${process.env.DO_BUCKET_REGION}`,
+        `${process.env.DO_BUCKET_REGION}.cdn`
       );
+      
+            const data = { ...result, Location: cdnUrl };
+      
+      if (data) {
+        console.log(data.Location, "check thumbnail data.Location");
+        console.log(streamingId, "check video id ");
+        
+        const updated = await prisma.liveStreaming.update({
+          where: {
+            streamingId: streamingId,
+          },
+          data: {
+            thumbnail: data.Location,
+            // videoUrl: data.Location,
+            // processing: false,
+          },
+        });
+        
+        console.log(updated, "updated");
+        console.log("thumbnail uploaded");
+      }
     } else {
       
     }

@@ -14,7 +14,7 @@ export const environment = {
   apiUrl: 'http://localhost:3005/api',
   streamUrl: 'http://localhost:3000/api',
   socketUrl:'http://localhost:3000',
-  socketUrlBe:'http://localhost:3005',
+  socketUrlBe:'http://localhost:3002',
   pollingInterVal:1000,
   thumbnailInterval:30000, //30 seconds
   // streamUrl: 'https://aws.mediapilot.io'
@@ -22,7 +22,7 @@ export const environment = {
 //  socketUrl: 'http://localhost:3000',
   // apiUrl: 'http://18.218.47.23:3000/api'
   // apiUrl: 'http://192.186.18.178:3000/api',
-  stripePublishableKey:"pk_test_51NrnTrKFGi76f8tn8sTMwlEaTbHYLLpFgdvYKYuTHqR5fW1wZG5r9Do2DaD0blQgbHxbdQgJQhFB8gV1POOtq2x400s1sVLPfn"
+  stripePublishableKey:"pk_test_51RiHFFRWs4pkwtsrrGDyMNV6P518lbXnJ1hNGUNTd63ZFwunCArgjLaEg26ALYePzWgmPhdXuLREkeB18AvZnPGE00aTHnKIK7",
   
 };
 
